@@ -22,4 +22,3 @@ void endless_loop();
 void endless_loop_print(uint64_t wait);
 
 #endif
-

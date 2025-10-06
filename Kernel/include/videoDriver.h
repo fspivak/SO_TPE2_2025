@@ -5,12 +5,12 @@
 
 #define WIDTH 80
 #define HEIGHT 25
-#define CHAR_EOF 4  // Ctrl+D
+#define CHAR_EOF 4 // Ctrl+D
 
 /**
  * @file videoDriver.h
  * @brief Video Driver for VGA Text Mode (80x25)
- * 
+ *
  * This driver writes directly to VGA text mode buffer at 0xB8000.
  * Each character takes 2 bytes: [character][attribute]
  */

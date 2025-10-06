@@ -1,5 +1,5 @@
-#include "stdint.h"
 #include "font.h"
 #include "lib.h"
+#include "stdint.h"
 
-void getClockTime(char * str);
+void getClockTime(char *str);

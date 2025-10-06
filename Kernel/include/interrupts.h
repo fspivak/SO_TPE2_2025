@@ -1,4 +1,4 @@
- /*
+/*
  *   interrupts.h
  *
  *  Created on: Apr 18, 2010
@@ -22,7 +22,6 @@ void _irq60Handler(void);
 void _exception0Handler(void);
 void _exception6Handler(void);
 
-
 void _cli(void);
 
 void _sti(void);
@@ -33,9 +32,9 @@ void picMasterMask(uint8_t mask);
 
 void picSlaveMask(uint8_t mask);
 
-//Termina la ejecución de la cpu.
+// Termina la ejecución de la cpu.
 void haltcpu(void);
 
-uint64_t * get_regs();
+uint64_t *get_regs();
 
 #endif /* INTERRUPS_H_ */
