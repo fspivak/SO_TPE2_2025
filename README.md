@@ -4,13 +4,26 @@ Proyecto de construcción de un núcleo de sistema operativo.
 
 ## Compilación
 ```bash
-make
+make              # Simple MM
+make buddy        # Buddy MM
 ```
 
 ## Ejecución
 ```bash
 ./run.sh
 ```
+
+## Git Hooks (Recomendado)
+Instalar pre-commit hook para validacion de codigo automatico
+```bash
+./git-hooks/install-hooks.sh
+```
+
+Esto nos protege de:
+- ✅ Commits con errores/warnings
+- ✅ Auto-format code con clang-format
+
+Leer`git-hooks/README.md` para mas detalles.
 
 ## Estado del Proyecto
 
