@@ -1,0 +1,26 @@
+# Binarios
+*.o
+*.bin
+*.elf
+
+# Imágenes del sistema (se generan con make)
+Image/*.img
+Image/*.vmdk
+Image/*.qcow2
+
+# Build artifacts
+packedKernel.bin
+kernel.bin
+*.img
+
+# Editor
+.vscode/
+.idea/
+
+# Temporales
+*.swp
+*.swo
+*~
+
+# Docs
+docs/
