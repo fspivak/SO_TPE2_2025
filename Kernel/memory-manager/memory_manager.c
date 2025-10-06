@@ -5,163 +5,159 @@
 /* Instancia global del memory manager */
 MemoryManagerADT memory_manager;
 
-/**
- * @brief Estructura que representa un fragmento de memoria
- */
-typedef struct {
-    void *start;         /* Direccion de inicio del bloque */
-    uint64_t size;       /* Tamaño del bloque */
-    uint8_t used;        /* 1 = ocupado, 0 = libre */
-} MemoryFragment;
+/* Tamaño de bloque fijo: 1024 bytes (2^10) */
+#define BLOCK_SIZE 1024
+#define MAX_BLOCKS 8192  /* Suficiente para ~8MB */
 
-/**
- * @brief Estructura interna del Memory Manager Simple
- */
-struct MemoryManagerCDT {
-    void *start_of_memory;         /* Inicio de la memoria administrada */
-    MemoryFragment *page_frames;   /* Array de fragmentos */
-    uint32_t page_frames_dim;      /* Cantidad de fragmentos */
-    HeapState info;                /* Informacion del estado */
+struct MemoryManagerCDT
+{
+    uint8_t *start;              /* Inicio de memoria administrada */
+    uint32_t total_blocks;       /* Total de bloques disponibles */
+    uint32_t used_blocks;        /* Bloques en uso */
+    uint8_t *bitmap;             /* Bitmap: 0=libre, 1-3=usado (color) */
+    HeapState info;
 };
 
-/* Inicializa el memory manager simple */
 MemoryManagerADT memory_manager_init(void *manager_memory, void *managed_memory)
 {
-    MemoryManagerADT new_mm = (MemoryManagerADT) manager_memory;
+    MemoryManagerADT mm = (MemoryManagerADT) manager_memory;
     
-    /* Alinear direccion de memoria administrada a 8 bytes */
+    /* Alinear memoria administrada */
     uint64_t managed_addr = (uint64_t)managed_memory;
     uint64_t aligned_addr = (managed_addr + 7) & ~7;
-
-    new_mm->start_of_memory = (void *)aligned_addr;
     
-    /* Inicializar array de fragmentos (justo despues de la estructura CDT) */
-    new_mm->page_frames = (MemoryFragment*)(manager_memory + sizeof(struct MemoryManagerCDT));
-    new_mm->page_frames_dim = 0;
-    new_mm->page_frames[0].start = new_mm->start_of_memory;
-    new_mm->page_frames[0].size = 0;
-    new_mm->page_frames[0].used = 0;
-
-    /* Inicializar informacion del heap */
-    /* Calcular memoria disponible real: desde managed_memory hasta MEMORY_END */
-    uint64_t available_memory = MEMORY_END - (uint64_t)managed_memory;
-    new_mm->info.total_memory = available_memory;
-    new_mm->info.used_memory = 0;
-    new_mm->info.free_memory = available_memory;
+    mm->start = (uint8_t *)aligned_addr;
     
-    /* Copiar tipo de MM */
+    /* Calcular cuantos bloques de 1024 bytes caben */
+    uint64_t available = MEMORY_END - aligned_addr;
+    uint64_t bitmap_size = (available / BLOCK_SIZE) / 8 + 1;  /* 1 bit por bloque */
+    
+    /* Bitmap inmediatamente despues de la estructura */
+    mm->bitmap = (uint8_t *)(manager_memory + sizeof(struct MemoryManagerCDT));
+    
+    /* Ajustar memoria disponible (restar bitmap) */
+    mm->start = (uint8_t *)(aligned_addr + bitmap_size);
+    available = MEMORY_END - (uint64_t)mm->start;
+    mm->total_blocks = available / BLOCK_SIZE;
+    
+    if (mm->total_blocks > MAX_BLOCKS) {
+        mm->total_blocks = MAX_BLOCKS;
+    }
+    
+    mm->used_blocks = 0;
+    
+    /* Inicializar bitmap (0 = libre) */
+    for (uint32_t i = 0; i < mm->total_blocks; i++) {
+        mm->bitmap[i] = 0;
+    }
+    
+    /* Info del heap */
+    mm->info.total_memory = mm->total_blocks * BLOCK_SIZE;
+    mm->info.used_memory = 0;
+    mm->info.free_memory = mm->info.total_memory;
+    
     const char *type = "simple";
     for (int i = 0; i < 6 && type[i]; i++) {
-        new_mm->info.mm_type[i] = type[i];
+        mm->info.mm_type[i] = type[i];
     }
-    new_mm->info.mm_type[6] = '\0';
+    mm->info.mm_type[6] = '\0';
     
-    return new_mm;
+    return mm;
 }
 
-/* Reserva un bloque de memoria */
-void *memory_alloc(MemoryManagerADT self, const uint64_t size)
+void * memory_alloc(MemoryManagerADT self, const uint64_t size)
 {
-    if (size == 0) {
+    if (size == 0 || size > self->info.total_memory)
+    {
         return NULL;
     }
-
-    /* Alinear tamaño a 8 bytes */
-    uint64_t aligned_size = (size + 7) & ~7;
     
-    uint32_t i = 0;
-    void *toReturn = NULL;
+    /* Calcular cuantos bloques necesitamos */
+    uint32_t blocks_needed = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
     
-    /* buscar bloque libre o crear uno nuevo */
-    while (toReturn == NULL)
+    if (blocks_needed > self->total_blocks - self->used_blocks) {
+        return NULL;
+    }
+    
+    /* Buscar bloques contiguos libres */
+    uint32_t start_block = 0;
+    uint32_t free_count = 0;
+    
+    for (uint32_t i = 0; i < self->total_blocks; i++)
     {
-        /* Saltar bloques usados */
-        while (i < self->page_frames_dim && self->page_frames[i].used == 1)
+        if (self->bitmap[i] == 0)  /* Bloque libre */
         {
-            i++;
-        }
-        
-        if (self->page_frames[i].start > (void *)MEMORY_END)
-        {
-            return NULL;
-        }
-        
-        /* Si llegamos al final o encontramos un bloque suficientemente grande */
-        if (i == self->page_frames_dim || self->page_frames[i].size >= aligned_size)
-        {
-            if (i == self->page_frames_dim)
-            {
-                /* Crear nuevo bloque al final */
-                uint64_t start_addr = (uint64_t)self->page_frames[i].start;
-                uint64_t aligned_start = (start_addr + 7) & ~7;
-                
-                self->page_frames[i].start = (void *)aligned_start;
-                self->page_frames[i].size = aligned_size;
-                
-                /* Preparar el siguiente fragmento para el proximo malloc */
-                self->page_frames[i+1].start = (void *)(aligned_start + aligned_size);
-                
-                self->page_frames_dim++;
+            if (free_count == 0) {
+                start_block = i;
             }
+            free_count++;
             
-            /* Re-alinear si es necesario (para bloques reutilizados) */
-            uint64_t addr = (uint64_t)self->page_frames[i].start;
-            uint64_t aligned_addr = (addr + 7) & ~7;
-            
-            if (aligned_addr != addr)
+            if (free_count == blocks_needed)
             {
-                uint64_t offset = aligned_addr - addr;
-                self->page_frames[i].start = (void *)aligned_addr;
-                self->page_frames[i].size -= offset;
+                /* Encontramos suficientes bloques contiguos */
+                /* Marcar como usados (color 1 por simplicidad) */
+                for (uint32_t j = start_block; j < start_block + blocks_needed; j++)
+                {
+                    self->bitmap[j] = 1;
+                }
+                
+                self->used_blocks += blocks_needed;
+                self->info.used_memory += blocks_needed * BLOCK_SIZE;
+                self->info.free_memory = self->info.total_memory - self->info.used_memory;
+                
+                /* Retornar puntero al primer bloque */
+                return (void *)(self->start + (start_block * BLOCK_SIZE));
             }
-            
-            toReturn = self->page_frames[i].start;
-            self->page_frames[i].used = 1;
-            self->info.used_memory += self->page_frames[i].size;
-            self->info.free_memory = self->info.total_memory - self->info.used_memory;
         }
         else
         {
-            /* Bloque muy pequeño, seguir buscando */
-            i++;
+            /* Bloque ocupado, resetear contador */
+            free_count = 0;
         }
     }
     
-    return toReturn;
+    /* No se encontraron suficientes bloques contiguos */
+    return NULL;
 }
 
-/* Libera un bloque de memoria */
 int memory_free(MemoryManagerADT self, void *ptr)
 {
-    if (ptr == NULL) {
+    if (ptr == NULL || ptr < (void *)self->start)
+    {
         return -1;
     }
-
-    /* Buscar el fragmento correspondiente */
-    for (uint32_t i = 0; i < self->page_frames_dim; i++)
+    
+    /* Calcular indice del bloque */
+    uint64_t offset = (uint64_t)ptr - (uint64_t)self->start;
+    uint32_t block_index = offset / BLOCK_SIZE;
+    
+    if (block_index >= self->total_blocks || self->bitmap[block_index] == 0)
     {
-        if (self->page_frames[i].start == ptr)
-        {
-            if (self->page_frames[i].used == 0) {
-                /* Ya estaba libre - double free */
-                return -1;
-            }
-            
-            self->page_frames[i].used = 0;
-            self->info.used_memory -= self->page_frames[i].size;
-            self->info.free_memory = self->info.total_memory - self->info.used_memory;
-            return 0;
-        }
+        return -1;  /* Bloque invalido o ya libre */
     }
     
-    /* Puntero no encontrado */
-    return -1;
+    /* Liberar todos los bloques contiguos con el mismo color */
+    uint8_t color = self->bitmap[block_index];
+    uint32_t freed = 0;
+    
+    while (block_index < self->total_blocks && self->bitmap[block_index] == color)
+    {
+        self->bitmap[block_index] = 0;
+        block_index++;
+        freed++;
+    }
+    
+    self->used_blocks -= freed;
+    self->info.used_memory -= freed * BLOCK_SIZE;
+    self->info.free_memory = self->info.total_memory - self->info.used_memory;
+    
+    return 0;
 }
 
-/* Obtiene el estado actual de la memoria */
-void memory_state_get(MemoryManagerADT self, HeapState *state)
+void memory_state_get(MemoryManagerADT self, HeapState * state)
 {
-    if (state == NULL) {
+    if (state == NULL)
+    {
         return;
     }
 
@@ -169,12 +165,10 @@ void memory_state_get(MemoryManagerADT self, HeapState *state)
     state->used_memory = self->info.used_memory;
     state->free_memory = self->info.free_memory;
 
-    /* Copiar tipo de MM */
-    for (size_t i = 0; i < 6 && self->info.mm_type[i]; i++) {
+    for (size_t i = 0; i < 6; i++)
+    {
         state->mm_type[i] = self->info.mm_type[i];
     }
-    state->mm_type[6] = '\0';
 }
 
-#endif /* BUDDY_MM */
-
+#endif

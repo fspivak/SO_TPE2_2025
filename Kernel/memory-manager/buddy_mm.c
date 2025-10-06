@@ -154,7 +154,7 @@ MemoryManagerADT memory_manager_init(void *manager_memory, void *managed_memory)
 /* Reserva un bloque de memoria usando Buddy System */
 void *memory_alloc(MemoryManagerADT self, const uint64_t size)
 {
-    if (size <= 0 || size > MEMORY_SIZE) {
+    if (size == 0 || size > MEMORY_SIZE) {
         return NULL;
     }
 
@@ -193,6 +193,12 @@ void *memory_alloc(MemoryManagerADT self, const uint64_t size)
 
     /* Tomar bloque de la lista de libres */
     block_t *block = self->free_blocks[order];
+    
+    /* Verificar que efectivamente hay un bloque disponible */
+    if (block == NULL) {
+        return NULL;
+    }
+    
     remove_block(self, block);
     block->status = OCCUPIED;
 

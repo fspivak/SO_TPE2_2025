@@ -4,8 +4,9 @@
 #include "include/screen.h"
 #include "include/snake.h"
 #include "include/libasmUser.h"
-#include "include/test_util.h"
+#include "tests/include/test_util.h"
 #include <stdint.h>
+#include <stddef.h>
 
 #define STARTING_POSITION_X 0
 #define STARTING_POSITION_Y 0
@@ -98,7 +99,9 @@ void terminal(){
             }
             else if(!strcmp(buffer, "testmm")){
                 print("Ejecutando test_mm con 1MB de memoria...\n");
-                test_mm(1024 * 1024);  /* 1 MB */
+                /* test_mm recibe argc y argv[] */
+                char *argv[] = {"1048576", NULL};  /* 1024*1024 bytes = 1MB */
+                test_mm(1, argv);
             }
             else if(i > 0){  /* Solo mostrar error si se escribio algo */
                 print("Command '");
