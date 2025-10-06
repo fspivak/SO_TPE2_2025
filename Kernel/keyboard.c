@@ -1,5 +1,4 @@
-#include <keyboard.h>
-#include <videoDriver.h>
+#include "include/keyboard.h"
 
 #define BACKSPACE_P 0x0E
 #define ENTER_P 0x1C
@@ -57,12 +56,17 @@ int isUpperCase(){
     return (upperCase)?!shift:shift;
 }
 
+int isShiftPressed(){
+    return shift;
+}
+
 int isSpecialKey(char scancode) {
+    unsigned char key = (unsigned char)scancode;  /* Evitar warning de signed */
     return 
-    (scancode == LSHIFT_P)    || (scancode == RSHIFT_P)     || 
-    (scancode == LCTRL_P)     || (scancode == RCTRL_P)      || 
-    (scancode == LALT_P)      || (scancode == RALT_P)       ||
-    (scancode == CAPSLOCK_P)  || (scancode == ESC_P)        ||
-    (scancode == 0x57)      || (scancode == 0x58)       ||
-    (scancode >= 0x3B) || (scancode<=1);
+    (key == LSHIFT_P)    || (key == RSHIFT_P)     || 
+    (key == LCTRL_P)     || (key == RCTRL_P)      || 
+    (key == LALT_P)      || (key == RALT_P)       ||
+    (key == CAPSLOCK_P)  || (key == ESC_P)        ||
+    (key == 0x57)        || (key == 0x58)         ||
+    (key >= 0x3B)        || (key <=1);
 }

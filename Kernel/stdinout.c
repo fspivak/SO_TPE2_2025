@@ -64,6 +64,31 @@ char conversionArray[]= {
     [0x3A] = -1,   // CapsLock no es imprimible
     };
 
+/* Tabla de conversion con Shift presionado */
+char shiftConversionArray[]= { 
+    [0x02] = '!',
+    [0x03] = '@',
+    [0x04] = '#',
+    [0x05] = '$',
+    [0x06] = '%',
+    [0x07] = '^',
+    [0x08] = '&',
+    [0x09] = '*',
+    [0x0A] = '(',
+    [0x0B] = ')',
+    [0x0C] = '_',
+    [0x0D] = '+',
+    [0x1A] = '{',
+    [0x1B] = '}',
+    [0x27] = ':',
+    [0x28] = '"',
+    [0x29] = '~',
+    [0x2B] = '|',
+    [0x33] = '<',
+    [0x34] = '>',
+    [0x35] = '?',
+    };
+
 /* Obtiene el ultimo caracter del buffer de entrada, devuelve -1 si no hay */
 char getChar(){
     _sti();
@@ -71,12 +96,26 @@ char getChar(){
     do{
         letter=getKey();
     }while(letter==-1 || conversionArray[letter]==-1);
+    
+    /* Si shift esta presionado y hay mapeo especial, usarlo */
+    if (isShiftPressed() && shiftConversionArray[letter] != 0) {
+        return shiftConversionArray[letter];
+    }
+    
+    /* Sino, usar conversion normal (mayusculas para letras) */
     return (isUpperCase() && letter!=-1 && conversionArray[letter]<='z' && conversionArray[letter]>='a')?conversionArray[letter]-('a'-'A'):(letter!=-1)?conversionArray[letter]:letter;
 }
 
 char getcharNonLoop(){
     _sti();
     char letter=getKey();
+    
+    /* Si shift esta presionado y hay mapeo especial, usarlo */
+    if (isShiftPressed() && shiftConversionArray[letter] != 0) {
+        return shiftConversionArray[letter];
+    }
+    
+    /* Sino, usar conversion normal */
     return (isUpperCase() && letter!=-1 && conversionArray[letter]<='z' && conversionArray[letter]>='a')?conversionArray[letter]-('a'-'A'):(letter!=-1)?conversionArray[letter]:letter;
 }
 
