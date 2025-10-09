@@ -25,6 +25,7 @@ GLOBAL get_regs
 EXTERN irqDispatcher
 EXTERN exceptionDispatcher
 EXTERN syscallDispatcher
+EXTERN scheduler
 
 EXTERN getStackBase
 EXTERN printRegistros
@@ -227,9 +228,24 @@ picSlaveMask:
     retn
 
 
-;8254 Timer (Timer Tick)
+;8254 Timer (Timer Tick) con scheduler
 _irq00Handler:
-	irqHandlerMaster 0
+	pushState
+	
+	mov rdi, 0 ; parametro: IRQ number
+	call irqDispatcher
+	
+	; Llamar al scheduler con el stack pointer actual
+	mov rdi, rsp
+	call scheduler
+	mov rsp, rax  ; Cambiar al stack del siguiente proceso
+	
+	; signal pic EOI (End of Interrupt)
+	mov al, 20h
+	out 20h, al
+	
+	popState
+	iretq
 
 ;Keyboard
 _irq01Handler:

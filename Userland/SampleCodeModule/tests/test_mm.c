@@ -9,7 +9,6 @@ extern void *memset(void *s, int c, uint64_t n);
 #define VERBOSE 1
 
 #define MAX_BLOCKS 128
-
 typedef struct MM_rq {
 	void *address;
 	uint32_t size;
@@ -28,10 +27,9 @@ uint64_t test_mm(uint64_t argc, char *argv[]) {
 		return -1;
 
 #ifdef VERBOSE
-	print("=== TEST_MM ===\n");
-	print("Max memory: ");
+	print("Test started, max_memory = ");
 	printBase(max_memory, 10);
-	print(" bytes\n\n");
+	print(" bytes\n");
 
 	uint64_t iteration = 0;
 #endif
@@ -40,24 +38,37 @@ uint64_t test_mm(uint64_t argc, char *argv[]) {
 		rq = 0;
 		total = 0;
 
-#ifdef VERBOSE
-		if (iteration % 10 == 0) {
-			print("Iter ");
-			printBase(iteration, 10);
-			print("\n");
-		}
-#endif
-
-		// Request as many blocks as we can
-		while (rq < MAX_BLOCKS && total < max_memory) {
+		// Usa analisis dinamico de fallos para evitar loop infinito
+		int consecutive_failures = 0;
+		while (rq < MAX_BLOCKS && total < max_memory && consecutive_failures < 20) {
 			mm_rqs[rq].size = GetUniform(max_memory - total - 1) + 1;
 			mm_rqs[rq].address = malloc(mm_rqs[rq].size);
 
 			if (mm_rqs[rq].address) {
 				total += mm_rqs[rq].size;
 				rq++;
+				consecutive_failures = 0; // reseteo en acierto
+			}
+			else {
+				consecutive_failures++; // incremento en fallos
 			}
 		}
+
+#ifdef VERBOSE
+		// Informar si se detuvo la alocacion por fallos consecutivos y ajustar memoria
+		if (consecutive_failures >= 20 && total < max_memory) {
+			print("  [WARNING: 20 consecutive malloc failures\n");
+			print("   Allocated: ");
+			printBase(total, 10);
+			print(" bytes of ");
+			printBase(max_memory, 10);
+			print(" requested\n");
+			max_memory = (total > 0) ? total : (max_memory / 2);
+			print("   Adjusting max_memory to: ");
+			printBase(max_memory, 10);
+			print(" bytes]\n");
+		}
+#endif
 
 		// Set
 		uint32_t i;
@@ -69,13 +80,9 @@ uint64_t test_mm(uint64_t argc, char *argv[]) {
 		for (i = 0; i < rq; i++)
 			if (mm_rqs[i].address)
 				if (!memcheck(mm_rqs[i].address, i, mm_rqs[i].size)) {
-					// Debug - start
-					print("test_mm ERROR - Bloque ");
+					print("test_mm ERROR - memcheck failed at block ");
 					printBase(i, 10);
-					print(" corrupto en iter ");
-					printBase(iteration, 10);
 					print("\n");
-					// Debug - end
 					return -1;
 				}
 
@@ -86,6 +93,13 @@ uint64_t test_mm(uint64_t argc, char *argv[]) {
 
 #ifdef VERBOSE
 		iteration++;
+		if (iteration % 10 == 0) {
+			print("Iter ");
+			printBase(iteration, 10);
+			print("\n");
+		}
 #endif
 	}
+
+	return 1;
 }

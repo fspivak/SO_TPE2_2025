@@ -4,6 +4,7 @@
 #include "include/stdinout.h"
 #include "include/videoDriver.h"
 #include "memory-manager/include/memory_manager.h"
+#include "scheduler/include/scheduler.h"
 #include <stdint.h>
 #include <string.h>
 
@@ -100,6 +101,11 @@ int main() {
 
 	/* Cargar IDT */
 	load_idt();
+
+	/* Inicializar Scheduler y Procesos */
+	vd_print("[Initializing Scheduler]\n");
+	init_scheduler();
+	vd_print("[Done]\n\n");
 
 	/* Saltar a userland */
 	((EntryPoint) sampleCodeModuleAddress)();

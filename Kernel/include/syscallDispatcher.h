@@ -1,4 +1,5 @@
 #include "../memory-manager/include/memory_manager.h"
+#include "../scheduler/include/process.h"
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -23,3 +24,14 @@ void sys_impRegs();
 void *sys_malloc(uint64_t size);
 int sys_free(void *ptr);
 void sys_mem_status(HeapState *state);
+
+/* Process syscalls */
+process_id_t sys_create_process(const char *name, void (*entry_point)(int, char **), int argc, char **argv,
+								uint8_t priority);
+process_id_t sys_getpid();
+int sys_kill(process_id_t pid);
+int sys_block(process_id_t pid);
+int sys_unblock(process_id_t pid);
+int sys_nice(process_id_t pid, uint8_t new_priority);
+void sys_yield();
+int sys_ps(ProcessInfo *buffer, int max_processes);

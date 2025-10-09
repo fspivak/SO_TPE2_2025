@@ -1,42 +1,42 @@
-# Git Hooks - Installation
+# Git Hooks - Instalacion
 
-## Quick Install
+## Instalacion Rapida
 
 ```bash
 ./git-hooks/install-hooks.sh
 ```
 
-## What Gets Installed
+## Que Se Instala
 
-### pre-commit Hook
+### Hook pre-commit
 
-**Runs before each commit:**
-1. ✅ Compiles entire project
-2. ✅ Checks for errors → Blocks commit if found
-3. ✅ Checks for warnings → Blocks commit if found
-4. ✅ Formats code with clang-format
-5. ✅ Stages formatted files
-6. ✅ Allows commit to proceed
+**Se ejecuta antes de cada commit:**
+1. ✅ Compila todo el proyecto
+2. ✅ Verifica errores → Bloquea commit si encuentra
+3. ✅ Verifica warnings → Bloquea commit si encuentra
+4. ✅ Formatea codigo con clang-format
+5. ✅ Hace stage de archivos formateados
+6. ✅ Permite que el commit proceda
 
-## Skip Hook (One Time)
+## Saltar Hook (Una Vez)
 
 ```bash
-git commit --no-verify -m "WIP: quick save"
+git commit --no-verify -m "WIP: guardado rapido"
 ```
 
-## Disable Hook Permanently
+## Deshabilitar Hook Permanentemente
 
 ```bash
 chmod -x .git/hooks/pre-commit
 ```
 
-## Re-enable Hook
+## Rehabilitar Hook
 
 ```bash
 chmod +x .git/hooks/pre-commit
 ```
 
-## More Info
+## Mas Informacion
 
-See: `docs/GIT_HOOKS.md`
+Ver: `docs/GIT_HOOKS.md`
 

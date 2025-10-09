@@ -5,15 +5,31 @@
 /* Instancia global del memory manager */
 MemoryManagerADT memory_manager;
 
-/* Tamaño de bloque fijo: 1024 bytes (2^10) */
+/* Tamaño de bloque fijo: 1024 */
 #define BLOCK_SIZE 1024
 #define MAX_BLOCKS 8192 /* Suficiente para ~8MB */
+
+/* Sistema de "colores" con contadores */
+static uint8_t allocation_counter = 1; // Empieza en 1
+
+/**
+ * @brief Obtiene el siguiente "color" de alocación usando contador cíclico
+ * @return Color unico para la nueva alocación (1, 2, o 3)
+ */
+static uint8_t get_next_allocation_color(void) {
+	uint8_t current_color = allocation_counter;
+	allocation_counter++;
+	if (allocation_counter > 3) {
+		allocation_counter = 1;
+	}
+	return current_color;
+}
 
 struct MemoryManagerCDT {
 	uint8_t *start;		   /* Inicio de memoria administrada */
 	uint32_t total_blocks; /* Total de bloques disponibles */
 	uint32_t used_blocks;  /* Bloques en uso */
-	uint8_t *bitmap;	   /* Bitmap: 0=libre, 1-3=usado (color) */
+	uint8_t *bitmap;	   /* Bitmap: 0=libre, 1-3=usado */
 	HeapState info;
 };
 
@@ -54,7 +70,7 @@ MemoryManagerADT memory_manager_init(void *manager_memory, void *managed_memory)
 	mm->info.used_memory = 0;
 	mm->info.free_memory = mm->info.total_memory;
 
-	const char *type = "simple";
+	const char *type = "colors";
 	for (int i = 0; i < 6 && type[i]; i++) {
 		mm->info.mm_type[i] = type[i];
 	}
@@ -88,10 +104,10 @@ void *memory_alloc(MemoryManagerADT self, const uint64_t size) {
 			free_count++;
 
 			if (free_count == blocks_needed) {
-				/* Encontramos suficientes bloques contiguos */
-				/* Marcar como usados (color 1 por simplicidad) */
+				/* Marca como usado */
+				uint8_t allocation_color = get_next_allocation_color();
 				for (uint32_t j = start_block; j < start_block + blocks_needed; j++) {
-					self->bitmap[j] = 1;
+					self->bitmap[j] = allocation_color;
 				}
 
 				self->used_blocks += blocks_needed;

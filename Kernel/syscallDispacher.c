@@ -7,6 +7,7 @@
 #include "include/time.h"
 #include "include/videoDriver.h"
 #include "memory-manager/include/memory_manager.h"
+#include "scheduler/include/process.h"
 #include <stdarg.h>
 #include <stdint.h>
 
@@ -91,6 +92,71 @@ uint64_t syscallDispatcher(uint64_t rax, ...) {
 	}
 	else if (rax == 12) {
 		sys_impRegs();
+	}
+	/* Syscalls de procesos (Fase 3) */
+	else if (rax == 60) {
+		/* sys_create_process */
+		const char *name = va_arg(args, const char *);
+		void (*entry_point)(int, char **) = va_arg(args, void (*)(int, char **));
+		int argc = va_arg(args, int);
+		char **argv = va_arg(args, char **);
+		int priority_int = va_arg(args, int);
+		uint8_t priority = (uint8_t) priority_int;
+		process_id_t pid = sys_create_process(name, entry_point, argc, argv, priority);
+		va_end(args);
+		return (uint64_t) pid;
+	}
+	else if (rax == 61) {
+		/* sys_getpid */
+		process_id_t pid = sys_getpid();
+		va_end(args);
+		return (uint64_t) pid;
+	}
+	else if (rax == 62) {
+		/* sys_kill */
+		int pid_int = va_arg(args, int);
+		process_id_t pid = (process_id_t) pid_int;
+		int result = sys_kill(pid);
+		va_end(args);
+		return (uint64_t) result;
+	}
+	else if (rax == 63) {
+		/* sys_block */
+		int pid_int = va_arg(args, int);
+		process_id_t pid = (process_id_t) pid_int;
+		int result = sys_block(pid);
+		va_end(args);
+		return (uint64_t) result;
+	}
+	else if (rax == 64) {
+		/* sys_unblock */
+		int pid_int = va_arg(args, int);
+		process_id_t pid = (process_id_t) pid_int;
+		int result = sys_unblock(pid);
+		va_end(args);
+		return (uint64_t) result;
+	}
+	else if (rax == 65) {
+		/* sys_nice */
+		int pid_int = va_arg(args, int);
+		process_id_t pid = (process_id_t) pid_int;
+		int priority_int = va_arg(args, int);
+		uint8_t new_priority = (uint8_t) priority_int;
+		int result = sys_nice(pid, new_priority);
+		va_end(args);
+		return (uint64_t) result;
+	}
+	else if (rax == 66) {
+		/* sys_yield */
+		sys_yield();
+	}
+	else if (rax == 67) {
+		/* sys_ps */
+		ProcessInfo *buffer = va_arg(args, ProcessInfo *);
+		int max_processes = va_arg(args, int);
+		int count = sys_ps(buffer, max_processes);
+		va_end(args);
+		return (uint64_t) count;
 	}
 
 	va_end(args);
@@ -185,4 +251,71 @@ void sys_mem_status(HeapState *state) {
 	}
 
 	memory_state_get(memory_manager, state);
+}
+
+/* Syscalls de procesos */
+
+process_id_t sys_create_process(const char *name, void (*entry_point)(int, char **), int argc, char **argv,
+								uint8_t priority) {
+	/* Validar parametros */
+	if (entry_point == NULL) {
+		return -1;
+	}
+
+	return create_process(name, entry_point, argc, argv, priority);
+}
+
+process_id_t sys_getpid() {
+	return get_current_pid();
+}
+
+int sys_kill(process_id_t pid) {
+	/* Validar parametro */
+	if (pid <= 0) {
+		return -1;
+	}
+
+	return kill_process(pid);
+}
+
+int sys_block(process_id_t pid) {
+	/* Validar parametro */
+	if (pid <= 0) {
+		return -1;
+	}
+
+	return block_process(pid);
+}
+
+int sys_unblock(process_id_t pid) {
+	/* Validar parametro */
+	if (pid <= 0) {
+		return -1;
+	}
+
+	return unblock_process(pid);
+}
+
+int sys_nice(process_id_t pid, uint8_t new_priority) {
+	/* Validar parametros */
+	if (pid <= 0 || new_priority > MAX_PRIORITY) {
+		return -1;
+	}
+
+	return change_priority(pid, new_priority);
+}
+
+void sys_yield() {
+	/* Cede voluntariamente el CPU */
+	extern void force_context_switch();
+	force_context_switch();
+}
+
+int sys_ps(ProcessInfo *buffer, int max_processes) {
+	/* Validar parametros */
+	if (buffer == NULL || max_processes <= 0) {
+		return -1;
+	}
+
+	return get_processes_info(buffer, max_processes);
 }
