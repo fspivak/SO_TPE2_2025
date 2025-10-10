@@ -17,6 +17,16 @@ GLOBAL exit
 GLOBAL malloc
 GLOBAL free
 GLOBAL memStatus
+
+; Process syscalls
+GLOBAL create_process
+GLOBAL getpid
+GLOBAL kill_process
+GLOBAL block_process
+GLOBAL unblock_process
+GLOBAL set_process_priority
+GLOBAL yield_process
+GLOBAL ps_process
 ; EXTERN printRegistros
 
 section .text
@@ -178,6 +188,80 @@ memStatus:
     push rbp
     mov rbp, rsp
     mov rax, 52
+    int 80h
+    mov rsp, rbp
+    pop rbp
+    ret
+
+; ===== PROCESS SYSCALLS =====
+
+create_process:
+    push rbp
+    mov rbp, rsp
+    mov rax, 60
+    int 80h
+    mov rsp, rbp
+    pop rbp
+    ret
+
+getpid:
+    push rbp
+    mov rbp, rsp
+    mov rax, 61
+    int 80h
+    mov rsp, rbp
+    pop rbp
+    ret
+
+kill_process:
+    push rbp
+    mov rbp, rsp
+    mov rax, 62
+    int 80h
+    mov rsp, rbp
+    pop rbp
+    ret
+
+block_process:
+    push rbp
+    mov rbp, rsp
+    mov rax, 63
+    int 80h
+    mov rsp, rbp
+    pop rbp
+    ret
+
+unblock_process:
+    push rbp
+    mov rbp, rsp
+    mov rax, 64
+    int 80h
+    mov rsp, rbp
+    pop rbp
+    ret
+
+set_process_priority:
+    push rbp
+    mov rbp, rsp
+    mov rax, 65
+    int 80h
+    mov rsp, rbp
+    pop rbp
+    ret
+
+yield_process:
+    push rbp
+    mov rbp, rsp
+    mov rax, 66
+    int 80h
+    mov rsp, rbp
+    pop rbp
+    ret
+
+ps_process:
+    push rbp
+    mov rbp, rsp
+    mov rax, 67
     int 80h
     mov rsp, rbp
     pop rbp

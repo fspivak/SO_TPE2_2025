@@ -1,0 +1,67 @@
+set architecture i386:x86-64
+target remote localhost:1234
+add-symbol-file Kernel/kernel.bin 0x100000
+
+python
+import subprocess as sp
+import os
+
+NULLPROG = "sh -c 'while [ 1 = 1 ]; do sleep 1; done'"
+
+def tmux(*args):
+    return sp.check_output(['tmux'] + list(args)).decode('utf8')
+
+def set_title(tty, title):
+    with open(tty, 'ab') as t:
+        t.write(b'\x1b]2;' + title.encode('utf8') + b'\x1b\\')
+
+tmux('setw', 'remain-on-exit', 'on')
+gdb_pane, gdb_tty = tmux('display-message', '-p' , '-F', '#{pane_id},#{pane_tty}').strip().split(',')
+set_title(gdb_tty, 'gdb')
+
+dashboard_pane, dashboard_tty = tmux('split-window', '-d', '-h', '-P', '-F', '#{pane_id},#{pane_tty}', NULLPROG).strip().split(',')
+sp.check_call(['stty', '--file', dashboard_tty, '-echo'])
+set_title(dashboard_tty, 'dashboard')
+gdb.execute(f'dashboard -output {dashboard_tty}')
+
+app_pane, app_tty = tmux('split-window', '-d', '-v', '-P', '-F', '#{pane_id},#{pane_tty}', NULLPROG).strip().split(',')
+set_title(app_tty, 'inferior')
+gdb.execute(f'set inferior-tty {app_tty}')
+
+end
+
+dashboard -layout source assembly registers stack
+dashboard -enabled on
+dashboard -style syntax_highlighting 'monokai'
+
+# make sure dashboard output is updated when gdb state changes
+define hookpost-up
+dashboard
+end
+define hookpost-down
+dashboard
+end
+define hookpost-thread
+dashboard
+end
+define hookpost-delete
+dashboard
+end
+define hookpost-clear
+dashboard
+end
+define hookpost-break
+dashboard
+end
+
+define src-prof
+    dashboard -layout source expressions stack variables
+    dashboard source -style height 20
+end
+
+define asm-prof
+    dashboard -layout registers assembly memory stack
+    dashboard registers -style list 'rax rbx rcx rdx rsi rdi rbp rsp r8 r9 r10 r11 r12 r13 r14 r15 rip eflags cs ss ds es fs gs fs_base gs_base k_gs_base cr0 cr2 cr3 cr4 cr8 efer'
+end
+
+# vim: set ft=python:

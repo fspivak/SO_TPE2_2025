@@ -10,7 +10,7 @@ extern void idle_process();
 static PCB process_table[MAX_PROCESSES];
 static PCB *current_process = NULL;
 static PCB *idle_pcb = NULL;
-static process_id_t next_pid = 0;
+static process_id_t next_pid = 1; // Empezar en 1, PID 0 es reservado para idle
 static int initialized_flag = 0;
 
 // Referencia externa al memory manager
@@ -27,16 +27,29 @@ int init_processes() {
 
 	// Inicializar tabla de procesos
 	for (int i = 0; i < MAX_PROCESSES; i++) {
+		// Limpia completamente la estructura para evitar datos basura
+		for (int j = 0; j < sizeof(PCB); j++) {
+			((char *) &process_table[i])[j] = 0;
+		}
+
 		process_table[i].state = TERMINATED;
-		process_table[i].pid = 0;
+		process_table[i].pid = -1; // -1 indica slot libre
+		process_table[i].priority = 0;
+		process_table[i].quantum_count = 0;
 		process_table[i].stack_base = NULL;
+		process_table[i].stack_pointer = NULL;
+
+		// Limpiar nombre
+		for (int j = 0; j < MAX_PROCESS_NAME; j++) {
+			process_table[i].name[j] = '\0';
+		}
 	}
 
 	// Crear proceso idle (PID 0)
 	idle_pcb = &process_table[0];
-	idle_pcb->pid = next_pid++;
+	idle_pcb->pid = 0; // Idle siempre es PID 0
 	idle_pcb->state = READY;
-	idle_pcb->priority = MAX_PRIORITY; // Prioridad mas baja
+	idle_pcb->priority = 0; // Prioridad mas alta
 	idle_pcb->quantum_count = 0;
 
 	// Copiar nombre
@@ -213,7 +226,10 @@ int get_processes_info(ProcessInfo *buffer, int max_processes) {
 
 	int count = 0;
 	for (int i = 0; i < MAX_PROCESSES && count < max_processes; i++) {
-		if (process_table[i].state != TERMINATED) {
+		// Solo incluir procesos validos (no terminados, PID valido, y nombre valido)
+		if (process_table[i].state != TERMINATED && process_table[i].pid >= 0 && process_table[i].pid < 10000 &&
+			process_table[i].name[0] != '\0' && process_table[i].name[0] >= 32 &&
+			process_table[i].name[0] <= 126) { // Solo caracteres imprimibles ASCII
 			buffer[count].pid = process_table[i].pid;
 
 			// Copiar nombre
@@ -267,7 +283,13 @@ void free_terminated_processes() {
 		if (process_table[i].state == TERMINATED && process_table[i].stack_base != NULL) {
 			memory_free(memory_manager, process_table[i].stack_base);
 			process_table[i].stack_base = NULL;
-			process_table[i].pid = 0;
+			process_table[i].stack_pointer = NULL;
+			process_table[i].pid = -1; // Marcar como slot libre
+
+			// Limpiar nombre para evitar datos basura
+			for (int j = 0; j < MAX_PROCESS_NAME; j++) {
+				process_table[i].name[j] = '\0';
+			}
 		}
 	}
 }

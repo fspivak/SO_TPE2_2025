@@ -14,6 +14,7 @@
 #define MAX_ZOOM 3
 #define MIN_ZOOM 1
 
+/* Configuracion de pantalla por zoom level */
 int charsPerLine[] = {128, 64, 42};
 int charSize = 1;
 int screenWidth;
@@ -80,6 +81,12 @@ void terminal() {
 			else if (!strcmp(buffer, "showRegisters")) {
 				imprimirRegistros();
 			}
+			else if (!strcmp(buffer, "ps")) {
+				list_processes();
+			}
+			else if (!strcmp(buffer, "getpid")) {
+				show_current_pid();
+			}
 			else if (!strcmp(buffer, "exit")) {
 				print("Goodbye!\n");
 				sound(2);
@@ -137,6 +144,9 @@ void clean(int ammount) {
 	}
 }
 
+/**
+ * @brief Muestra la ayuda del terminal con comandos disponibles
+ */
 void help() {
 	print("\n=== Available Commands ===\n\n");
 	print("General:\n");
@@ -149,6 +159,9 @@ void help() {
 	print("  test_mm           - Run memory manager test (default: 1MB)\n");
 	print("  test_mm <size>    - Run memory manager test with custom size\n");
 	print("                      Example: test_mm 2097152 (2MB)\n");
+	print("\nProcess Management:\n");
+	print("  ps                - List all running processes\n");
+	print("  getpid            - Show current process ID\n");
 	print("\n");
 }
 
@@ -158,4 +171,128 @@ void refreshScreen() {
 			putPixel(0, j, i);
 		}
 	}
+}
+
+/**
+ * @brief Muestra el PID del proceso actual
+ */
+void show_current_pid() {
+	int pid = getpid();
+	print("Current PID: ");
+	printBase(pid, 10);
+	print("\n");
+}
+
+/**
+ * @brief Lista todos los procesos activos en el sistema
+ */
+void list_processes() {
+	/* Definir estructura ProcessInfo local */
+	typedef struct {
+		uint16_t pid;
+		char name[32];
+		uint8_t priority;
+		uint64_t stack_base;
+		uint64_t rsp;
+		char state_name[16];
+	} ProcessInfo;
+
+	ProcessInfo processes[64]; /* Buffer para hasta 64 procesos */
+	int count = ps_process(processes, 64);
+
+	if (count <= 0) {
+		print("No processes found or error occurred\n");
+		return;
+	}
+
+	print("\nActive Processes:\n");
+	print_padded("PID", 6);
+	print_padded("Name", 12);
+	print_padded("Priority", 10);
+	print_padded("State", 12);
+	print_padded("Stack Base", 14);
+	print("RSP\n");
+	print("----------------------------------------------------------------\n");
+
+	for (int i = 0; i < count; i++) {
+		/* PID */
+		print_int_padded(processes[i].pid, 6);
+
+		/* Name */
+		print_padded(processes[i].name, 12);
+
+		/* Priority */
+		print_int_padded(processes[i].priority, 10);
+
+		/* State */
+		print_padded(processes[i].state_name, 12);
+
+		/* Stack Base */
+		print("0x");
+		printBase(processes[i].stack_base, 16);
+		print("  ");
+
+		/* RSP */
+		print("0x");
+		printBase(processes[i].rsp, 16);
+		print("\n");
+	}
+
+	print("----------------------------------------------------------------\n");
+	print("Total processes: ");
+	printBase(count, 10);
+	print("\n\n");
+}
+
+/**
+ * @brief Imprime una cadena y la rellena con espacios hasta un ancho dado
+ * @param str La cadena a imprimir
+ * @param width El ancho total deseado para la columna
+ */
+void print_padded(const char *str, int width) {
+	int len = 0;
+	while (str[len] != '\0' && len < 100)
+		len++; // Evitar overflow
+
+	print((char *) str);
+	for (int i = len; i < width; i++) {
+		print(" ");
+	}
+}
+
+/**
+ * @brief Imprime un entero y lo rellena con espacios hasta un ancho dado
+ * @param value El valor entero a imprimir
+ * @param width El ancho total deseado para la columna
+ */
+void print_int_padded(int value, int width) {
+	char buffer[20];
+	int pos = 0;
+
+	// Convertir entero a string
+	if (value == 0) {
+		buffer[pos++] = '0';
+	}
+	else {
+		int temp = value;
+		if (temp < 0) {
+			buffer[pos++] = '-';
+			temp = -temp;
+		}
+
+		char digits[20];
+		int digit_count = 0;
+		while (temp > 0) {
+			digits[digit_count++] = '0' + (temp % 10);
+			temp /= 10;
+		}
+
+		// Invertir los dígitos
+		for (int i = digit_count - 1; i >= 0; i--) {
+			buffer[pos++] = digits[i];
+		}
+	}
+	buffer[pos] = '\0';
+
+	print_padded(buffer, width);
 }

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+base_dir=$(dirname "$0")
+ARGS=
+if [ -f "./gdbinit" ]; then
+	ARGS=$ARGS\ -x\ ./gdbinit
+fi
+
+tmux ls &> /dev/null
+if [[ $? > 0 ]]; then
+    tmux start-server
+    tmux set -g remain-on-exit off
+fi
+
+if [ -z "$TMUX" ]
+then
+    exec_cmd="exec tmux new -n GDB"
+else
+    exec_cmd="exec tmux new-window -n GDB"
+fi
+$exec_cmd sh -c "gdb-multiarch -x '~/.tgdbinit' $ARGS ${@@Q} ; tmux kill-window -t \$TMUX_PANE"

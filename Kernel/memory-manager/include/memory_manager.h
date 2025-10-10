@@ -4,15 +4,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/**
- * @file memory_manager.h
- * @brief Header del Memory Manager para gestion de memoria dinamica
- *
- * Provee dos implementaciones intercambiables:
- * - Memory Manager Simple (por defecto)
- * - Memory Manager Buddy System (con flag BUDDY_MM)
- */
-
 /* Definiciones de region de memoria administrada */
 #define MEMORY_START 0x0000000000600000
 #define MEMORY_END 0x0000000000800000
