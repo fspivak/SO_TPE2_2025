@@ -9,11 +9,29 @@ extern void *memset(void *s, int c, uint64_t n);
 #define VERBOSE 1
 
 #define MAX_BLOCKS 128
+
+/**
+ * @brief Estructura para request de memoria
+ */
 typedef struct MM_rq {
 	void *address;
 	uint32_t size;
 } mm_rq;
 
+/**
+ * @brief Test principal del Memory Manager
+ *
+ * @param argc Numero de argumentos (debe ser 1)
+ * @param argv Array de argumentos [0] = tamaño de memoria en bytes
+ * @return 1 si el test termina correctamente, -1 si hay error
+ *
+ * El test ejecuta un loop infinito que:
+ * 1. Solicita bloques de memoria de tamaño aleatorio
+ * 2. Detecta si malloc falla consecutivamente
+ * 3. Ajusta automaticamente max_memory si es necesario
+ * 4. Verifica la integridad de la memoria escrita
+ * 5. Libera toda la memoria alocada
+ */
 uint64_t test_mm(uint64_t argc, char *argv[]) {
 	mm_rq mm_rqs[MAX_BLOCKS];
 	uint8_t rq;

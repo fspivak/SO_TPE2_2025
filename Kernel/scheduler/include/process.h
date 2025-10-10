@@ -40,44 +40,94 @@ typedef struct {
 	char state_name[16];
 } ProcessInfo;
 
-/* Inicializa el sistema de procesos */
+/**
+ * @brief Inicializa el sistema de procesos
+ * @return 0 si la inicializacion es exitosa, -1 si hay error
+ */
 int init_processes();
 
-/* Verifica si los procesos han sido inicializados */
+/**
+ * @brief Verifica si los procesos han sido inicializados
+ * @return 1 si estan inicializados, 0 si no
+ */
 int processes_initialized();
 
-/* Crea un nuevo proceso */
+/**
+ * @brief Crea un nuevo proceso con los parametros especificados
+ * @param name Nombre del proceso
+ * @param entry_point Puntero a la funcion de entrada
+ * @param argc Numero de argumentos
+ * @param argv Array de argumentos
+ * @param priority Prioridad del proceso (0-4)
+ * @return PID del proceso creado o -1 si hay error
+ */
 process_id_t create_process(const char *name, void (*entry_point)(int, char **), int argc, char **argv,
 							uint8_t priority);
 
-/* Obtiene el PID del proceso actual */
+/**
+ * @brief Obtiene el PID del proceso actualmente ejecutandose
+ * @return PID del proceso actual
+ */
 process_id_t get_current_pid();
 
-/* Termina un proceso */
+/**
+ * @brief Termina un proceso y libera sus recursos
+ * @param pid PID del proceso a terminar
+ * @return 0 si exitoso, -1 si hay error
+ */
 int kill_process(process_id_t pid);
 
-/* Bloquea un proceso */
+/**
+ * @brief Bloquea un proceso (cambia estado a BLOCKED)
+ * @param pid PID del proceso a bloquear
+ * @return 0 si exitoso, -1 si hay error
+ */
 int block_process(process_id_t pid);
 
-/* Desbloquea un proceso */
+/**
+ * @brief Desbloquea un proceso (cambia estado a READY)
+ * @param pid PID del proceso a desbloquear
+ * @return 0 si exitoso, -1 si hay error
+ */
 int unblock_process(process_id_t pid);
 
-/* Cambia la prioridad de un proceso */
+/**
+ * @brief Cambia la prioridad de un proceso
+ * @param pid PID del proceso
+ * @param new_priority Nueva prioridad (0-4)
+ * @return 0 si exitoso, -1 si hay error
+ */
 int change_priority(process_id_t pid, uint8_t new_priority);
 
-/* Cede voluntariamente el CPU */
+/**
+ * @brief Cede voluntariamente el CPU al scheduler
+ */
 void yield();
 
-/* Obtiene informacion de todos los procesos */
+/**
+ * @brief Obtiene informacion de todos los procesos activos
+ * @param buffer Buffer donde se guardara la informacion
+ * @param max_processes Numero maximo de procesos a retornar
+ * @return Numero de procesos retornados
+ */
 int get_processes_info(ProcessInfo *buffer, int max_processes);
 
-/* Libera procesos terminados */
+/**
+ * @brief Libera recursos de procesos terminados
+ */
 void free_terminated_processes();
 
-/* Scheduler principal - retorna el stack pointer del siguiente proceso */
+/**
+ * @brief Scheduler principal - retorna el stack pointer del siguiente proceso
+ * @param current_stack_pointer Stack pointer del proceso actual
+ * @return Stack pointer del siguiente proceso a ejecutar
+ */
 void *schedule(void *current_stack_pointer);
 
-/* Obtiene el stack del proceso idle */
+/**
+ * @brief Obtiene el stack del proceso idle
+ * @return Puntero al stack del proceso idle
+ */
 void *get_idle_stack();
 
 #endif /* _PROCESS_H_ */

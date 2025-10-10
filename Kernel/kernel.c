@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <string.h>
 
+/* Referencias a secciones del kernel */
 extern uint8_t text;
 extern uint8_t rodata;
 extern uint8_t data;
@@ -15,8 +16,10 @@ extern uint8_t bss;
 extern uint8_t endOfKernelBinary;
 extern uint8_t endOfKernel;
 
+/* Configuracion del sistema */
 static const uint64_t PageSize = 0x1000;
 
+/* Direcciones de los modulos de userland */
 static void *const sampleCodeModuleAddress = (void *) 0x400000;
 static void *const sampleDataModuleAddress = (void *) 0x500000;
 
@@ -70,6 +73,17 @@ void *initializeKernelBinary() {
 	return getStackBase();
 }
 
+/**
+ * @brief Funcion principal del kernel
+ *
+ * Inicializa todos los componentes del sistema operativo:
+ * 1. Memory Manager con memoria alta para evitar conflictos
+ * 2. IDT (Interrupt Descriptor Table)
+ * 3. Scheduler para manejo de procesos
+ * 4. Salta a userland para comenzar la ejecucion
+ *
+ * @return 0 si la inicializacion es exitosa
+ */
 int main() {
 	/* Inicializar Memory Manager */
 	vd_print("[Initializing Memory Manager]\n");

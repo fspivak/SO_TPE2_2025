@@ -5,11 +5,11 @@
 /* Instancia global del memory manager */
 MemoryManagerADT memory_manager;
 
-/* Tamaño de bloque fijo: 1024 */
-#define BLOCK_SIZE 1024
+/* Configuracion del memory manager */
+#define BLOCK_SIZE 1024 /* Tamaño fijo de bloque en bytes */
 #define MAX_BLOCKS 8192 /* Suficiente para ~8MB */
 
-/* Sistema de "colores" con contadores */
+/* Sistema de "colores" con contadores ciclicos */
 static uint8_t allocation_counter = 1; // Empieza en 1
 
 /**
