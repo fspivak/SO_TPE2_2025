@@ -56,37 +56,16 @@ uint64_t test_mm(uint64_t argc, char *argv[]) {
 		rq = 0;
 		total = 0;
 
-		// Usa analisis dinamico de fallos para evitar loop infinito
-		int consecutive_failures = 0;
-		while (rq < MAX_BLOCKS && total < max_memory && consecutive_failures < 20) {
+		// Request as many blocks as we can
+		while (rq < MAX_BLOCKS && total < max_memory) {
 			mm_rqs[rq].size = GetUniform(max_memory - total - 1) + 1;
 			mm_rqs[rq].address = malloc(mm_rqs[rq].size);
 
 			if (mm_rqs[rq].address) {
 				total += mm_rqs[rq].size;
 				rq++;
-				consecutive_failures = 0; // reseteo en acierto
-			}
-			else {
-				consecutive_failures++; // incremento en fallos
 			}
 		}
-
-#ifdef VERBOSE
-		// Informar si se detuvo la alocacion por fallos consecutivos y ajustar memoria
-		if (consecutive_failures >= 20 && total < max_memory) {
-			print("  [WARNING: 20 consecutive malloc failures\n");
-			print("   Allocated: ");
-			printBase(total, 10);
-			print(" bytes of ");
-			printBase(max_memory, 10);
-			print(" requested\n");
-			max_memory = (total > 0) ? total : (max_memory / 2);
-			print("   Adjusting max_memory to: ");
-			printBase(max_memory, 10);
-			print(" bytes]\n");
-		}
-#endif
 
 		// Set
 		uint32_t i;

@@ -87,6 +87,14 @@ void terminal() {
 			else if (!strcmp(buffer, "getpid")) {
 				show_current_pid();
 			}
+			else if (startsWith(buffer, "test_process")) {
+				// Extraer argumentos si los hay
+				char *args = NULL;
+				if (buffer[12] == ' ') {
+					args = &buffer[13]; // Saltar el espacio
+				}
+				run_test_process(args);
+			}
 			else if (!strcmp(buffer, "exit")) {
 				print("Goodbye!\n");
 				sound(2);
@@ -158,10 +166,14 @@ void help() {
 	print("\nMemory Manager Tests:\n");
 	print("  test_mm           - Run memory manager test (default: 1MB)\n");
 	print("  test_mm <size>    - Run memory manager test with custom size\n");
-	print("                      Example: test_mm 2097152 (2MB)\n");
+	print("                          Example: test_mm 524288 (512KB)\n");
 	print("\nProcess Management:\n");
 	print("  ps                - List all running processes\n");
 	print("  getpid            - Show current process ID\n");
+	print("\nProcess Tests:\n");
+	print("  test_process      - Run process management test (default: 3 processes)\n");
+	print("  test_process <n>  - Run process management test with n processes (1-64)\n");
+	print("                          Example: test_process 5\n");
 	print("\n");
 }
 
@@ -198,7 +210,7 @@ void list_processes() {
 	} ProcessInfo;
 
 	ProcessInfo processes[64]; /* Buffer para hasta 64 procesos */
-	int count = ps_process(processes, 64);
+	int count = ps(processes, 64);
 
 	if (count <= 0) {
 		print("No processes found or error occurred\n");
@@ -210,7 +222,7 @@ void list_processes() {
 	print_padded("Name", 12);
 	print_padded("Priority", 10);
 	print_padded("State", 12);
-	print_padded("Stack Base", 14);
+	print_padded("Stack Base", 16);
 	print("RSP\n");
 	print("----------------------------------------------------------------\n");
 
@@ -228,13 +240,10 @@ void list_processes() {
 		print_padded(processes[i].state_name, 12);
 
 		/* Stack Base */
-		print("0x");
-		printBase(processes[i].stack_base, 16);
-		print("  ");
+		print_hex_padded(processes[i].stack_base, 16);
 
 		/* RSP */
-		print("0x");
-		printBase(processes[i].rsp, 16);
+		print_hex_padded(processes[i].rsp, 16);
 		print("\n");
 	}
 
@@ -295,4 +304,131 @@ void print_int_padded(int value, int width) {
 	buffer[pos] = '\0';
 
 	print_padded(buffer, width);
+}
+
+/**
+ * @brief Imprime un valor hexadecimal con prefijo 0x y padding
+ * @param value El valor a imprimir en hexadecimal
+ * @param width El ancho total deseado para la columna (incluyendo 0x)
+ */
+void print_hex_padded(uint64_t value, int width) {
+	char buffer[20];
+	const char hex_chars[] = "0123456789ABCDEF";
+	int pos = 0;
+
+	// Agregar prefijo 0x
+	buffer[pos++] = '0';
+	buffer[pos++] = 'x';
+
+	// Convertir a hexadecimal (maximo 16 digitos para uint64_t)
+	char hex_digits[16];
+	int digit_count = 0;
+
+	if (value == 0) {
+		hex_digits[digit_count++] = '0';
+	}
+	else {
+		uint64_t temp = value;
+		while (temp > 0) {
+			hex_digits[digit_count++] = hex_chars[temp % 16];
+			temp /= 16;
+		}
+	}
+
+	// Invertir los digitos hex
+	for (int i = digit_count - 1; i >= 0; i--) {
+		buffer[pos++] = hex_digits[i];
+	}
+	buffer[pos] = '\0';
+
+	print_padded(buffer, width);
+}
+
+void run_test_process(char *args) {
+	print("\n=== Running Process Test ===\n");
+
+	extern int64_t test_processes(uint64_t argc, char *argv[]);
+
+	// Determinar cantidad de procesos (default: 3, max: 64)
+	int process_count = 3;
+	if (args != NULL && args[0] != '\0') {
+		process_count = satoi(args);
+		if (process_count <= 0 || process_count > 64) {
+			print("Invalid process count (1-64). Using default: 3\n");
+			process_count = 3;
+		}
+	}
+
+	print("Starting test_process with ");
+	printBase(process_count, 10);
+	print(" processes...\n\n");
+
+	// Convertir a string para pasar al test
+	char process_str[10];
+	intToString(process_count, process_str);
+	char *argv[] = {process_str};
+
+	int64_t result = test_processes(1, argv);
+
+	if (result == -1) {
+		print("test_process: ERROR occurred during test\n");
+	}
+	else {
+		print("test_process: Test completed successfully\n");
+	}
+
+	print("\n=== Process Test Completed ===\n\n");
+}
+
+/**
+ * @brief Convierte un entero a string
+ * @param value El valor a convertir
+ * @param buffer Buffer donde guardar el string
+ */
+void intToString(int value, char *buffer) {
+	if (value == 0) {
+		buffer[0] = '0';
+		buffer[1] = '\0';
+		return;
+	}
+
+	char temp[10];
+	int pos = 0;
+	int temp_value = value;
+
+	if (temp_value < 0) {
+		temp_value = -temp_value;
+	}
+
+	while (temp_value > 0) {
+		temp[pos++] = '0' + (temp_value % 10);
+		temp_value /= 10;
+	}
+
+	int buffer_pos = 0;
+	if (value < 0) {
+		buffer[buffer_pos++] = '-';
+	}
+
+	for (int i = pos - 1; i >= 0; i--) {
+		buffer[buffer_pos++] = temp[i];
+	}
+	buffer[buffer_pos] = '\0';
+}
+
+/**
+ * @brief Verifica si un string comienza con otro
+ * @param str El string principal
+ * @param prefix El prefijo a buscar
+ * @return 1 si comienza con el prefijo, 0 si no
+ */
+int startsWith(const char *str, const char *prefix) {
+	while (*prefix) {
+		if (*str != *prefix) {
+			return 0;
+		}
+		str++;
+		prefix++;
+	}
+	return 1;
 }
