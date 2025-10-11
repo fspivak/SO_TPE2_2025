@@ -8,12 +8,13 @@
 set -e
 
 echo "========================================"
-echo "🔍 Pre-commit Hook - TPE2 SO"
+echo "Pre-commit Hook - TPE2 SO"
 echo "========================================"
 
 # Colores para output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
@@ -22,7 +23,7 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 cd "$REPO_ROOT"
 
 echo ""
-echo "📦 Step 1: Compiling project..."
+echo -e "${BLUE}Step 1: Compiling project...${NC}"
 echo "Running: ./compilatodo.sh"
 echo ""
 
@@ -36,7 +37,7 @@ echo "$COMPILE_OUTPUT"
 # Verificar errores de compilacion
 if [ $COMPILE_EXIT -ne 0 ]; then
     echo ""
-    echo -e "${RED}❌ COMPILATION FAILED${NC}"
+    echo -e "${RED}COMPILATION FAILED${NC}"
     echo "Fix compilation errors before committing."
     exit 1
 fi
@@ -44,7 +45,7 @@ fi
 # Verificar warnings
 if echo "$COMPILE_OUTPUT" | grep -qi "warning"; then
     echo ""
-    echo -e "${YELLOW}⚠️  WARNINGS DETECTED${NC}"
+    echo -e "${YELLOW}WARNINGS DETECTED${NC}"
     echo "Fix all warnings before committing."
     echo ""
     echo "Warnings found:"
@@ -53,11 +54,11 @@ if echo "$COMPILE_OUTPUT" | grep -qi "warning"; then
 fi
 
 echo ""
-echo -e "${GREEN}✅ Compilation successful - No errors or warnings${NC}"
+echo -e "${GREEN}Compilation successful - No errors or warnings${NC}"
 echo ""
 
 # Step 2: Formatear codigo
-echo "🎨 Step 2: Formatting code with clang-format..."
+echo -e "${BLUE}Step 2: Formatting code with clang-format...${NC}"
 echo ""
 
 # Encontrar todos los archivos .c y .h staged
@@ -71,7 +72,7 @@ else
         if [ -f "$FILE" ]; then
             echo "  - $FILE"
             clang-format -i "$FILE" 2>/dev/null || {
-                echo -e "${YELLOW}⚠️  clang-format not found, skipping formatting${NC}"
+                echo -e "${YELLOW}clang-format not found, skipping formatting${NC}"
                 break
             }
             # Re-agregar archivo formateado al stage
@@ -79,12 +80,12 @@ else
         fi
     done
     echo ""
-    echo -e "${GREEN}✅ Code formatted successfully${NC}"
+    echo -e "${GREEN}Code formatted successfully${NC}"
 fi
 
 echo ""
 echo "========================================"
-echo -e "${GREEN}✅ Pre-commit checks PASSED${NC}"
+echo -e "${GREEN}Pre-commit checks PASSED${NC}"
 echo "Proceeding with commit..."
 echo "========================================"
 echo ""
