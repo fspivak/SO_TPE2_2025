@@ -1,6 +1,7 @@
 include Makefile.inc
 
 KERNEL=kernel.bin
+KERNEL_ELF=kernel.elf
 SOURCES=$(wildcard *.c)
 SOURCES_ASM=$(wildcard asm/*.asm)
 SCHEDULER_SOURCES=$(wildcard scheduler/*.c)
@@ -23,11 +24,15 @@ MM_OBJECT=$(MM_SOURCE:.c=.o)
 LOADEROBJECT=$(LOADERSRC:.asm=.o)
 STATICLIBS=
 
-all: $(KERNEL)
+all: $(KERNEL) $(KERNEL_ELF)
 
 $(KERNEL): $(LOADEROBJECT) $(OBJECTS) $(MM_OBJECT) $(SCHEDULER_OBJECTS) $(STATICLIBS) $(OBJECTS_ASM)
 	@echo "[Linking] kernel.bin"
 	$(LD) $(LDFLAGS) -T kernel.ld -o $(KERNEL) $(LOADEROBJECT) $(OBJECTS) $(MM_OBJECT) $(SCHEDULER_OBJECTS) $(OBJECTS_ASM) $(STATICLIBS)
+
+$(KERNEL_ELF): $(LOADEROBJECT) $(OBJECTS) $(MM_OBJECT) $(SCHEDULER_OBJECTS) $(STATICLIBS) $(OBJECTS_ASM)
+	@echo "[Linking] kernel.elf (with debug symbols)"
+	$(LD) -T kernel-elf.ld -o $(KERNEL_ELF) $(LOADEROBJECT) $(OBJECTS) $(MM_OBJECT) $(SCHEDULER_OBJECTS) $(OBJECTS_ASM) $(STATICLIBS)
 
 %.o: %.c
 	@echo "[Compiling] $<"
@@ -43,6 +48,6 @@ $(LOADEROBJECT):
 
 clean:
 	@echo "[Cleaning] kernel objects"
-	rm -rf asm/*.o *.o *.bin memory-manager/*.o scheduler/*.o
+	rm -rf asm/*.o *.o *.bin *.elf memory-manager/*.o scheduler/*.o
 
 .PHONY: all clean
