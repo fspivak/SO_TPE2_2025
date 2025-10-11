@@ -116,63 +116,79 @@ void exit(void);
  */
 void rompeOpcode();
 
-/* ===== PROCESS SYSCALLS ===== */
+/* ===== SYSCALL GENERICA ===== */
 
 /**
- * @brief Crea un nuevo proceso con los parametros especificados
+ * @brief Syscall generica que permite invocar cualquier syscall del kernel
+ * @param id ID de la syscall (ver syscall_ids.h) (rdi)
+ * @param arg1 Primer argumento (rsi)
+ * @param arg2 Segundo argumento (rdx)
+ * @param arg3 Tercer argumento (rcx)
+ * @param arg4 Cuarto argumento (r8)
+ * @param arg5 Quinto argumento (r9)
+ * @param arg6 Sexto argumento (rbp+16) (stack)
+ * @return Valor de retorno de la syscall
+ */
+extern int64_t sys_call(uint64_t id, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5,
+						uint64_t arg6);
+
+/* ===== SYSCALLS DE PROCESOS (en syscalls.c) ===== */
+
+/**
+ * @brief Crea un nuevo proceso
  * @param name Nombre del proceso
- * @param entry_point Puntero a la funcion de entrada
+ * @param entry Funcion de entrada del proceso
  * @param argc Numero de argumentos
  * @param argv Array de argumentos
- * @param priority Prioridad del proceso (0-4)
+ * @param priority Prioridad del proceso (0-255)
  * @return PID del proceso creado o -1 si hay error
  */
-int create_process(const char *name, void (*entry_point)(int, char **), int argc, char **argv, int priority);
+int create_process(const char *name, void (*entry)(int, char **), int argc, char **argv, int priority);
 
 /**
- * @brief Obtiene el PID del proceso actualmente ejecutandose
+ * @brief Obtiene el PID del proceso actual
  * @return PID del proceso actual
  */
-int getpid();
+int getpid(void);
 
 /**
  * @brief Termina un proceso y libera sus recursos
  * @param pid PID del proceso a terminar
  * @return 0 si exitoso, -1 si hay error
  */
-int kill_process(int pid);
+int kill(int pid);
 
 /**
  * @brief Bloquea un proceso (cambia estado a BLOCKED)
  * @param pid PID del proceso a bloquear
  * @return 0 si exitoso, -1 si hay error
  */
-int block_process(int pid);
+int block(int pid);
 
 /**
  * @brief Desbloquea un proceso (cambia estado a READY)
  * @param pid PID del proceso a desbloquear
  * @return 0 si exitoso, -1 si hay error
  */
-int unblock_process(int pid);
+int unblock(int pid);
 
 /**
  * @brief Cambia la prioridad de un proceso
  * @param pid PID del proceso
- * @param new_priority Nueva prioridad (0-4)
+ * @param priority Nueva prioridad (0-255)
  * @return 0 si exitoso, -1 si hay error
  */
-int set_process_priority(int pid, int new_priority);
+int nice(int pid, int priority);
 
 /**
  * @brief Cede voluntariamente el CPU al scheduler
  */
-void yield_process();
+void yield(void);
 
 /**
- * @brief Obtiene informacion de todos los procesos activos
- * @param buffer Buffer donde se guardara la informacion
+ * @brief Lista procesos activos
+ * @param buffer Buffer donde guardar la informacion
  * @param max_processes Numero maximo de procesos a retornar
  * @return Numero de procesos retornados
  */
-int ps_process(void *buffer, int max_processes);
+int ps(void *buffer, int max_processes);

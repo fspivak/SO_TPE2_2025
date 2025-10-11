@@ -5,6 +5,8 @@ GLOBAL picMasterMask
 GLOBAL picSlaveMask
 GLOBAL haltcpu
 GLOBAL _hlt
+GLOBAL _force_scheduler_interrupt
+GLOBAL manually_triggered_timer_interrupt
 
 GLOBAL _irq00Handler
 GLOBAL _irq01Handler
@@ -308,6 +310,11 @@ get_regs:
 	mov rax, registros
 	ret
 
+_force_scheduler_interrupt:
+	mov BYTE [manually_triggered_timer_interrupt], 0x01
+	int 0x20
+	ret
+
 
 SECTION .data
 userLand equ 0x400000
@@ -316,3 +323,4 @@ SECTION .bss
 	aux resq 1
 	registros resq 13
 	regs_save resb 0
+	manually_triggered_timer_interrupt resb 1

@@ -17,16 +17,6 @@ GLOBAL exit
 GLOBAL malloc
 GLOBAL free
 GLOBAL memStatus
-
-; Process syscalls
-GLOBAL create_process
-GLOBAL getpid
-GLOBAL kill_process
-GLOBAL block_process
-GLOBAL unblock_process
-GLOBAL set_process_priority
-GLOBAL yield_process
-GLOBAL ps_process
 ; EXTERN printRegistros
 
 section .text
@@ -193,76 +183,33 @@ memStatus:
     pop rbp
     ret
 
-; ===== PROCESS SYSCALLS =====
+;======== Syscall generica ========
 
-create_process:
+GLOBAL sys_call
+; @param id: rdi
+; @param arg1: rsi
+; @param arg2: rdx
+; @param arg3: rcx
+; @param arg4: r8
+; @param arg5: r9
+; @param arg6: [rbp+16] (stack)
+; @return: result of the syscall
+; int64_t sys_call(uint64_t id, uint64_t arg1, uint64_t arg2, 
+;                  uint64_t arg3, uint64_t arg4, uint64_t arg5, uint64_t arg6)
+sys_call:
     push rbp
     mov rbp, rsp
-    mov rax, 60
+    
+    mov rax, rdi        ; syscall id
+    mov rdi, rsi        ; arg1
+    mov rsi, rdx        ; arg2
+    mov rdx, rcx        ; arg3
+    mov rcx, r8         ; arg4
+    mov r8,  r9         ; arg5
+    mov r9,  [rbp+16]   ; arg6 (stack)
+    
     int 80h
-    mov rsp, rbp
-    pop rbp
-    ret
-
-getpid:
-    push rbp
-    mov rbp, rsp
-    mov rax, 61
-    int 80h
-    mov rsp, rbp
-    pop rbp
-    ret
-
-kill_process:
-    push rbp
-    mov rbp, rsp
-    mov rax, 62
-    int 80h
-    mov rsp, rbp
-    pop rbp
-    ret
-
-block_process:
-    push rbp
-    mov rbp, rsp
-    mov rax, 63
-    int 80h
-    mov rsp, rbp
-    pop rbp
-    ret
-
-unblock_process:
-    push rbp
-    mov rbp, rsp
-    mov rax, 64
-    int 80h
-    mov rsp, rbp
-    pop rbp
-    ret
-
-set_process_priority:
-    push rbp
-    mov rbp, rsp
-    mov rax, 65
-    int 80h
-    mov rsp, rbp
-    pop rbp
-    ret
-
-yield_process:
-    push rbp
-    mov rbp, rsp
-    mov rax, 66
-    int 80h
-    mov rsp, rbp
-    pop rbp
-    ret
-
-ps_process:
-    push rbp
-    mov rbp, rsp
-    mov rax, 67
-    int 80h
+    
     mov rsp, rbp
     pop rbp
     ret
