@@ -163,14 +163,13 @@ void help() {
 	print("  clock             - Show current time\n");
 	print("  showRegisters     - Display CPU registers\n");
 	print("  exit              - Exit terminal\n");
+	print("\nProcess Management:\n");
+	print("  ps                - List all processes\n");
+	print("  getpid            - Show current process ID\n");
 	print("\nMemory Manager Tests:\n");
 	print("  test_mm           - Run memory manager test (default: 1MB)\n");
 	print("  test_mm <size>    - Run memory manager test with custom size\n");
 	print("                          Example: test_mm 524288 (512KB)\n");
-	print("\nProcess Management:\n");
-	print("  ps                - List all running processes\n");
-	print("  getpid            - Show current process ID\n");
-	print("\nProcess Tests:\n");
 	print("  test_process      - Run process management test (default: 3 processes)\n");
 	print("  test_process <n>  - Run process management test with n processes (1-64)\n");
 	print("                          Example: test_process 5\n");
@@ -201,12 +200,13 @@ void show_current_pid() {
 void list_processes() {
 	/* Definir estructura ProcessInfo local */
 	typedef struct {
-		uint16_t pid;
+		int pid;
 		char name[32];
 		uint8_t priority;
 		uint64_t stack_base;
 		uint64_t rsp;
 		char state_name[16];
+		uint8_t hasForeground;
 	} ProcessInfo;
 
 	ProcessInfo processes[64]; /* Buffer para hasta 64 procesos */
@@ -223,8 +223,9 @@ void list_processes() {
 	print_padded("Priority", 10);
 	print_padded("State", 12);
 	print_padded("Stack Base", 16);
-	print("RSP\n");
-	print("----------------------------------------------------------------\n");
+	print_padded("RSP", 16);
+	print("FG\n");
+	print("-----------------------------------------------------------------------------\n");
 
 	for (int i = 0; i < count; i++) {
 		/* PID */
@@ -244,10 +245,13 @@ void list_processes() {
 
 		/* RSP */
 		print_hex_padded(processes[i].rsp, 16);
+
+		/* Foreground */
+		print_padded(processes[i].hasForeground ? "1" : "0", 3);
 		print("\n");
 	}
 
-	print("----------------------------------------------------------------\n");
+	print("-----------------------------------------------------------------------------\n");
 	print("Total processes: ");
 	printBase(count, 10);
 	print("\n\n");
@@ -349,7 +353,6 @@ void run_test_process(char *args) {
 
 	extern int64_t test_processes(uint64_t argc, char *argv[]);
 
-	// Determinar cantidad de procesos (default: 3, max: 64)
 	int process_count = 3;
 	if (args != NULL && args[0] != '\0') {
 		process_count = satoi(args);

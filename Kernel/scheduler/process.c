@@ -14,7 +14,8 @@ static void init_ready_queue();
 static PCB process_table[MAX_PROCESSES];
 static PCB *current_process = NULL;
 static PCB *idle_pcb = NULL;
-static process_id_t next_pid = 1; // Empezar en 1, PID 0 es reservado para idle
+static process_id_t next_pid = 1;			   // Empezar en 1, PID 0 es reservado para idle
+static process_id_t foregroundProcessPid = -1; // -1 = ninguno
 
 static process_id_t get_next_valid_pid() {
 	process_id_t pid = next_pid++;
@@ -61,7 +62,6 @@ int init_processes() {
 	idle_pcb->priority = 0;
 	idle_pcb->scheduler_counter = 0;
 	idle_pcb->in_scheduler = 1;
-
 	const char *idle_name = "idle";
 	int i = 0;
 	while (idle_name[i] != '\0' && i < MAX_PROCESS_NAME - 1) {
@@ -263,10 +263,8 @@ int get_processes_info(ProcessInfo *buffer, int max_processes) {
 
 	int count = 0;
 	for (int i = 0; i < MAX_PROCESSES && count < max_processes; i++) {
-		// Solo incluir procesos validos (no terminados, PID valido, y nombre valido)
-		if (process_table[i].state != TERMINATED && process_table[i].pid >= 0 && process_table[i].pid < 10000 &&
-			process_table[i].name[0] != '\0' && process_table[i].name[0] >= 32 &&
-			process_table[i].name[0] <= 126) { // Solo caracteres imprimibles ASCII
+		// Solo incluir procesos validos (no terminados y PID valido)
+		if (process_table[i].state != TERMINATED && process_table[i].pid >= 0) {
 			buffer[count].pid = process_table[i].pid;
 
 			// Copiar nombre
@@ -306,6 +304,8 @@ int get_processes_info(ProcessInfo *buffer, int max_processes) {
 				j++;
 			}
 			buffer[count].state_name[j] = '\0';
+
+			buffer[count].hasForeground = (foregroundProcessPid == process_table[i].pid) ? 1 : 0;
 
 			count++;
 		}

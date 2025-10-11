@@ -39,6 +39,7 @@ typedef struct {
 	uint64_t stack_base;
 	uint64_t rsp;
 	char state_name[16];
+	uint8_t hasForeground; // 1 = proceso tiene foreground, 0 = background
 } ProcessInfo;
 
 /**
