@@ -1,53 +1,52 @@
 # TPE2 - Sistemas Operativos
 
-Proyecto de construccion de un nucleo de sistema operativo.
+**Autores**: Federico, Jeronimo Laviola, Pablo Germano  
+**Cuatrimestre**: 2do 2025
 
-## Compilacion
-```bash
-make              # Simple MM
-make buddy        # Buddy MM
-```
-
-## Ejecucion
-```bash
-./run.sh
-```
-
-## Git Hooks (Recomendado)
-Instalar pre-commit hook para validacion de codigo automatico
-```bash
-./git-hooks/install-hooks.sh
-```
-
-Esto nos protege de:
-- Commits con errores/warnings
-- Auto-format code con clang-format
-
-Leer`git-hooks/README.md` para mas detalles.
+Sistema operativo con memory manager, scheduler de procesos y manejo de prioridades.
 
 ---
 
-## Caracteristicas Implementadas
+## Compilacion
 
-### Memory Manager Simple (Bitmap)
-- Bloques fijos de 1024 bytes
-- Bitmap para tracking de bloques
-- First-Fit para busqueda
-- Sistema de "colores" para mejor gestion de memoria
-- Compatible con test_mm
-- **Resultado:** Funciona con cualquier tamaño de memoria sin congelarse
-
-### Memory Manager Buddy (Binary Tree)
-- Potencias de 2 (32B minimo)
-- Merge automatico de buddies
-- Split dinamico de bloques
-- Compatible con test_mm 
-- **Resultado:** Funciona con cualquier tamaño de memoria sin congelarse
-
-### Compilacion Alternativa
 ```bash
-make        # Compila con MM Simple
-make buddy  # Compila con MM Buddy
+make              # Memory Manager Simple (bloques fijos)
+make buddy        # Memory Manager Buddy (potencias de 2)
+make clean        # Limpia binarios
 ```
+
+## Ejecucion
+
+```bash
+./run.sh          # Ejecuta en QEMU
+```
+
+Salir de QEMU: `Ctrl+Alt+Q`
+
+---
+
+## Comandos Disponibles
+
+### Sistema
+- `help` - Lista de comandos
+- `clear` - Limpia pantalla
+- `clock` - Hora actual
+- `exit` - Finaliza el sistema
+
+### Memoria
+- `test_mm <bytes>` - Test de memory manager
+
+### Procesos
+- `ps` - Lista procesos activos
+- `getpid` - PID del proceso actual
+- `test_processes <n>` - Test de creacion/destruccion de procesos
+
+---
+
+## Arquitectura
+
+- **Video Driver**: Modo texto VGA 80x25
+- **Memory Manager**: Implementaciones Simple (bitmap) y Buddy (binary tree)
+- **Scheduler**: Round Robin con prioridades
 
 ---
