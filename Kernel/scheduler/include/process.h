@@ -9,7 +9,7 @@
 #define MIN_PRIORITY 0
 #define MAX_PRIORITY 4
 
-typedef uint16_t process_id_t;
+typedef int process_id_t;
 
 // Estados de proceso
 typedef enum {
@@ -24,11 +24,11 @@ typedef struct PCB {
 	process_id_t pid;
 	char name[MAX_PROCESS_NAME];
 	ProcessState state;
-	uint8_t priority;		// 0 (alta) -> 4 (baja)
-	void *stack_base;		// Base del stack
-	void *stack_pointer;	// Current stack pointer (RSP)
-	uint64_t quantum_count; // Para Round Robin con prioridades
-	int in_scheduler;		// 1 = puede ser elegido por scheduler, 0 = removido
+	uint8_t priority;			// 0 (alta) -> 4 (baja)
+	void *stack_base;			// Base del stack
+	void *stack_pointer;		// Current stack pointer (RSP)
+	uint64_t scheduler_counter; // Contador para Round Robin
+	int in_scheduler;			// 1 = puede ser elegido por scheduler, 0 = removido
 } PCB;
 
 // Informacion de proceso para userland

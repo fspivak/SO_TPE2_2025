@@ -3,88 +3,65 @@
 #include "../include/stddef.h"
 #include "../memory-manager/include/memory_manager.h"
 
-// Declaraciones externas de funciones en assembly
 extern void *set_process_stack(int argc, char **argv, void *stack, void *entry);
 extern void idle_process();
 
-// Funciones auxiliares internas
 static PCB *get_process_by_pid(process_id_t pid);
 static int add_to_ready_queue(PCB *process);
 static PCB *remove_from_ready_queue();
 static void init_ready_queue();
 
-// Variables globales
 static PCB process_table[MAX_PROCESSES];
 static PCB *current_process = NULL;
 static PCB *idle_pcb = NULL;
 static process_id_t next_pid = 1; // Empezar en 1, PID 0 es reservado para idle
 
-// Función para obtener el siguiente PID válido, evitando desbordamiento
 static process_id_t get_next_valid_pid() {
 	process_id_t pid = next_pid++;
 
-	// Si se desborda, buscar un PID libre en la tabla
-	if (pid == 0) {
-		// Buscar el primer PID libre empezando desde 1
-		for (process_id_t candidate = 1; candidate < MAX_PROCESSES; candidate++) {
-			PCB *existing = get_process_by_pid(candidate);
-			if (existing == NULL || existing->state == TERMINATED) {
-				return candidate;
-			}
-		}
-		// Si no hay PIDs libres, usar un PID aleatorio válido
-		return (process_id_t) (1 + (next_pid % (MAX_PROCESSES - 1)));
+	if (pid < 0) {
+		next_pid = 1;
+		pid = 1;
 	}
 
 	return pid;
 }
 static int initialized_flag = 0;
 
-// Cola simple de procesos READY
 static PCB *ready_queue[MAX_PROCESSES];
 static int ready_queue_head = 0;
 static int ready_queue_tail = 0;
 static int ready_queue_count = 0;
 
-// Referencia externa al memory manager
 extern MemoryManagerADT memory_manager;
-
-// Inicializa el sistema de procesos
 int init_processes() {
 	if (initialized_flag) {
 		return 0;
 	}
 
-	// Inicializar tabla de procesos
 	for (int i = 0; i < MAX_PROCESSES; i++) {
-		// Limpia completamente la estructura para evitar datos basura
 		for (int j = 0; j < sizeof(PCB); j++) {
 			((char *) &process_table[i])[j] = 0;
 		}
-
 		process_table[i].state = TERMINATED;
-		process_table[i].pid = -1; // -1 indica slot libre
+		process_table[i].pid = -1;
 		process_table[i].priority = 0;
-		process_table[i].quantum_count = 0;
+		process_table[i].scheduler_counter = 0;
 		process_table[i].stack_base = NULL;
 		process_table[i].stack_pointer = NULL;
-		process_table[i].in_scheduler = 0; // Inicialmente removido del scheduler
-
-		// Limpiar nombre
+		process_table[i].in_scheduler = 0;
 		for (int j = 0; j < MAX_PROCESS_NAME; j++) {
 			process_table[i].name[j] = '\0';
 		}
 	}
 
-	// Crear proceso idle (PID 0)
 	idle_pcb = &process_table[0];
-	idle_pcb->pid = 0; // Idle siempre es PID 0
+	idle_pcb->pid = 0;
 	idle_pcb->state = READY;
-	idle_pcb->priority = 0; // Prioridad mas alta
-	idle_pcb->quantum_count = 0;
-	idle_pcb->in_scheduler = 1; // Idle siempre está en el scheduler
+	idle_pcb->priority = 0;
+	idle_pcb->scheduler_counter = 0;
+	idle_pcb->in_scheduler = 1;
 
-	// Copiar nombre
 	const char *idle_name = "idle";
 	int i = 0;
 	while (idle_name[i] != '\0' && i < MAX_PROCESS_NAME - 1) {
@@ -92,8 +69,6 @@ int init_processes() {
 		i++;
 	}
 	idle_pcb->name[i] = '\0';
-
-	// Asignar stack al proceso idle
 	idle_pcb->stack_base = memory_alloc(memory_manager, STACK_SIZE);
 	if (idle_pcb->stack_base == NULL) {
 		return -1;
@@ -149,7 +124,7 @@ process_id_t create_process(const char *name, void (*entry_point)(int, char **),
 	new_process->pid = get_next_valid_pid();
 	new_process->state = READY;
 	new_process->priority = priority;
-	new_process->quantum_count = 0;
+	new_process->scheduler_counter = 0;
 
 	// Copiar nombre del proceso
 	if (name != NULL) {
@@ -215,67 +190,41 @@ int kill_process(process_id_t pid) {
 	}
 
 	PCB *process = get_process_by_pid(pid);
-	if (process == NULL) {
-		return 0; // Proceso no encontrado = ya está "muerto"
-	}
-
-	if (process->state == TERMINATED) {
+	if (process == NULL || process->state == TERMINATED) {
 		return 0;
 	}
 
-	// FILOSOFÍA: Matar un proceso SIEMPRE es exitoso, independientemente del estado
 	process->state = TERMINATED;
+	removeFromScheduler(process);
 
-	// Remover del scheduler DESPUÉS de cambiar estado
-	if (removeFromScheduler(process) < 0) {
-		// Si falla, continuar de todas formas
-	}
-
-	// Liberar stack DESPUÉS de cambiar estado
 	if (process->stack_base != NULL) {
 		memory_free(memory_manager, process->stack_base);
 		process->stack_base = NULL;
 		process->stack_pointer = NULL;
 	}
 
-	// Si el proceso que estamos matando es el actual, forzar context switch
 	if (process == current_process) {
 		_force_scheduler_interrupt();
 	}
 
-	// Liberar procesos terminados después de matar uno
 	free_terminated_processes();
 
 	return 0;
 }
 
-// Bloquea un proceso
 int block_process(process_id_t pid) {
 	if (pid == 0) {
 		return -1; // No se puede bloquear al proceso idle
 	}
 
 	PCB *process = get_process_by_pid(pid);
-	if (process == NULL) {
-		return 0; // Proceso no encontrado = ya está "bloqueado"
-	}
-
-	// Si ya está bloqueado o terminado, considerar como éxito
-	if (process->state == BLOCKED || process->state == TERMINATED) {
+	if (process == NULL || process->state == BLOCKED || process->state == TERMINATED) {
 		return 0;
 	}
 
-	// Bloquear un proceso SIEMPRE es exitoso
-
 	process->state = BLOCKED;
+	removeFromScheduler(process);
 
-	// Remover del scheduler DESPUÉS de cambiar estado
-	if (removeFromScheduler(process) < 0) {
-		// Si falla, continuar de todas formas - el proceso ya está BLOCKED
-	}
-
-	// Si el proceso bloqueado es el que está ejecutándose actualmente,
-	// forzamos un context switch
 	if (process == current_process) {
 		_force_scheduler_interrupt();
 	}
@@ -283,25 +232,15 @@ int block_process(process_id_t pid) {
 	return 0;
 }
 
-// Desbloquea un proceso
 int unblock_process(process_id_t pid) {
 	PCB *process = get_process_by_pid(pid);
-	if (process == NULL) {
-		return -1; // Proceso no encontrado
-	}
-
-	// Si ya no está bloqueado, considerar como éxito
-	if (process->state != BLOCKED) {
-		return 0;
+	if (process == NULL || process->state != BLOCKED) {
+		return process == NULL ? -1 : 0;
 	}
 
 	process->state = READY;
-
-	// Agregar al scheduler
 	return addToScheduler(process);
 }
-
-// Cambia la prioridad de un proceso
 int change_priority(process_id_t pid, uint8_t new_priority) {
 	if (new_priority > MAX_PRIORITY) {
 		return -1;
@@ -430,7 +369,7 @@ void *schedule(void *current_stack_pointer) {
 	// Cambiar al nuevo proceso
 	current_process = next_process;
 	current_process->state = RUNNING;
-	current_process->quantum_count++;
+	current_process->scheduler_counter++;
 
 	return current_process->stack_pointer;
 }
