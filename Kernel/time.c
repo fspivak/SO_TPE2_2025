@@ -3,8 +3,16 @@
 static unsigned long ticks = 0;
 int last_seconds = 0;
 
+extern uint8_t manually_triggered_timer_interrupt;
+
 void timer_handler() {
-	ticks++;
+	if (manually_triggered_timer_interrupt) {
+		manually_triggered_timer_interrupt = 0;
+		return;
+	}
+	else {
+		ticks++;
+	}
 }
 
 int ticks_elapsed() {
