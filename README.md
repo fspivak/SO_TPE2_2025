@@ -1,6 +1,6 @@
 # TPE2 - Sistemas Operativos
 
-**Autores**: Federico, Jeronimo Laviola, Pablo Germano  
+**Autores**: Federico Spivak Fontaiña, Jerónimo Lopez Vila, Pablo Omar Germano  
 **Cuatrimestre**: 2do 2025
 
 Sistema operativo con memory manager, scheduler de procesos y manejo de prioridades.
