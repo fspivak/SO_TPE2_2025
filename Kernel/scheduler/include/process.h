@@ -28,6 +28,7 @@ typedef struct PCB {
 	void *stack_base;		// Base del stack
 	void *stack_pointer;	// Current stack pointer (RSP)
 	uint64_t quantum_count; // Para Round Robin con prioridades
+	int in_scheduler;		// 1 = puede ser elegido por scheduler, 0 = removido
 } PCB;
 
 // Informacion de proceso para userland
@@ -85,6 +86,20 @@ int kill_process(process_id_t pid);
 int block_process(process_id_t pid);
 
 /**
+ * @brief Remueve un proceso del scheduler
+ * @param process Proceso a remover del scheduler
+ * @return 0 si es exitoso, -1 si hay error
+ */
+int remove_from_scheduler(PCB *process);
+
+/**
+ * @brief Agrega un proceso al scheduler
+ * @param process Proceso a agregar al scheduler
+ * @return 0 si es exitoso, -1 si hay error
+ */
+int add_to_scheduler(PCB *process);
+
+/**
  * @brief Desbloquea un proceso (cambia estado a READY)
  * @param pid PID del proceso a desbloquear
  * @return 0 si exitoso, -1 si hay error
@@ -129,5 +144,9 @@ void *schedule(void *current_stack_pointer);
  * @return Puntero al stack del proceso idle
  */
 void *get_idle_stack();
+
+// Funciones auxiliares para manejo del scheduler
+int removeFromScheduler(PCB *process);
+int addToScheduler(PCB *process);
 
 #endif /* _PROCESS_H_ */
