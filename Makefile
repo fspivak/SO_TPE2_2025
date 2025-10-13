@@ -1,6 +1,10 @@
-all: bootloader kernel userland image
+all: toolchain bootloader kernel userland image
 	@echo ""
 	@echo "\033[0;32mBuild complete\033[0m"
+
+toolchain:
+	@echo "\033[0;34mBuilding toolchain...\033[0m"
+	cd Toolchain; make all
 
 bootloader:
 	@echo "\033[0;34mBuilding bootloader...\033[0m"
