@@ -1,0 +1,100 @@
+# TPE2 GDB Configuration
+dashboard -layout source assembly registers memory stack variables expressions breakpoints
+dashboard registers -style list 'rax rbx rcx rdx rsi rdi rbp rsp r8 r9 r10 r11 r12 r13 r14 r15 rip eflags cs ss ds es fs gs'
+dashboard memory watch $rsp 64
+dashboard memory watch $rbp 64
+dashboard expressions watch current_process
+dashboard expressions watch memory_manager
+dashboard expressions watch scheduler
+
+set print pretty on
+set print array off
+set print array-indexes on
+set disassembly-flavor intel
+define kernel-info
+    printf "=== Kernel Information ===\n"
+    info registers
+    info breakpoints
+    printf "Current process: "
+    print current_process
+    printf "Memory manager: "
+    print memory_manager
+    printf "==========================\n"
+end
+
+define mm-info
+    printf "=== Memory Manager Info ===\n"
+    print memory_manager
+    printf "===========================\n"
+end
+
+define proc-info
+    printf "=== Process Info ===\n"
+    print current_process
+    info threads
+    printf "====================\n"
+end
+
+define syscall-debug
+    set $syscall_num = $rax
+    printf "Syscall number: %d\n", $syscall_num
+    printf "Arguments: rdi=%p, rsi=%p, rdx=%p, rcx=%p\n", $rdi, $rsi, $rdx, $rcx
+end
+
+define mem-debug
+    printf "=== Memory Debug ===\n"
+    x/16x $rsp
+    x/16x $rbp
+    printf "====================\n"
+end
+define compact-layout
+    dashboard -layout source assembly registers memory stack
+    dashboard
+end
+
+define minimal-layout
+    dashboard -layout source registers stack
+    dashboard
+end
+
+define full-layout
+    dashboard -layout source assembly registers memory stack variables expressions breakpoints
+    dashboard
+end
+
+document kernel-info
+    Kernel info: registers, breakpoints, current process, memory manager.
+end
+
+document mm-info
+    Memory manager information.
+end
+
+document proc-info
+    Process and thread information.
+end
+
+document syscall-debug
+    Syscall debugging: number and arguments.
+end
+
+document mem-debug
+    Memory debugging: stack and base pointer.
+end
+
+document compact-layout
+    Compact layout with main panels.
+end
+
+document minimal-layout
+    Minimal layout: source, registers, stack.
+end
+
+document full-layout
+    Full layout with all panels.
+end
+
+printf "\n=== TPE2 GDB Ready ===\n"
+printf "Commands: kernel-info, mm-info, proc-info, syscall-debug, mem-debug\n"
+printf "Layouts: compact-layout, minimal-layout, full-layout\n"
+printf "=====================================\n\n"

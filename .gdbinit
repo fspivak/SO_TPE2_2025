@@ -2379,6 +2379,10 @@ python Dashboard.start()
 # workaround for the GDB readline issue, see #325
 python import sys; sys.modules['readline'] = None
 
+# TPE2 Sistemas Operativos - Comandos personalizados
+# Cargar configuración específica del TPE
+source .gdbinit.d/init
+
 # File variables ---------------------------------------------------------------
 
 # vim: filetype=python
