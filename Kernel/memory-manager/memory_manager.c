@@ -2,20 +2,14 @@
 
 #include "include/memory_manager.h"
 
-/* Instancia global del memory manager */
 MemoryManagerADT memory_manager;
 
-/* Configuracion del memory manager */
-#define BLOCK_SIZE 1024 /* Tamaño fijo de bloque en bytes */
-#define MAX_BLOCKS 8192 /* Suficiente para ~8MB */
+#define BLOCK_SIZE 1024
+#define MAX_BLOCKS 8192
 
 /* Sistema de "colores" con contadores ciclicos */
 static uint8_t allocation_counter = 1; // Empieza en 1
 
-/**
- * @brief Obtiene el siguiente "color" de alocación usando contador cíclico
- * @return Color unico para la nueva alocación (1, 2, o 3)
- */
 static uint8_t get_next_allocation_color(void) {
 	uint8_t current_color = allocation_counter;
 	allocation_counter++;
@@ -26,30 +20,24 @@ static uint8_t get_next_allocation_color(void) {
 }
 
 struct MemoryManagerCDT {
-	uint8_t *start;		   /* Inicio de memoria administrada */
-	uint32_t total_blocks; /* Total de bloques disponibles */
-	uint32_t used_blocks;  /* Bloques en uso */
-	uint8_t *bitmap;	   /* Bitmap: 0=libre, 1-3=usado */
+	uint8_t *start;
+	uint32_t total_blocks;
+	uint32_t used_blocks;
+	uint8_t *bitmap;
 	HeapState info;
 };
 
 MemoryManagerADT memory_manager_init(void *manager_memory, void *managed_memory) {
 	MemoryManagerADT mm = (MemoryManagerADT) manager_memory;
 
-	/* Alinear memoria administrada */
 	uint64_t managed_addr = (uint64_t) managed_memory;
 	uint64_t aligned_addr = (managed_addr + 7) & ~7;
 
 	mm->start = (uint8_t *) aligned_addr;
-
-	/* Calcular cuantos bloques de 1024 bytes caben */
 	uint64_t available = MEMORY_END - aligned_addr;
-	uint64_t bitmap_size = (available / BLOCK_SIZE) / 8 + 1; /* 1 bit por bloque */
+	uint64_t bitmap_size = (available / BLOCK_SIZE) / 8 + 1;
 
-	/* Bitmap inmediatamente despues de la estructura */
 	mm->bitmap = (uint8_t *) (manager_memory + sizeof(struct MemoryManagerCDT));
-
-	/* Ajustar memoria disponible (restar bitmap) */
 	mm->start = (uint8_t *) (aligned_addr + bitmap_size);
 	available = MEMORY_END - (uint64_t) mm->start;
 	mm->total_blocks = available / BLOCK_SIZE;
@@ -60,12 +48,9 @@ MemoryManagerADT memory_manager_init(void *manager_memory, void *managed_memory)
 
 	mm->used_blocks = 0;
 
-	/* Inicializar bitmap (0 = libre) */
 	for (uint32_t i = 0; i < mm->total_blocks; i++) {
 		mm->bitmap[i] = 0;
 	}
-
-	/* Info del heap */
 	mm->info.total_memory = mm->total_blocks * BLOCK_SIZE;
 	mm->info.used_memory = 0;
 	mm->info.free_memory = mm->info.total_memory;
@@ -84,14 +69,11 @@ void *memory_alloc(MemoryManagerADT self, const uint64_t size) {
 		return NULL;
 	}
 
-	/* Calcular cuantos bloques necesitamos */
 	uint32_t blocks_needed = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
 	if (blocks_needed > self->total_blocks - self->used_blocks) {
 		return NULL;
 	}
-
-	/* Buscar bloques contiguos libres */
 	uint32_t start_block = 0;
 	uint32_t free_count = 0;
 
@@ -104,7 +86,6 @@ void *memory_alloc(MemoryManagerADT self, const uint64_t size) {
 			free_count++;
 
 			if (free_count == blocks_needed) {
-				/* Marca como usado */
 				uint8_t allocation_color = get_next_allocation_color();
 				for (uint32_t j = start_block; j < start_block + blocks_needed; j++) {
 					self->bitmap[j] = allocation_color;
@@ -113,18 +94,14 @@ void *memory_alloc(MemoryManagerADT self, const uint64_t size) {
 				self->used_blocks += blocks_needed;
 				self->info.used_memory += blocks_needed * BLOCK_SIZE;
 				self->info.free_memory = self->info.total_memory - self->info.used_memory;
-
-				/* Retornar puntero al primer bloque */
 				return (void *) (self->start + (start_block * BLOCK_SIZE));
 			}
 		}
 		else {
-			/* Bloque ocupado, resetear contador */
 			free_count = 0;
 		}
 	}
 
-	/* No se encontraron suficientes bloques contiguos */
 	return NULL;
 }
 
@@ -133,15 +110,12 @@ int memory_free(MemoryManagerADT self, void *ptr) {
 		return -1;
 	}
 
-	/* Calcular indice del bloque */
 	uint64_t offset = (uint64_t) ptr - (uint64_t) self->start;
 	uint32_t block_index = offset / BLOCK_SIZE;
 
 	if (block_index >= self->total_blocks || self->bitmap[block_index] == 0) {
-		return -1; /* Bloque invalido o ya libre */
+		return -1;
 	}
-
-	/* Liberar todos los bloques contiguos con el mismo color */
 	uint8_t color = self->bitmap[block_index];
 	uint32_t freed = 0;
 

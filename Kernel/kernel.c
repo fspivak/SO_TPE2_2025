@@ -40,36 +40,36 @@ void *initializeKernelBinary() {
 
 	vd_clear_screen(); // Clear screen at boot start
 
-	vd_print("[x64BareBones]\n");
+	// vd_print("[x64BareBones]\n");
 
-	vd_print("CPU Vendor: ");
-	vd_print(cpuVendor(buffer));
-	vd_print("\n");
+	// vd_print("CPU Vendor: ");
+	// vd_print(cpuVendor(buffer));
+	// vd_print("\n");
 
-	vd_print("[Loading modules]\n");
+	// vd_print("[Loading modules]\n");
 	void *moduleAddresses[] = {sampleCodeModuleAddress, sampleDataModuleAddress};
 
 	loadModules(&endOfKernelBinary, moduleAddresses);
-	vd_print("[Done]\n\n");
+	// vd_print("[Done]\n\n");
 
-	vd_print("[Initializing kernel's binary]\n");
+	// vd_print("[Initializing kernel's binary]\n");
 
 	clearBSS(&bss, &endOfKernel - &bss);
 
-	vd_print("  text: 0x");
-	vd_print_hex((uint64_t) &text);
-	vd_print("\n");
-	vd_print("  rodata: 0x");
-	vd_print_hex((uint64_t) &rodata);
-	vd_print("\n");
-	vd_print("  data: 0x");
-	vd_print_hex((uint64_t) &data);
-	vd_print("\n");
-	vd_print("  bss: 0x");
-	vd_print_hex((uint64_t) &bss);
-	vd_print("\n");
+	// vd_print("  text: 0x");
+	// vd_print_hex((uint64_t) &text);
+	// vd_print("\n");
+	// vd_print("  rodata: 0x");
+	// vd_print_hex((uint64_t) &rodata);
+	// vd_print("\n");
+	// vd_print("  data: 0x");
+	// vd_print_hex((uint64_t) &data);
+	// vd_print("\n");
+	// vd_print("  bss: 0x");
+	// vd_print_hex((uint64_t) &bss);
+	// vd_print("\n");
 
-	vd_print("[Done]\n\n");
+	// vd_print("[Done]\n\n");
 	return getStackBase();
 }
 
@@ -86,7 +86,7 @@ void *initializeKernelBinary() {
  */
 int main() {
 	/* Inicializar Memory Manager */
-	vd_print("[Initializing Memory Manager]\n");
+	// vd_print("[Initializing Memory Manager]\n");
 /*
  * Usar memoria alta para metadata del MM para evitar sobreescribir el stack.
  * Colocamos metadata al inicio de MEMORY_START y la memoria administrable
@@ -99,27 +99,27 @@ int main() {
 	memory_manager = memory_manager_init(mm_metadata_start,	  /* Metadata del MM en memoria alta */
 										 managed_memory_start /* Memoria administrable después */
 	);
-	vd_print("  MM Metadata: 0x");
-	vd_print_hex((uint64_t) mm_metadata_start);
-	vd_print(" (");
-	vd_print_dec(MM_METADATA_SIZE / 1024);
-	vd_print(" KB)\n");
-	vd_print("  Managed memory: 0x");
-	vd_print_hex((uint64_t) managed_memory_start);
-	vd_print(" - 0x");
-	vd_print_hex(MEMORY_END);
-	vd_print(" (");
-	vd_print_dec((MEMORY_END - (uint64_t) managed_memory_start) / 1024);
-	vd_print(" KB)\n");
-	vd_print("[Done]\n\n");
+	// vd_print("  MM Metadata: 0x");
+	// vd_print_hex((uint64_t) mm_metadata_start);
+	// vd_print(" (");
+	// vd_print_dec(MM_METADATA_SIZE / 1024);
+	// vd_print(" KB)\n");
+	// vd_print("  Managed memory: 0x");
+	// vd_print_hex((uint64_t) managed_memory_start);
+	// vd_print(" - 0x");
+	// vd_print_hex(MEMORY_END);
+	// vd_print(" (");
+	// vd_print_dec((MEMORY_END - (uint64_t) managed_memory_start) / 1024);
+	// vd_print(" KB)\n");
+	// vd_print("[Done]\n\n");
 
 	/* Cargar IDT */
 	load_idt();
 
 	/* Inicializar Scheduler y Procesos */
-	vd_print("[Initializing Scheduler]\n");
+	// vd_print("[Initializing Scheduler]\n");
 	init_scheduler();
-	vd_print("[Done]\n\n");
+	// vd_print("[Done]\n\n");
 
 	/* Saltar a userland */
 	((EntryPoint) sampleCodeModuleAddress)();

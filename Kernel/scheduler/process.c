@@ -74,38 +74,30 @@ int init_processes() {
 		return -1;
 	}
 
-	// Configurar stack del proceso idle
 	void *stack_top = (void *) ((uint64_t) idle_pcb->stack_base + STACK_SIZE - 8);
 	idle_pcb->stack_pointer = set_process_stack(0, NULL, stack_top, (void *) idle_process);
 
 	current_process = idle_pcb;
 	current_process->state = RUNNING;
-
-	// Inicializar cola READY
 	init_ready_queue();
 
 	initialized_flag = 1;
 	return 0;
 }
 
-// Verifica si los procesos estan inicializados
 int processes_initialized() {
 	return initialized_flag;
 }
 
-// Crea un nuevo proceso
 process_id_t create_process(const char *name, void (*entry_point)(int, char **), int argc, char **argv,
 							uint8_t priority) {
 	if (!initialized_flag || entry_point == NULL) {
 		return -1;
 	}
 
-	// Validar prioridad
 	if (priority > MAX_PRIORITY) {
 		priority = MAX_PRIORITY;
 	}
-
-	// Buscar slot libre en la tabla de procesos
 	int slot = -1;
 	for (int i = 1; i < MAX_PROCESSES; i++) { // Empezar en 1 (idle es 0)
 		if (process_table[i].state == TERMINATED) {
@@ -119,14 +111,10 @@ process_id_t create_process(const char *name, void (*entry_point)(int, char **),
 	}
 
 	PCB *new_process = &process_table[slot];
-
-	// Configurar PCB
 	new_process->pid = get_next_valid_pid();
 	new_process->state = READY;
 	new_process->priority = priority;
 	new_process->scheduler_counter = 0;
-
-	// Copiar nombre del proceso
 	if (name != NULL) {
 		int i = 0;
 		while (name[i] != '\0' && i < MAX_PROCESS_NAME - 1) {
@@ -139,21 +127,14 @@ process_id_t create_process(const char *name, void (*entry_point)(int, char **),
 		new_process->name[0] = '?';
 		new_process->name[1] = '\0';
 	}
-
-	// Asignar stack
 	new_process->stack_base = memory_alloc(memory_manager, STACK_SIZE);
 	if (new_process->stack_base == NULL) {
 		new_process->state = TERMINATED;
 		return -1;
 	}
-
-	// Configurar stack inicial
 	void *stack_top = (void *) ((uint64_t) new_process->stack_base + STACK_SIZE - 8);
 	new_process->stack_pointer = set_process_stack(argc, argv, stack_top, (void *) entry_point);
-
-	// Agregar al scheduler
 	if (addToScheduler(new_process) < 0) {
-		// Si falla al agregar al scheduler, limpiar completamente
 		memory_free(memory_manager, new_process->stack_base);
 		new_process->stack_base = NULL;
 		new_process->stack_pointer = NULL;
@@ -165,7 +146,6 @@ process_id_t create_process(const char *name, void (*entry_point)(int, char **),
 	return new_process->pid;
 }
 
-// Obtiene el PID del proceso actual
 process_id_t get_current_pid() {
 	if (current_process == NULL) {
 		return -1;
@@ -173,17 +153,15 @@ process_id_t get_current_pid() {
 	return current_process->pid;
 }
 
-// Busca un proceso por PID
 static PCB *get_process_by_pid(process_id_t pid) {
 	for (int i = 0; i < MAX_PROCESSES; i++) {
-		if (process_table[i].pid == pid) { // Incluir procesos TERMINATED
+		if (process_table[i].pid == pid) {
 			return &process_table[i];
 		}
 	}
 	return NULL;
 }
 
-// Termina un proceso
 int kill_process(process_id_t pid) {
 	if (pid == 0) {
 		return -1; // No se puede matar al proceso idle
@@ -255,7 +233,6 @@ int change_priority(process_id_t pid, uint8_t new_priority) {
 	return 0;
 }
 
-// Obtiene informacion de todos los procesos
 int get_processes_info(ProcessInfo *buffer, int max_processes) {
 	if (buffer == NULL || max_processes <= 0) {
 		return -1;
@@ -263,11 +240,8 @@ int get_processes_info(ProcessInfo *buffer, int max_processes) {
 
 	int count = 0;
 	for (int i = 0; i < MAX_PROCESSES && count < max_processes; i++) {
-		// Solo incluir procesos validos (no terminados y PID valido)
 		if (process_table[i].state != TERMINATED && process_table[i].pid >= 0) {
 			buffer[count].pid = process_table[i].pid;
-
-			// Copiar nombre
 			int j = 0;
 			while (j < MAX_PROCESS_NAME - 1) {
 				buffer[count].name[j] = process_table[i].name[j];
@@ -280,8 +254,6 @@ int get_processes_info(ProcessInfo *buffer, int max_processes) {
 			buffer[count].priority = process_table[i].priority;
 			buffer[count].stack_base = (uint64_t) process_table[i].stack_base;
 			buffer[count].rsp = (uint64_t) process_table[i].stack_pointer;
-
-			// Estado como string
 			const char *state_str;
 			switch (process_table[i].state) {
 				case READY:
@@ -314,14 +286,10 @@ int get_processes_info(ProcessInfo *buffer, int max_processes) {
 	return count;
 }
 
-// Libera procesos terminados
 void free_terminated_processes() {
 	for (int i = 1; i < MAX_PROCESSES; i++) { // No liberar idle (i=0)
 		if (process_table[i].state == TERMINATED) {
-			// Remover del scheduler ANTES de limpiar la memoria
 			removeFromScheduler(&process_table[i]);
-
-			// Liberar stack si existe
 			if (process_table[i].stack_base != NULL) {
 				memory_free(memory_manager, process_table[i].stack_base);
 			}
@@ -331,7 +299,6 @@ void free_terminated_processes() {
 			process_table[i].pid = -1;		   // Marcar como slot libre
 			process_table[i].in_scheduler = 0; // Limpiar flag del scheduler
 
-			// Limpiar nombre para evitar datos basura
 			for (int j = 0; j < MAX_PROCESS_NAME; j++) {
 				process_table[i].name[j] = '\0';
 			}
@@ -339,18 +306,15 @@ void free_terminated_processes() {
 	}
 }
 
-// Scheduler Round Robin con prioridades
 void *schedule(void *current_stack_pointer) {
 	if (!initialized_flag) {
 		return current_stack_pointer;
 	}
 
-	// Guardar stack pointer del proceso actual
 	if (current_process != NULL) {
 		current_process->stack_pointer = current_stack_pointer;
 		if (current_process->state == RUNNING) {
 			current_process->state = READY;
-			// Agregar a la cola READY - manejar error si está llena
 			if (add_to_ready_queue(current_process) < 0) {
 				// Si la cola está llena, forzar terminación del proceso
 				current_process->state = TERMINATED;
@@ -358,15 +322,12 @@ void *schedule(void *current_stack_pointer) {
 		}
 	}
 
-	// Seleccionar siguiente proceso desde la cola READY
 	PCB *next_process = remove_from_ready_queue();
 
-	// Si no hay procesos READY, usar idle
 	if (next_process == NULL) {
 		next_process = idle_pcb;
 	}
 
-	// Cambiar al nuevo proceso
 	current_process = next_process;
 	current_process->state = RUNNING;
 	current_process->scheduler_counter++;
@@ -374,7 +335,6 @@ void *schedule(void *current_stack_pointer) {
 	return current_process->stack_pointer;
 }
 
-// Obtiene el stack del proceso idle
 void *get_idle_stack() {
 	if (idle_pcb == NULL) {
 		return NULL;
@@ -382,7 +342,6 @@ void *get_idle_stack() {
 	return idle_pcb->stack_pointer;
 }
 
-// Funciones de manejo de cola READY
 static void init_ready_queue() {
 	ready_queue_head = 0;
 	ready_queue_tail = 0;
@@ -397,7 +356,6 @@ static int add_to_ready_queue(PCB *process) {
 		return -1;
 	}
 
-	// Si la cola está llena, error
 	if (ready_queue_count >= MAX_PROCESSES) {
 		return -1;
 	}
@@ -410,7 +368,7 @@ static int add_to_ready_queue(PCB *process) {
 
 static PCB *remove_from_ready_queue() {
 	if (ready_queue_count == 0) {
-		return NULL; // No hay procesos, retornar NULL silenciosamente
+		return NULL;
 	}
 
 	PCB *process = ready_queue[ready_queue_head];
@@ -421,17 +379,14 @@ static PCB *remove_from_ready_queue() {
 	return process;
 }
 
-// Remueve un proceso del scheduler
 int removeFromScheduler(PCB *process) {
 	if (process == NULL) {
 		return -1;
 	}
 
-	// Buscar y remover de la cola, sin importar el estado actual
 	for (int i = 0; i < ready_queue_count; i++) {
 		int index = (ready_queue_head + i) % MAX_PROCESSES;
 		if (ready_queue[index] == process) {
-			// Mover todos los elementos hacia atrás
 			for (int j = i; j < ready_queue_count - 1; j++) {
 				int curr = (ready_queue_head + j) % MAX_PROCESSES;
 				int next = (ready_queue_head + j + 1) % MAX_PROCESSES;
@@ -439,22 +394,19 @@ int removeFromScheduler(PCB *process) {
 			}
 			ready_queue_count--;
 			ready_queue_tail = (ready_queue_tail - 1 + MAX_PROCESSES) % MAX_PROCESSES;
-			// Limpiar el último puntero
 			ready_queue[(ready_queue_head + ready_queue_count) % MAX_PROCESSES] = NULL;
-			return 1; // Proceso removido exitosamente
+			return 1;
 		}
 	}
 
 	return 1;
 }
 
-// Agrega un proceso al scheduler
 int addToScheduler(PCB *process) {
 	if (process == NULL) {
 		return -1;
 	}
 
-	// Solo agregar si está READY
 	if (process->state == READY) {
 		return add_to_ready_queue(process);
 	}

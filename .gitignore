@@ -1,26 +1,30 @@
-# Binarios
+# Binarios y compilacion
 *.o
 *.bin
 *.elf
+*.sys
+*.img
+packedKernel.bin
+kernel.bin
 
-# Imágenes del sistema (se generan con make)
+# Imagenes del SO
 Image/*.img
 Image/*.vmdk
 Image/*.qcow2
 
-# Build artifacts
-packedKernel.bin
-kernel.bin
-*.img
-
-# Editor
+# Editores e IDEs
 .vscode/
 .idea/
-
-# Temporales
 *.swp
 *.swo
 *~
 
-# Docs
+# Logs y archivos temporales
+*.log
+.gdb_history
+
+# Sistema Operativo (WINDOWS)
+*:Zone.Identifier
+
+# Documentacion
 docs/
