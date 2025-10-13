@@ -13,7 +13,6 @@ void init_scheduler() {
 	init_processes();
 }
 
-// Fuerza un context switch (usado por yield)
 extern void force_context_switch();
 
 void force_switch() {

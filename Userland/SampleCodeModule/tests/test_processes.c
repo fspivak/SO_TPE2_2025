@@ -14,7 +14,6 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
 	uint8_t alive = 0;
 	uint8_t action;
 	uint64_t max_processes;
-	uint64_t iteration = 0;
 	char *argvAux[] = {0};
 
 	if (argc != 1)
@@ -25,19 +24,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
 
 	p_rq p_rqs[max_processes];
 
-	print("Starting test with ");
-	printBase(max_processes, 10);
-	print(" processes\n");
-
 	while (1) {
-		if (iteration % 10 == 0) {
-			print("Iter #");
-			printBase(iteration, 10);
-			print("\n");
-		}
-
-		iteration++;
-
 		// Create max_processes processes
 		for (rq = 0; rq < max_processes; rq++) {
 			p_rqs[rq].pid = my_create_process("endless_loop", 0, argvAux);

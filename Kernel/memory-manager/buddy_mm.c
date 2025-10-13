@@ -158,7 +158,6 @@ void *memory_alloc(MemoryManagerADT self, const uint64_t size) {
 	return (void *) ((uint8_t *) block + sizeof(block_t));
 }
 
-/* Libera un bloque y fusiona con buddies libres */
 int memory_free(MemoryManagerADT self, void *ptrs) {
 	if (ptrs == NULL) {
 		return -1;
