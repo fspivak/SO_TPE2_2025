@@ -15,11 +15,11 @@ Sistema operativo con memory manager, scheduler de procesos y manejo de priorida
 
 **Setup inicial (solo la primera vez):**
 ```bash
-# Construir la imagen Docker
-docker build -t so-tpe2 .
+# Descargar la imagen Docker oficial
+docker pull agodio/itba-so-multi-platform:3.0
 
 # Crear y configurar el contenedor
-docker run -d --name SO-TPE2 -v $(pwd):/root so-tpe2 tail -f /dev/null
+docker run -d --name SO-TPE2 -v $(pwd):/root agodio/itba-so-multi-platform:3.0 tail -f /dev/null
 ```
 
 ### Opcion 2: Sin Docker
@@ -96,7 +96,13 @@ make clean        # Limpia binarios
 ```bash
 # Recrear el contenedor
 docker rm -f SO-TPE2
-docker run -d --name SO-TPE2 -v $(pwd):/root so-tpe2 tail -f /dev/null
+docker run -d --name SO-TPE2 -v $(pwd):/root agodio/itba-so-multi-platform:3.0 tail -f /dev/null
+```
+
+### La imagen Docker no existe
+```bash
+# Descargar la imagen oficial
+docker pull agodio/itba-so-multi-platform:3.0
 ```
 
 ---
