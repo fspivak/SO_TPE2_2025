@@ -9,6 +9,7 @@ void refreshScreen();
 void list_processes();
 void show_current_pid();
 void run_test_process(char *args);
+void run_test_ab(); // TODO: Eliminar
 
 /* Utility functions */
 void print_padded(const char *str, int width);

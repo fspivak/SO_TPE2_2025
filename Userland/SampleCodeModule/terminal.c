@@ -95,6 +95,9 @@ void terminal() {
 				}
 				run_test_process(args);
 			}
+			else if (!strcmp(buffer, "test_ab")) { // TODO: Eliminar
+				run_test_ab();
+			}
 			else if (!strcmp(buffer, "exit")) {
 				print("Goodbye!\n");
 				sound(2);
@@ -173,6 +176,7 @@ void help() {
 	print("  test_process      - Run process management test (default: 3 processes)\n");
 	print("  test_process <n>  - Run process management test with n processes (1-64)\n");
 	print("                          Example: test_process 5\n");
+	print("  test_ab           - Run simple AB test (two processes printing A and B)\n"); // TODO: Eliminar
 	print("\n");
 }
 
@@ -381,6 +385,26 @@ void run_test_process(char *args) {
 	}
 
 	print("\n=== Process Test Completed ===\n\n");
+}
+
+void run_test_ab() { // TODO: Eliminar
+	print("\n=== Running AB Test ===\n");
+	print("This will create two processes that print 'A' and 'B' alternately.\n");
+	print("You should see them switching back and forth.\n\n");
+
+	extern int64_t test_ab(uint64_t argc, char *argv[]);
+
+	char *argv[] = {NULL};
+	int64_t result = test_ab(0, argv);
+
+	if (result != 0) {
+		print("test_ab: ERROR occurred during test\n");
+	}
+	else {
+		print("test_ab: Test completed successfully\n");
+	}
+
+	print("\n=== AB Test Completed ===\n\n");
 }
 
 /**
