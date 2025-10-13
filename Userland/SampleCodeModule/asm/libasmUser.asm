@@ -152,8 +152,8 @@ rompeOpcode:
     ret
 
 exit:
-    cli
-    hlt
+    mov rax, 68      ; Syscall exit
+    int 80h
     ret
 
 malloc:
