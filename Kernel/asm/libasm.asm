@@ -140,3 +140,6 @@ inb:
 	mov dx, di
     in al, dx
 	ret
+
+; Seccion para indicar que el stack NO es ejecutable (seguridad)
+section .note.GNU-stack noalloc noexec nowrite progbits

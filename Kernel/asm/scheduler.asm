@@ -76,3 +76,6 @@ force_context_switch:
     int 0x20            ; Trigger timer interrupt
     ret
 
+; Seccion para indicar que el stack NO es ejecutable (seguridad)
+section .note.GNU-stack noalloc noexec nowrite progbits
+

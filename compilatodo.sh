@@ -8,6 +8,14 @@ DOCKER_IMAGE="agodio/itba-so-multi-platform:3.0"
 
 TARGET=${1:-""}  # Parametro opcional: vacio (simple) o "buddy"
 
+# Detectar si estamos en un contexto interactivo (TTY disponible)
+if [ -t 0 ]; then
+    DOCKER_EXEC="docker exec -it"
+else
+    # Modo no interactivo (ej: pre-commit hook, GitHub Desktop)
+    DOCKER_EXEC="docker exec"
+fi
+
 # Verificar si la imagen Docker existe, si no descargarla
 if ! docker images --format "table {{.Repository}}:{{.Tag}}" | grep -q "^${DOCKER_IMAGE}$"; then
     echo "Imagen ${DOCKER_IMAGE} no existe, descargando..."
@@ -21,9 +29,9 @@ if ! docker ps -a --format "table {{.Names}}" | grep -q "^${CONTAINER_NAME}$"; t
 else
     docker start ${CONTAINER_NAME}
 fi
-docker exec -it ${CONTAINER_NAME} make clean -C /root/Toolchain
-docker exec -it ${CONTAINER_NAME} make clean -C /root
-docker exec -it ${CONTAINER_NAME} make -C /root/Toolchain
-docker exec -it ${CONTAINER_NAME} make $TARGET -C /root
-docker exec -it ${CONTAINER_NAME} chmod 777 /root/Image/x64BareBonesImage.qcow2
+${DOCKER_EXEC} ${CONTAINER_NAME} make clean -C /root/Toolchain
+${DOCKER_EXEC} ${CONTAINER_NAME} make clean -C /root
+${DOCKER_EXEC} ${CONTAINER_NAME} make -C /root/Toolchain
+${DOCKER_EXEC} ${CONTAINER_NAME} make $TARGET -C /root
+${DOCKER_EXEC} ${CONTAINER_NAME} chmod 777 /root/Image/x64BareBonesImage.qcow2
 docker stop ${CONTAINER_NAME}

@@ -10,3 +10,6 @@ hang:
 	cli
 	hlt	; halt machine should kernel return
 	jmp hang
+
+; Seccion para indicar que el stack NO es ejecutable (seguridad)
+section .note.GNU-stack noalloc noexec nowrite progbits

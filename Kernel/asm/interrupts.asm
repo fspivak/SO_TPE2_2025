@@ -324,3 +324,6 @@ SECTION .bss
 	registros resq 13
 	regs_save resb 0
 	manually_triggered_timer_interrupt resb 1
+
+; Seccion para indicar que el stack NO es ejecutable (seguridad)
+section .note.GNU-stack noalloc noexec nowrite progbits

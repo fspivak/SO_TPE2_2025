@@ -216,3 +216,6 @@ sys_call:
 
 section .bss
 registros resq 13
+
+; Seccion para indicar que el stack NO es ejecutable (seguridad)
+section .note.GNU-stack noalloc noexec nowrite progbits
