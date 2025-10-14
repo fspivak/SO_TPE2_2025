@@ -11,6 +11,7 @@ int block(int pid);
 int unblock(int pid);
 int nice(int pid, int priority);
 void yield(void);
+int waitpid(int pid);
 
 static void endless_loop_wrapper(int argc, char **argv) {
 	(void) argc;
@@ -70,6 +71,5 @@ int64_t my_sem_close(char *sem_id) {
 }
 
 int64_t my_wait(int64_t pid) {
-	(void) pid;
-	return -1; // waitpid not implemented yet
+	return (int64_t) waitpid((int) pid);
 }

@@ -29,6 +29,7 @@ typedef struct PCB {
 	void *stack_pointer;		// Current stack pointer (RSP)
 	uint64_t scheduler_counter; // Contador para Round Robin
 	int in_scheduler;			// 1 = puede ser elegido por scheduler, 0 = removido
+	process_id_t waiting_pid;	// PID del proceso que esta esperando a este proceso
 } PCB;
 
 // Informacion de proceso para userland
@@ -145,6 +146,13 @@ void *schedule(void *current_stack_pointer);
  * @return Puntero al stack del proceso idle
  */
 void *get_idle_stack();
+
+/**
+ * @brief Espera a que un proceso hijo termine
+ * @param pid PID del proceso hijo a esperar
+ * @return 0 si exitoso, -1 si hay error
+ */
+int waitpid(process_id_t pid);
 
 // Funciones auxiliares para manejo del scheduler
 int removeFromScheduler(PCB *process);

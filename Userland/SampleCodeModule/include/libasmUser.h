@@ -192,3 +192,10 @@ void yield(void);
  * @return Numero de procesos retornados
  */
 int ps(void *buffer, int max_processes);
+
+/**
+ * @brief Espera a que un proceso hijo termine
+ * @param pid PID del proceso hijo a esperar
+ * @return 0 si exitoso, -1 si hay error
+ */
+int waitpid(int pid);

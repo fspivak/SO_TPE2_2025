@@ -162,6 +162,13 @@ uint64_t syscallDispatcher(uint64_t rax, ...) {
 		/* sys_exit - Termina el proceso actual */
 		sys_exit();
 	}
+	else if (rax == 69) {
+		/* sys_waitpid - Espera a que un proceso hijo termine */
+		process_id_t pid = va_arg(args, process_id_t);
+		int result = sys_waitpid(pid);
+		va_end(args);
+		return (uint64_t) result;
+	}
 
 	va_end(args);
 	return 0; /* Retorno por defecto */
@@ -330,4 +337,12 @@ void sys_exit() {
 	if (current_pid > 0) {
 		kill_process(current_pid);
 	}
+}
+
+int sys_waitpid(process_id_t pid) {
+	if (pid <= 0) {
+		return -1;
+	}
+
+	return waitpid(pid);
 }

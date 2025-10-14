@@ -51,6 +51,7 @@ int init_processes() {
 		process_table[i].stack_base = NULL;
 		process_table[i].stack_pointer = NULL;
 		process_table[i].in_scheduler = 0;
+		process_table[i].waiting_pid = -1;
 		for (int j = 0; j < MAX_PROCESS_NAME; j++) {
 			process_table[i].name[j] = '\0';
 		}
@@ -172,6 +173,16 @@ int kill_process(process_id_t pid) {
 		return 0;
 	}
 
+	// Desbloquear proceso que esta esperando a este proceso
+	if (process->waiting_pid != -1) {
+		PCB *waiting_process = get_process_by_pid(process->waiting_pid);
+		if (waiting_process != NULL && waiting_process->state == BLOCKED) {
+			waiting_process->state = READY;
+			addToScheduler(waiting_process);
+		}
+		process->waiting_pid = -1;
+	}
+
 	process->state = TERMINATED;
 	removeFromScheduler(process);
 
@@ -186,6 +197,36 @@ int kill_process(process_id_t pid) {
 	}
 
 	free_terminated_processes();
+
+	return 0;
+}
+
+int waitpid(process_id_t pid) {
+	if (pid <= 0) {
+		return -1;
+	}
+
+	PCB *child_process = get_process_by_pid(pid);
+	if (child_process == NULL) {
+		return -1;
+	}
+
+	if (child_process->state == TERMINATED) {
+		return 0;
+	}
+
+	// Bloquear proceso actual y guardar su PID en el hijo
+	PCB *current = get_process_by_pid(get_current_pid());
+	if (current == NULL) {
+		return -1;
+	}
+
+	child_process->waiting_pid = current->pid;
+
+	current->state = BLOCKED;
+	removeFromScheduler(current);
+
+	_force_scheduler_interrupt();
 
 	return 0;
 }

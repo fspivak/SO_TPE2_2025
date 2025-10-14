@@ -38,3 +38,7 @@ void yield(void) {
 int ps(void *buffer, int max_processes) {
 	return (int) sys_call(SYS_PS, (uint64_t) buffer, (uint64_t) max_processes, 0, 0, 0, 0);
 }
+
+int waitpid(int pid) {
+	return (int) sys_call(SYS_WAITPID, (uint64_t) pid, 0, 0, 0, 0, 0);
+}

@@ -35,3 +35,5 @@ int sys_unblock(process_id_t pid);
 int sys_nice(process_id_t pid, uint8_t new_priority);
 void sys_yield();
 int sys_ps(ProcessInfo *buffer, int max_processes);
+void sys_exit();
+int sys_waitpid(process_id_t pid);

@@ -17,5 +17,7 @@
 #define SYS_NICE 65
 #define SYS_YIELD 66
 #define SYS_PS 67
+#define SYS_EXIT 68
+#define SYS_WAITPID 69
 
 #endif
