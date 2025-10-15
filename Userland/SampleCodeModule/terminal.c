@@ -1,4 +1,5 @@
 #include "include/terminal.h"
+#include "include/commands.h"
 #include "include/libasmUser.h"
 #include "include/screen.h"
 #include "include/snake.h"
@@ -70,7 +71,7 @@ void terminal() {
 			print("\n"); /* Nueva linea despues del comando */
 
 			if (!strcmp(buffer, "help")) {
-				help();
+				help_cmd(0, NULL);
 			}
 			else if (!strcmp(buffer, "zoom in")) {
 				print("Zoom not available in VGA text mode\n");
@@ -82,7 +83,7 @@ void terminal() {
 				imprimirRegistros();
 			}
 			else if (!strcmp(buffer, "ps")) {
-				list_processes();
+				ps_cmd(0, NULL);
 			}
 			else if (!strcmp(buffer, "getpid")) {
 				show_current_pid();
@@ -94,9 +95,6 @@ void terminal() {
 					args = &buffer[13]; // Saltar el espacio
 				}
 				run_test_process(args);
-			}
-			else if (!strcmp(buffer, "test_ab")) { // TODO: Eliminar
-				run_test_ab();
 			}
 			else if (!strcmp(buffer, "exit")) {
 				print("Goodbye!\n");
@@ -111,29 +109,21 @@ void terminal() {
 				clock();
 			}
 			else if (!strcmp(buffer, "clear")) {
-				/* Llamar a syscall para limpiar pantalla */
-				clearScreen();
+				clear_cmd(0, NULL);
 			}
-			else if (buffer[0] == 't' && buffer[1] == 'e' && buffer[2] == 's' && buffer[3] == 't' && buffer[4] == '_' &&
-					 buffer[5] == 'm' && buffer[6] == 'm') {
-				/* Parsear parametro opcional */
-				char *size_param = NULL;
+			else if (!strcmp(buffer, "mem")) {
+				mem_cmd(0, NULL);
+			}
+			else if (!strcmp(buffer, "test_ab")) {
+				run_test_ab();
+			}
+			else if (startsWith(buffer, "test_mm")) {
+				// Extraer argumentos si los hay
+				char *args = NULL;
 				if (buffer[7] == ' ') {
-					size_param = &buffer[8];
+					args = &buffer[8]; // Saltar el espacio
 				}
-
-				if (size_param && size_param[0] != '\0') {
-					print("Running test_mm with custom size: ");
-					print(size_param);
-					print(" bytes\n");
-					char *argv[] = {size_param, NULL};
-					test_mm(1, argv);
-				}
-				else {
-					print("Running test_mm with default size: 1MB\n");
-					char *argv[] = {"1048576", NULL}; /* 1MB default */
-					test_mm(1, argv);
-				}
+				run_test_mm(args);
 			}
 			else if (i > 0) { /* Solo mostrar error si se escribio algo */
 				print("Command '");
@@ -155,31 +145,6 @@ void clean(int ammount) {
 	}
 }
 
-/**
- * @brief Muestra la ayuda del terminal con comandos disponibles
- */
-void help() {
-	print("\n=== Available Commands ===\n\n");
-	print("General:\n");
-	print("  help              - Show this help message\n");
-	print("  clear             - Clear screen\n");
-	print("  clock             - Show current time\n");
-	print("  showRegisters     - Display CPU registers\n");
-	print("  exit              - Exit terminal\n");
-	print("\nProcess Management:\n");
-	print("  ps                - List all processes\n");
-	print("  getpid            - Show current process ID\n");
-	print("\nMemory Manager Tests:\n");
-	print("  test_mm           - Run memory manager test (default: 1MB)\n");
-	print("  test_mm <size>    - Run memory manager test with custom size\n");
-	print("                          Example: test_mm 524288 (512KB)\n");
-	print("  test_process      - Run process management test (default: 3 processes)\n");
-	print("  test_process <n>  - Run process management test with n processes (1-64)\n");
-	print("                          Example: test_process 5\n");
-	print("  test_ab           - Run simple AB test (two processes printing A and B)\n"); // TODO: Eliminar
-	print("\n");
-}
-
 void refreshScreen() {
 	for (int i = 0; i <= screenHeight; i++) {
 		for (int j = 0; j <= screenWidth; j++) {
@@ -188,168 +153,11 @@ void refreshScreen() {
 	}
 }
 
-/**
- * @brief Muestra el PID del proceso actual
- */
 void show_current_pid() {
 	int pid = getpid();
 	print("Current PID: ");
 	printBase(pid, 10);
 	print("\n");
-}
-
-/**
- * @brief Lista todos los procesos activos en el sistema
- */
-void list_processes() {
-	/* Definir estructura ProcessInfo local */
-	typedef struct {
-		int pid;
-		char name[32];
-		uint8_t priority;
-		uint64_t stack_base;
-		uint64_t rsp;
-		char state_name[16];
-		uint8_t hasForeground;
-	} ProcessInfo;
-
-	ProcessInfo processes[64]; /* Buffer para hasta 64 procesos */
-	int count = ps(processes, 64);
-
-	if (count <= 0) {
-		print("No processes found or error occurred\n");
-		return;
-	}
-
-	print("\nActive Processes:\n");
-	print_padded("PID", 6);
-	print_padded("Name", 12);
-	print_padded("Priority", 10);
-	print_padded("State", 12);
-	print_padded("Stack Base", 16);
-	print_padded("RSP", 16);
-	print("FG\n");
-	print("-----------------------------------------------------------------------------\n");
-
-	for (int i = 0; i < count; i++) {
-		/* PID */
-		print_int_padded(processes[i].pid, 6);
-
-		/* Name */
-		print_padded(processes[i].name, 12);
-
-		/* Priority */
-		print_int_padded(processes[i].priority, 10);
-
-		/* State */
-		print_padded(processes[i].state_name, 12);
-
-		/* Stack Base */
-		print_hex_padded(processes[i].stack_base, 16);
-
-		/* RSP */
-		print_hex_padded(processes[i].rsp, 16);
-
-		/* Foreground */
-		print_padded(processes[i].hasForeground ? "1" : "0", 3);
-		print("\n");
-	}
-
-	print("-----------------------------------------------------------------------------\n");
-	print("Total processes: ");
-	printBase(count, 10);
-	print("\n\n");
-}
-
-/**
- * @brief Imprime una cadena y la rellena con espacios hasta un ancho dado
- * @param str La cadena a imprimir
- * @param width El ancho total deseado para la columna
- */
-void print_padded(const char *str, int width) {
-	int len = 0;
-	while (str[len] != '\0' && len < 100)
-		len++; // Evitar overflow
-
-	print((char *) str);
-	for (int i = len; i < width; i++) {
-		print(" ");
-	}
-}
-
-/**
- * @brief Imprime un entero y lo rellena con espacios hasta un ancho dado
- * @param value El valor entero a imprimir
- * @param width El ancho total deseado para la columna
- */
-void print_int_padded(int value, int width) {
-	char buffer[20];
-	int pos = 0;
-
-	// Convertir entero a string
-	if (value == 0) {
-		buffer[pos++] = '0';
-	}
-	else {
-		int temp = value;
-		if (temp < 0) {
-			buffer[pos++] = '-';
-			temp = -temp;
-		}
-
-		char digits[20];
-		int digit_count = 0;
-		while (temp > 0) {
-			digits[digit_count++] = '0' + (temp % 10);
-			temp /= 10;
-		}
-
-		// Invertir los dígitos
-		for (int i = digit_count - 1; i >= 0; i--) {
-			buffer[pos++] = digits[i];
-		}
-	}
-	buffer[pos] = '\0';
-
-	print_padded(buffer, width);
-}
-
-/**
- * @brief Imprime un valor hexadecimal con prefijo 0x y padding
- * @param value El valor a imprimir en hexadecimal
- * @param width El ancho total deseado para la columna (incluyendo 0x)
- */
-void print_hex_padded(uint64_t value, int width) {
-	char buffer[20];
-	const char hex_chars[] = "0123456789ABCDEF";
-	int pos = 0;
-
-	// Agregar prefijo 0x
-	buffer[pos++] = '0';
-	buffer[pos++] = 'x';
-
-	// Convertir a hexadecimal (maximo 16 digitos para uint64_t)
-	char hex_digits[16];
-	int digit_count = 0;
-
-	if (value == 0) {
-		hex_digits[digit_count++] = '0';
-	}
-	else {
-		uint64_t temp = value;
-		while (temp > 0) {
-			hex_digits[digit_count++] = hex_chars[temp % 16];
-			temp /= 16;
-		}
-	}
-
-	// Invertir los digitos hex
-	for (int i = digit_count - 1; i >= 0; i--) {
-		buffer[pos++] = hex_digits[i];
-	}
-	buffer[pos] = '\0';
-
-	print_padded(buffer, width);
 }
 
 void run_test_process(char *args) {
@@ -387,31 +195,35 @@ void run_test_process(char *args) {
 	print("\n=== Process Test Completed ===\n\n");
 }
 
-void run_test_ab() { // TODO: Eliminar
-	print("\n=== Running AB Test ===\n");
-	print("This will create two processes that print 'A' and 'B' alternately.\n");
-	print("You should see them switching back and forth.\n\n");
+void run_test_mm(char *args) {
+	print("\n=== Running Memory Manager Test ===\n");
 
-	extern int64_t test_ab(uint64_t argc, char *argv[]);
+	extern uint64_t test_mm(uint64_t argc, char *argv[]);
 
 	char *argv[] = {NULL};
-	int64_t result = test_ab(0, argv);
-
-	if (result != 0) {
-		print("test_ab: ERROR occurred during test\n");
+	if (args != NULL && args[0] != '\0') {
+		print("Running test_mm with custom size: ");
+		print(args);
+		print(" bytes\n");
+		argv[0] = args;
 	}
 	else {
-		print("test_ab: Test completed successfully\n");
+		print("Running test_mm with default size: 1MB\n");
+		argv[0] = "1048576"; /* 1MB default */
 	}
 
-	print("\n=== AB Test Completed ===\n\n");
+	uint64_t result = test_mm(1, argv);
+
+	if (result == -1) {
+		print("test_mm: ERROR occurred during test\n");
+	}
+	else {
+		print("test_mm: Test completed successfully\n");
+	}
+
+	print("\n=== Memory Manager Test Completed ===\n\n");
 }
 
-/**
- * @brief Convierte un entero a string
- * @param value El valor a convertir
- * @param buffer Buffer donde guardar el string
- */
 void intToString(int value, char *buffer) {
 	if (value == 0) {
 		buffer[0] = '0';
@@ -443,12 +255,6 @@ void intToString(int value, char *buffer) {
 	buffer[buffer_pos] = '\0';
 }
 
-/**
- * @brief Verifica si un string comienza con otro
- * @param str El string principal
- * @param prefix El prefijo a buscar
- * @return 1 si comienza con el prefijo, 0 si no
- */
 int startsWith(const char *str, const char *prefix) {
 	while (*prefix) {
 		if (*str != *prefix) {
