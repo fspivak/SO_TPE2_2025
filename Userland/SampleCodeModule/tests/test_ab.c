@@ -9,7 +9,7 @@ void process_a(int argc, char **argv) {
 	(void) argv;
 	for (int i = 0; i < 50; i++) {
 		print("A");
-		yield(); /* Force context switch */
+		// yield(); /* Force context switch */
 	}
 	print("\n[Process A finished]\n");
 	exit(); /* Terminate process using syscall */
@@ -21,7 +21,7 @@ void process_b(int argc, char **argv) {
 	(void) argv;
 	for (int i = 0; i < 50; i++) {
 		print("B");
-		yield(); /* Force context switch */
+		// yield(); /* Force context switch */
 	}
 	print("\n[Process B finished]\n");
 	exit(); /* Terminate process using syscall */
@@ -37,14 +37,14 @@ int64_t test_ab(uint64_t argc, char *argv[]) {
 	print("You should see them switching back and forth.\n\n");
 	print("Creating process A...\n");
 
-	int pid_a = create_process("process_a", process_a, 0, NULL, 128);
+	int pid_a = create_process("process_a", process_a, 0, NULL, 4);
 	if (pid_a < 0) {
 		print("ERROR: Failed to create process A\n");
 		return -1;
 	}
 
 	print("Creating process B...\n");
-	int pid_b = create_process("process_b", process_b, 0, NULL, 128);
+	int pid_b = create_process("process_b", process_b, 0, NULL, 1);
 	if (pid_b < 0) {
 		print("ERROR: Failed to create process B\n");
 		return -1;
