@@ -34,7 +34,6 @@ void mem_cmd(int argc, char **argv) {
 	uint64_t used_bytes = state.used_memory;
 	uint64_t free_bytes = state.free_memory;
 
-	print("\n");
 	print("=== Memory Status (");
 	print(state.mm_type);
 	print(") ===\n");
@@ -54,5 +53,4 @@ void mem_cmd(int argc, char **argv) {
 		printBase(used_percent, 10);
 		print("%\n");
 	}
-	print("\n");
 }

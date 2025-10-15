@@ -23,7 +23,7 @@ void ps_cmd(int argc, char **argv) {
 		return;
 	}
 
-	print("\nActive Processes:\n");
+	print("Active Processes:\n");
 	print_padded("PID", 6);
 	print_padded("Name", 12);
 	print_padded("Priority", 10);
@@ -47,5 +47,5 @@ void ps_cmd(int argc, char **argv) {
 	print("-----------------------------------------------------------------------------\n");
 	print("Total processes: ");
 	printBase(count, 10);
-	print("\n\n");
+	print("\n");
 }
