@@ -55,7 +55,7 @@ MemoryManagerADT memory_manager_init(void *manager_memory, void *managed_memory)
 	mm->info.used_memory = 0;
 	mm->info.free_memory = mm->info.total_memory;
 
-	const char *type = "colors";
+	const char *type = "simple";
 	for (int i = 0; i < 6 && type[i]; i++) {
 		mm->info.mm_type[i] = type[i];
 	}
