@@ -1,16 +1,10 @@
 #include "syscall.h"
+#include "../include/libasmUser.h"
 #include "../include/stinUser.h"
 #include "include/test_util.h"
 #include <stdint.h>
 
-// Declaraciones de syscalls (en syscalls.c)
-int create_process(const char *name, void (*entry)(int, char **), int argc, char **argv, int priority);
-int getpid(void);
-int kill(int pid);
-int block(int pid);
-int unblock(int pid);
-int nice(int pid, int priority);
-void yield(void);
+// Declaración forward para waitpid
 int waitpid(int pid);
 
 static void endless_loop_wrapper(int argc, char **argv) {

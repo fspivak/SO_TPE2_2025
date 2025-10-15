@@ -46,9 +46,9 @@ static uint64_t decode(uint64_t time) {
 
 void getClockTime(char *str) {
 	int idx = 0;
-	uint64_t hours = decode(getHours()) + TIME_ZONE;
+	int64_t hours = (int64_t) decode(getHours()) + TIME_ZONE;
 	hours = (hours < 0) ? (24 + hours) : (hours % 24); // Me aseguro que hours este entre 0-23
-	addFrontZero(&str[idx], hours);
+	addFrontZero(&str[idx], (uint64_t) hours);
 	idx += 2;
 	str[idx++] = ':';
 	addFrontZero(&str[idx], decode(getMinutes()));
