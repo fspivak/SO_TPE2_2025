@@ -1,7 +1,7 @@
 #include "include/idtLoader.h"
-#include "include/lib.h"
 #include "include/moduleLoader.h"
 #include "include/stdinout.h"
+#include "include/time.h"
 #include "include/videoDriver.h"
 #include "memory-manager/include/memory_manager.h"
 #include "scheduler/include/scheduler.h"
@@ -115,6 +115,11 @@ int main() {
 
 	/* Cargar IDT */
 	load_idt();
+
+	/* Configurar timer hardware para interrupciones cada 18 ticks (55ms por contexto) */
+	// vd_print("[Configuring Timer Hardware]\n");
+	configure_timer();
+	// vd_print("[Done]\n\n");
 
 	/* Inicializar Scheduler y Procesos */
 	// vd_print("[Initializing Scheduler]\n");
