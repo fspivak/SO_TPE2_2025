@@ -117,7 +117,7 @@ MemoryManagerADT memory_manager_init(void *manager_memory, void *managed_memory)
 }
 
 void *memory_alloc(MemoryManagerADT self, const uint64_t size) {
-	if (size == 0 || size > MEMORY_SIZE) {
+	if (size == 0 || size > self->info.total_memory) {
 		return NULL;
 	}
 
@@ -155,16 +155,21 @@ void *memory_alloc(MemoryManagerADT self, const uint64_t size) {
 
 	remove_block(self, block);
 	block->status = OCCUPIED;
+
+	uint64_t allocated_size = (1UL << order);
+	self->info.used_memory += allocated_size;
+	self->info.free_memory -= allocated_size;
+
 	return (void *) ((uint8_t *) block + sizeof(block_t));
 }
 
-int memory_free(MemoryManagerADT self, void *ptrs) {
-	if (ptrs == NULL) {
+int memory_free(MemoryManagerADT self, void *ptr) {
+	if (ptr == NULL || ptr < (void *) self->managed_memory_start) {
 		return -1;
 	}
 
-	block_t *block = (block_t *) (ptrs - sizeof(block_t));
-	if (block == NULL || block->status == FREE) {
+	block_t *block = (block_t *) (ptr - sizeof(block_t));
+	if (block == NULL || block->status == FREE || (uint64_t) block >= MEMORY_END) {
 		return -1;
 	}
 
@@ -202,6 +207,10 @@ int memory_free(MemoryManagerADT self, void *ptrs) {
 
 	create_block(self, (void *) block, block->order);
 
+	uint64_t freed_size = (1UL << block->order);
+	self->info.used_memory -= freed_size;
+	self->info.free_memory += freed_size;
+
 	return 0;
 }
 
@@ -210,18 +219,8 @@ void memory_state_get(MemoryManagerADT self, HeapState *state) {
 		return;
 	}
 
-	/* Calcular memoria libre */
-	self->info.free_memory = 0;
-	for (uint64_t i = MIN_LEVEL; i < self->max_order; i++) {
-		block_t *current_block = self->free_blocks[i];
-		while (current_block != NULL) {
-			self->info.free_memory += (uint64_t) (1UL << i);
-			current_block = current_block->next;
-		}
-	}
-
 	state->total_memory = self->info.total_memory;
-	state->used_memory = self->info.total_memory - self->info.free_memory;
+	state->used_memory = self->info.used_memory;
 	state->free_memory = self->info.free_memory;
 
 	for (size_t i = 0; i < 6 && self->info.mm_type[i]; i++) {
