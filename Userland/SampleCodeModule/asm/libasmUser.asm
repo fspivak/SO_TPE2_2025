@@ -152,7 +152,7 @@ rompeOpcode:
     ret
 
 exit:
-    mov rax, 68      ; Syscall exit
+    mov rax, 68
     int 80h
     ret
 
