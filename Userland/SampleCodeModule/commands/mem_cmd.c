@@ -1,3 +1,4 @@
+#include "../include/commands.h"
 #include "../include/libasmUser.h"
 #include "../include/screen.h"
 #include "../include/stinUser.h"
@@ -19,7 +20,9 @@ static void print_human_size(uint64_t bytes) {
 	}
 }
 
-void mem_cmd(int argc, char **argv) {
+static void mem_main(int argc, char **argv) {
+	(void) argc; // No usamos (convencion)
+	(void) argv; // No usamos (convencion)
 	typedef struct {
 		uint64_t total_memory;
 		uint64_t used_memory;
@@ -53,4 +56,16 @@ void mem_cmd(int argc, char **argv) {
 		printBase(used_percent, 10);
 		print("%\n");
 	}
+
+	exit();
+}
+
+void mem_cmd(int argc, char **argv) {
+	int pid_mem = create_process("mem", mem_main, argc, argv, 4);
+	if (pid_mem < 0) {
+		print("ERROR: Failed to create process mem\n");
+		return;
+	}
+
+	waitpid(pid_mem);
 }

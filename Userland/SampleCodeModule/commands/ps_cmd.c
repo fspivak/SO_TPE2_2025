@@ -1,10 +1,13 @@
+#include "../include/commands.h"
 #include "../include/format_utils.h"
 #include "../include/libasmUser.h"
 #include "../include/screen.h"
 #include "../include/stinUser.h"
 #include <stdint.h>
 
-void ps_cmd(int argc, char **argv) {
+static void ps_main(int argc, char **argv) {
+	(void) argc; // No usamos (convencion)
+	(void) argv; // No usamos (convencion)
 	typedef struct {
 		int pid;
 		char name[32];
@@ -48,4 +51,16 @@ void ps_cmd(int argc, char **argv) {
 	print("Total processes: ");
 	printBase(count, 10);
 	print("\n");
+
+	exit();
+}
+
+void ps_cmd(int argc, char **argv) {
+	int pid_ps = create_process("ps", ps_main, argc, argv, 4);
+	if (pid_ps < 0) {
+		print("ERROR: Failed to create process ps\n");
+		return;
+	}
+
+	waitpid(pid_ps);
 }
