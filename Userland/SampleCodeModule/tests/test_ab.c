@@ -1,11 +1,7 @@
+#include "../include/libasmUser.h"
 #include "../include/stinUser.h"
 #include <stddef.h>
 #include <stdint.h>
-
-/* Declaracion de syscalls */
-int create_process(const char *name, void (*entry)(int, char **), int argc, char **argv, int priority);
-void yield(void);
-void exit(void);
 
 /* Process that prints 'A' a limited number of times */
 void process_a(int argc, char **argv) {
@@ -37,6 +33,8 @@ int64_t test_ab(uint64_t argc, char *argv[]) {
 	(void) argv;
 
 	print("Starting AB test...\n");
+	print("This will create two processes that print 'A' and 'B' alternately.\n");
+	print("You should see them switching back and forth.\n\n");
 	print("Creating process A...\n");
 
 	int pid_a = create_process("process_a", process_a, 0, NULL, 128);
@@ -65,4 +63,19 @@ int64_t test_ab(uint64_t argc, char *argv[]) {
 	print("Both processes should have finished by now.\n");
 
 	return 0;
+}
+
+/* Wrapper function for terminal integration */
+void run_test_ab() {
+	extern int64_t test_ab(uint64_t argc, char *argv[]);
+
+	char *argv[] = {NULL};
+	int64_t result = test_ab(0, argv);
+
+	if (result != 0) {
+		print("test_ab: ERROR occurred during test\n");
+	}
+	else {
+		print("test_ab: Test completed successfully\n");
+	}
 }

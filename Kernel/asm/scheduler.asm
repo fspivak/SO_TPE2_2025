@@ -20,7 +20,7 @@ idle_process:
 ;   - rdi: argc
 ;   - rsi: argv
 ;   - rdx: stack base (top of stack)
-;   - rcx: entry point (RIP)
+;   - rcx: PCB pointer
 ; Retorna: RSP inicial del proceso
 ;===========================================================
 set_process_stack:
@@ -36,20 +36,21 @@ set_process_stack:
     ; Construir stack frame como si fuera una interrupcion
     ; Orden: SS, RSP, RFLAGS, CS, RIP, registros
     
-    push 0x00           ; SS (not used in 64-bit)
-    push rdx            ; RSP
+    push 0x00           ; SS (user data segment)
+    push rdx            ; RSP (stack pointer)
     push 0x202          ; RFLAGS (interrupts enabled)
     push 0x08           ; CS (kernel code segment)
-    push rcx            ; RIP (entry point)
+    extern process_entry_wrapper
+    push process_entry_wrapper ; RIP (wrapper function)
     
     ; Registros (en orden de pushState)
     push 0x00           ; rax
     push 0x00           ; rbx
-    push 0x00           ; rcx
-    push 0x00           ; rdx
+    push rcx            ; rcx = PCB pointer
+    push rdx            ; rdx = stack pointer
     push 0x00           ; rbp
-    push rdi            ; rdi = argc
     push rsi            ; rsi = argv
+    push rdi            ; rdi = argc
     push 0x00           ; r8
     push 0x00           ; r9
     push 0x00           ; r10

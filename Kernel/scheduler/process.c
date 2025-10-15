@@ -1,9 +1,10 @@
 #include "include/process.h"
 #include "../include/interrupts.h"
 #include "../include/stddef.h"
+#include "../include/videoDriver.h"
 #include "../memory-manager/include/memory_manager.h"
 
-extern void *set_process_stack(int argc, char **argv, void *stack, void *entry);
+extern void *set_process_stack(int argc, char **argv, void *stack, void *pcb);
 extern void idle_process();
 
 static PCB *get_process_by_pid(process_id_t pid);
@@ -50,6 +51,7 @@ int init_processes() {
 		process_table[i].scheduler_counter = 0;
 		process_table[i].stack_base = NULL;
 		process_table[i].stack_pointer = NULL;
+		process_table[i].entry_point = NULL;
 		process_table[i].in_scheduler = 0;
 		process_table[i].waiting_pid = -1;
 		for (int j = 0; j < MAX_PROCESS_NAME; j++) {
@@ -70,13 +72,14 @@ int init_processes() {
 		i++;
 	}
 	idle_pcb->name[i] = '\0';
+	idle_pcb->entry_point = NULL; // El proceso idle no tiene entry_point userland
 	idle_pcb->stack_base = memory_alloc(memory_manager, STACK_SIZE);
 	if (idle_pcb->stack_base == NULL) {
 		return -1;
 	}
 
 	void *stack_top = (void *) ((uint64_t) idle_pcb->stack_base + STACK_SIZE - 8);
-	idle_pcb->stack_pointer = set_process_stack(0, NULL, stack_top, (void *) idle_process);
+	idle_pcb->stack_pointer = set_process_stack(0, NULL, stack_top, (void *) idle_pcb);
 
 	current_process = idle_pcb;
 	current_process->state = RUNNING;
@@ -128,13 +131,14 @@ process_id_t create_process(const char *name, void (*entry_point)(int, char **),
 		new_process->name[0] = '?';
 		new_process->name[1] = '\0';
 	}
+	new_process->entry_point = entry_point;
 	new_process->stack_base = memory_alloc(memory_manager, STACK_SIZE);
 	if (new_process->stack_base == NULL) {
 		new_process->state = TERMINATED;
 		return -1;
 	}
 	void *stack_top = (void *) ((uint64_t) new_process->stack_base + STACK_SIZE - 8);
-	new_process->stack_pointer = set_process_stack(argc, argv, stack_top, (void *) entry_point);
+	new_process->stack_pointer = set_process_stack(argc, argv, stack_top, (void *) new_process);
 	if (addToScheduler(new_process) < 0) {
 		memory_free(memory_manager, new_process->stack_base);
 		new_process->stack_base = NULL;
@@ -337,6 +341,7 @@ void free_terminated_processes() {
 
 			process_table[i].stack_base = NULL;
 			process_table[i].stack_pointer = NULL;
+			process_table[i].entry_point = NULL;
 			process_table[i].pid = -1;		   // Marcar como slot libre
 			process_table[i].in_scheduler = 0; // Limpiar flag del scheduler
 
@@ -453,4 +458,20 @@ int addToScheduler(PCB *process) {
 	}
 
 	return 1;
+}
+
+PCB *get_current_process(void) {
+	return current_process;
+}
+
+void process_entry_wrapper(int argc, char **argv, void *rsp, PCB *proc) {
+	if (rsp == NULL || proc == NULL || proc->entry_point == NULL) {
+		vd_print("process_entry_wrapper: Invalid arguments\n");
+		return;
+	}
+
+	// Llamar a la funcion userland con los argumentos correctos
+	((void (*)(int, char **)) proc->entry_point)(argc, argv);
+
+	kill_process(proc->pid);
 }

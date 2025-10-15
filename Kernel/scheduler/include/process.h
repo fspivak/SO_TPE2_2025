@@ -27,6 +27,7 @@ typedef struct PCB {
 	uint8_t priority;			// 0 (alta) -> 4 (baja)
 	void *stack_base;			// Base del stack
 	void *stack_pointer;		// Current stack pointer (RSP)
+	void *entry_point;			// Punto de entrada del proceso
 	uint64_t scheduler_counter; // Contador para Round Robin
 	int in_scheduler;			// 1 = puede ser elegido por scheduler, 0 = removido
 	process_id_t waiting_pid;	// PID del proceso que esta esperando a este proceso
@@ -157,5 +158,20 @@ int waitpid(process_id_t pid);
 // Funciones auxiliares para manejo del scheduler
 int removeFromScheduler(PCB *process);
 int addToScheduler(PCB *process);
+
+/**
+ * @brief Obtiene el proceso actual en ejecucion
+ * @return PCB del proceso actual, NULL si no hay proceso
+ */
+PCB *get_current_process(void);
+
+/**
+ * @brief Wrapper para manejar la transicion a userland
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ * @param rsp Stack pointer
+ * @param proc PCB del proceso
+ */
+void process_entry_wrapper(int argc, char **argv, void *rsp, PCB *proc);
 
 #endif /* _PROCESS_H_ */
