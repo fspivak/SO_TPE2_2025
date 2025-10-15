@@ -37,7 +37,7 @@ void invalidOpcode() {
 
 /* Imprime los valores de todos los registros en formato hexadecimal */
 void printRegistros(uint64_t *registros) {
-	vd_print("\n\nRAX: ");
+	vd_print("RAX: ");
 	PrintBase(registros[0], 16);
 	vd_print("\n");
 

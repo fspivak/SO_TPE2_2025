@@ -98,7 +98,7 @@ void clock() {
 }
 
 void printClock(char *str) {
-	print("\nHour: ");
+	print("Hour: ");
 	print(str);
 	print("\n");
 }
