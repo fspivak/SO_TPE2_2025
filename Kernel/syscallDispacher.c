@@ -159,11 +159,11 @@ uint64_t syscallDispatcher(uint64_t rax, ...) {
 		return (uint64_t) count;
 	}
 	else if (rax == 68) {
-		/* sys_exit - Termina el proceso actual */
+		/* sys_exit */
 		sys_exit();
 	}
 	else if (rax == 69) {
-		/* sys_waitpid - Espera a que un proceso hijo termine */
+		/* sys_waitpid */
 		process_id_t pid = va_arg(args, process_id_t);
 		int result = sys_waitpid(pid);
 		va_end(args);
@@ -332,7 +332,6 @@ int sys_ps(ProcessInfo *buffer, int max_processes) {
 }
 
 void sys_exit() {
-	/* Termina el proceso actual */
 	process_id_t current_pid = get_current_pid();
 	if (current_pid > 0) {
 		kill_process(current_pid);
