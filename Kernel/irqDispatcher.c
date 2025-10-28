@@ -1,3 +1,4 @@
+#include "scheduler/include/process.h"
 #include <keyboard.h>
 #include <lib.h>
 #include <stdint.h>
@@ -27,4 +28,11 @@ void int_20() {
 void int_21() {
 	char character = returnKBOutputInterrupt();
 	bufferLoader(character);
+}
+
+void handle_ctrl_c(void) {
+	process_id_t pid = get_current_pid();
+	if (pid > 0) {
+		kill_process(pid);
+	}
 }
