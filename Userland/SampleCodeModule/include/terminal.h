@@ -51,3 +51,6 @@ void intToString(int value, char *buffer);
  * @return 1 si comienza con el prefijo, 0 si no
  */
 int startsWith(const char *str, const char *prefix);
+
+////TODO: BORRAR ESTE TEST/////////
+void run_test_jero(char *args);

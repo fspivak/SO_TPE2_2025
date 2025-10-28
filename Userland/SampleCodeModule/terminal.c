@@ -125,6 +125,16 @@ void terminal() {
 				}
 				run_test_mm(args);
 			}
+
+			// TODO: borrar este test
+			else if (startsWith(buffer, "test_jero")) {
+				// Extraer argumentos si los hay
+				char *args = NULL;
+				if (buffer[9] == ' ') {
+					args = &buffer[10]; // Saltar el espacio
+				}
+				run_test_jero(args);
+			}
 			else if (i > 0) { /* Solo mostrar error si se escribio algo */
 				print("Command '");
 				print(buffer);
@@ -223,6 +233,26 @@ void run_test_mm(char *args) {
 
 	print("\n=== Memory Manager Test Completed ===\n\n");
 }
+
+//////////////////////TODO: BORRAR ESTE TEST////////////////////////
+void testJERO(uint64_t argc, char *argv[]) {
+	int num = 0;
+	while (1) {
+		printBase(num, 10);
+		print(" ");
+		num = (num + 1) % 10;
+		sleepUser(10);
+	}
+}
+
+void run_test_jero(char *args) {
+	print("\n=== Running JERO Test ===\n");
+	char *argv[] = {NULL};
+	int pid = create_process("testJERO", (void *) testJERO, 1, argv, 1);
+	waitpid(pid);
+	print("\n=== JERO Test Completed ===\n\n");
+}
+////////////////////////////////////////////////////////////////
 
 void intToString(int value, char *buffer) {
 	if (value == 0) {
