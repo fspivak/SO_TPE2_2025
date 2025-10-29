@@ -52,5 +52,10 @@ void intToString(int value, char *buffer);
  */
 int startsWith(const char *str, const char *prefix);
 
+/**
+ * @brief llama al entry para usar el clock como un proceso
+ */
+void callClock();
+
 ////TODO: BORRAR ESTE TEST/////////
 void run_test_jero(char *args);
