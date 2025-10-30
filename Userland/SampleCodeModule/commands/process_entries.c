@@ -31,7 +31,7 @@ void test_ab_entry(uint64_t argc, char *argv[]) {
 void test_process_entry(uint64_t argc, char *argv[]) {
 	print("\n=== Running Process Test ===\n");
 
-	int process_count = 3;
+	int process_count = 3; // TODO:revisar
 	if (argc > 0 && argv != NULL && argv[0] != NULL && argv[0][0] != '\0') {
 		process_count = satoi(argv[0]);
 		if (process_count <= 0 || process_count > 64) {
@@ -64,7 +64,6 @@ void clock_entry(uint64_t argc, char *argv[]) {
 	getClock(str);	 // obtiene la hora del kernel
 	printClock(str); // imprime la hora
 	print("\n");
-	// exit();            // finaliza el proceso
 	return;
 }
 

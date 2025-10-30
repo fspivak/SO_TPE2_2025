@@ -1,7 +1,7 @@
 #include "include/terminal.h"
-#include "../commands/process_entries.h"
 #include "include/commands.h"
 #include "include/libasmUser.h"
+#include "include/process_entries.h"
 #include "include/screen.h"
 #include "include/snake.h"
 #include "include/stinUser.h"
@@ -190,7 +190,7 @@ void run_test_process(char *args) {
 	print("\n");
 
 	// // TODO: Ver si queremos que la terminal espere a que termine el test:
-	// waitpid(pid);
+	waitpid(pid);
 	return;
 }
 
@@ -208,7 +208,7 @@ void run_test_ab() {
 	print("\n");
 
 	// // TDOD: Ver si queremos que la terminal espere a que termine:
-	//  waitpid(pid);
+	waitpid(pid);
 	return;
 }
 
@@ -220,13 +220,8 @@ void callClock() {
 		return;
 	}
 
-	// TODO: BORRAR ESTE PRINT///
-	print("Clock process created with PID ");
-	printBase(pid, 10);
-	print("\n");
-
 	// // TODO: Ver si queremos que la terminal espere a que termine el test:
-	// waitpid(pid);
+	waitpid(pid);
 	return;
 }
 
@@ -245,7 +240,7 @@ void run_test_mm(char *args) {
 	print("\n");
 
 	// // TODO: Ver si queremos que la terminal espere a que termine el test:
-	// waitpid(pid);
+	waitpid(pid);
 	return;
 }
 
