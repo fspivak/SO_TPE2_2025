@@ -7,6 +7,7 @@
 #include "include/snake.h"
 #include "include/stinUser.h"
 #include "include/stringUser.h"
+#include "tests/include/test_util.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -126,6 +127,10 @@ void terminal() {
 			}
 			else if (!strcmp(buffer, "sh")) {
 				create_new_shell();
+			}
+			else if (startsWith(buffer, "kill ")) {
+				/// TODO: ver si esto está bien
+				execute_command_with_args(buffer, "kill", 5, kill_process);
 			}
 			// TODO: borrar este test
 			else if (startsWith(buffer, "test_jero")) {
@@ -259,6 +264,16 @@ void run_test_mm(char *args) {
 	// // TODO: Ver si queremos que la terminal espere a que termine el test:
 	waitpid(pid);
 	return;
+}
+
+void kill_process(int argc, char *argv[]) {
+	if (argc < 2) {
+		print("Error: missing PID argument\n");
+		return;
+	}
+	int pid = 0;
+	pid = satoi(argv[1]);
+	kill(pid);
 }
 
 //////////////////////TODO: BORRAR ESTE TEST////////////////////////

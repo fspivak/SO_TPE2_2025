@@ -52,9 +52,17 @@ int startsWith(const char *str, const char *prefix);
  */
 void callClock();
 
+/**
+ * @brief crea una n ueva shell a apartir de la actual
+ */
 void create_new_shell();
 
+/**
+ * @brief sale y mata la terminal actual
+ */
 void exit_shell();
+
+void kill_process(int argc, char *argv[]);
 
 ////TODO: BORRAR ESTE TEST/////////
 void run_test_jero(char *args);

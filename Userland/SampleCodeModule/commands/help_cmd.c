@@ -25,6 +25,7 @@ static void help_main(int argc, char **argv) {
 	print("                          Example: test_process 5\n");
 	print("  test_ab           - Run simple AB test (two processes printing A and B)\n");
 	print("  sh                - Create a new shell\n");
+	print("  kill <pid>        - Kill the process with pid <pid>\n");
 }
 
 void help_cmd(int argc, char **argv) {
