@@ -12,3 +12,8 @@ int64_t my_sem_post(char *sem_id);
 int64_t my_sem_close(char *sem_id);
 int64_t my_yield();
 int64_t my_wait(int64_t pid);
+
+int64_t my_pipe_open(char *name);
+int64_t my_pipe_close(uint64_t id);
+int64_t my_pipe_write(uint64_t id, const char *data, uint64_t size);
+int64_t my_pipe_read(uint64_t id, char *buffer, uint64_t size);

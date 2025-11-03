@@ -11,6 +11,8 @@
 #include <stdarg.h>
 #include <stdint.h>
 
+#include "include/pipe.h"
+
 uint64_t syscallDispatcher(uint64_t rax, ...) {
 	va_list args;
 	va_start(args, rax);
@@ -166,6 +168,39 @@ uint64_t syscallDispatcher(uint64_t rax, ...) {
 		/* sys_waitpid */
 		process_id_t pid = va_arg(args, process_id_t);
 		int result = sys_waitpid(pid);
+		va_end(args);
+		return (uint64_t) result;
+	}
+
+	else if (rax == 100) {
+		// sys_pipe_open
+		char *name = va_arg(args, char *);
+		int result = pipe_open(name);
+		va_end(args);
+		return (uint64_t) result;
+	}
+	else if (rax == 101) {
+		// sys_pipe_close
+		int id = va_arg(args, int);
+		int result = pipe_close(id);
+		va_end(args);
+		return (uint64_t) result;
+	}
+	else if (rax == 102) {
+		// sys_pipe_write
+		int id = va_arg(args, int);
+		const char *data = va_arg(args, const char *);
+		uint64_t size = va_arg(args, uint64_t);
+		int result = pipe_write(id, data, size);
+		va_end(args);
+		return (uint64_t) result;
+	}
+	else if (rax == 103) {
+		// sys_pipe_read
+		int id = va_arg(args, int);
+		char *buffer = va_arg(args, char *);
+		uint64_t size = va_arg(args, uint64_t);
+		int result = pipe_read(id, buffer, size);
 		va_end(args);
 		return (uint64_t) result;
 	}
