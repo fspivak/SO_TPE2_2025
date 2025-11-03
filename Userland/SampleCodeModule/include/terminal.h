@@ -52,5 +52,9 @@ int startsWith(const char *str, const char *prefix);
  */
 void callClock();
 
+void create_new_shell();
+
+void exit_shell();
+
 ////TODO: BORRAR ESTE TEST/////////
 void run_test_jero(char *args);

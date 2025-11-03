@@ -91,10 +91,11 @@ void terminal() {
 			}
 			else if (!strcmp(buffer, "exit")) {
 				/// TODO; el dia de mañana debería matar a la terminal///
-				print("Goodbye!\n");
-				sound(2);
-				sleepUser(20);
-				exit();
+				// print("Goodbye!\n");
+				// sound(2);
+				// sleepUser(20);
+				// exit();
+				exit_shell();
 			}
 			else if (!strcmp(buffer, "snake")) {
 				print("Snake not available in VGA text mode\n");
@@ -123,7 +124,9 @@ void terminal() {
 			else if (startsWith(buffer, "test_process ")) {
 				execute_command_with_args(buffer, "test_process ", 13, test_process_cmd);
 			}
-
+			else if (!strcmp(buffer, "sh")) {
+				create_new_shell();
+			}
 			// TODO: borrar este test
 			else if (startsWith(buffer, "test_jero")) {
 				// Extraer argumentos si los hay
@@ -206,6 +209,24 @@ void run_test_ab() {
 	// // TDOD: Ver si queremos que la terminal espere a que termine:
 	waitpid(pid);
 	return;
+}
+
+void create_new_shell() {
+	char *argv[] = {NULL};
+
+	print("Creating new shell: \n");
+	int pid = create_process("shellCreated", (void *) terminal, 0, argv, 1);
+	if (pid < 0) {
+		print("Error: could not create clock process\n");
+		return;
+	}
+	waitpid(pid);
+	return;
+}
+
+void exit_shell() {
+	int pid = getpid();
+	kill(pid);
 }
 
 void callClock() {
