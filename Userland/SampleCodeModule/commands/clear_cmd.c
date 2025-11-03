@@ -9,8 +9,6 @@ static void clear_main(int argc, char **argv) {
 	(void) argv; // No usamos (convencion)
 
 	clearScreen();
-
-	exit();
 }
 
 void clear_cmd(int argc, char **argv) {

@@ -24,8 +24,6 @@ static void help_main(int argc, char **argv) {
 	print("  test_process <n>  - Run process management test with n processes (1-64)\n");
 	print("                          Example: test_process 5\n");
 	print("  test_ab           - Run simple AB test (two processes printing A and B)\n");
-
-	exit();
 }
 
 void help_cmd(int argc, char **argv) {
