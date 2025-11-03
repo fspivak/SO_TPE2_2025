@@ -1,6 +1,7 @@
 #include "../include/stinUser.h"
 #include "include/test_util.h"
 #include "syscall.h"
+#include <stddef.h>
 
 enum State { RUNNING, BLOCKED, KILLED };
 

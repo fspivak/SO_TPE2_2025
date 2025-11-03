@@ -1,6 +1,7 @@
 #include "include/terminal.h"
 #include "include/commands.h"
 #include "include/libasmUser.h"
+#include "include/process_entries.h"
 #include "include/screen.h"
 #include "include/snake.h"
 #include "include/stinUser.h"
@@ -97,6 +98,7 @@ void terminal() {
 				run_test_process(args);
 			}
 			else if (!strcmp(buffer, "exit")) {
+				/// TODO; el dia de mañana debería matar a la terminal///
 				print("Goodbye!\n");
 				sound(2);
 				sleepUser(20);
@@ -106,7 +108,7 @@ void terminal() {
 				print("Snake not available in VGA text mode\n");
 			}
 			else if (!strcmp(buffer, "clock")) {
-				clock();
+				callClock();
 			}
 			else if (!strcmp(buffer, "clear")) {
 				clear_cmd(0, NULL);
@@ -124,6 +126,16 @@ void terminal() {
 					args = &buffer[8]; // Saltar el espacio
 				}
 				run_test_mm(args);
+			}
+
+			// TODO: borrar este test
+			else if (startsWith(buffer, "test_jero")) {
+				// Extraer argumentos si los hay
+				char *args = NULL;
+				if (buffer[9] == ' ') {
+					args = &buffer[10]; // Saltar el espacio
+				}
+				run_test_jero(args);
 			}
 			else if (i > 0) { /* Solo mostrar error si se escribio algo */
 				print("Command '");
@@ -161,68 +173,96 @@ void show_current_pid() {
 }
 
 void run_test_process(char *args) {
-	print("\n=== Running Process Test ===\n");
+	char *argv[] = {args};
+	uint64_t argc = (args != NULL && args[0] != '\0') ? 1 : 0;
 
-	extern int64_t test_processes(uint64_t argc, char *argv[]);
+	void test_process_entry(uint64_t argc, char *argv[]);
 
-	int process_count = 3;
-	if (args != NULL && args[0] != '\0') {
-		process_count = satoi(args);
-		if (process_count <= 0 || process_count > 64) {
-			print("Invalid process count (1-64). Using default: 3\n");
-			process_count = 3;
-		}
+	int pid = create_process("test_process", (void *) test_process_entry, argc, argv, 1);
+	if (pid < 0) {
+		print("Error: could not create test process\n");
+		return;
 	}
 
-	print("Starting test_process with ");
-	printBase(process_count, 10);
-	print(" processes...\n\n");
+	// TODO: BORRAR ESTE PRINT///
+	print("Created process 'test_process' with PID ");
+	printBase(pid, 10);
+	print("\n");
 
-	// Convertir a string para pasar al test
-	char process_str[10];
-	intToString(process_count, process_str);
-	char *argv[] = {process_str};
+	// // TODO: Ver si queremos que la terminal espere a que termine el test:
+	waitpid(pid);
+	return;
+}
 
-	int64_t result = test_processes(1, argv);
+void run_test_ab() {
+	char *argv[] = {NULL};
 
-	if (result == -1) {
-		print("test_process: ERROR occurred during test\n");
+	int pid = create_process("test_ab", (void *) test_ab_entry, 0, argv, 1);
+	if (pid < 0) {
+		print("Error: could not create AB test process\n");
+		return;
 	}
-	else {
-		print("test_process: Test completed successfully\n");
+
+	print("AB test process created with PID ");
+	printBase(pid, 10);
+	print("\n");
+
+	// // TDOD: Ver si queremos que la terminal espere a que termine:
+	waitpid(pid);
+	return;
+}
+
+void callClock() {
+	char *argv[] = {NULL};
+	int pid = create_process("clock", (void *) clock_entry, 0, argv, 1);
+	if (pid < 0) {
+		print("Error: could not create clock process\n");
+		return;
 	}
 
-	print("\n=== Process Test Completed ===\n\n");
+	// // TODO: Ver si queremos que la terminal espere a que termine el test:
+	waitpid(pid);
+	return;
 }
 
 void run_test_mm(char *args) {
-	print("\n=== Running Memory Manager Test ===\n");
+	char *argv[] = {args};
+	uint64_t argc = (args != NULL && args[0] != '\0') ? 1 : 0;
 
-	extern uint64_t test_mm(uint64_t argc, char *argv[]);
-
-	char *argv[] = {NULL};
-	if (args != NULL && args[0] != '\0') {
-		print("Running test_mm with custom size: ");
-		print(args);
-		print(" bytes\n");
-		argv[0] = args;
-	}
-	else {
-		print("Running test_mm with default size: 1MB\n");
-		argv[0] = "1048576"; /* 1MB default */
+	int pid = create_process("test_mm", (void *) test_mm_entry, argc, argv, 1);
+	if (pid < 0) {
+		print("Error: could not create Memory Manager test process\n");
+		return;
 	}
 
-	uint64_t result = test_mm(1, argv);
+	print("Memory Manager test process created with PID ");
+	printBase(pid, 10);
+	print("\n");
 
-	if (result == -1) {
-		print("test_mm: ERROR occurred during test\n");
-	}
-	else {
-		print("test_mm: Test completed successfully\n");
-	}
-
-	print("\n=== Memory Manager Test Completed ===\n\n");
+	// // TODO: Ver si queremos que la terminal espere a que termine el test:
+	waitpid(pid);
+	return;
 }
+
+//////////////////////TODO: BORRAR ESTE TEST////////////////////////
+void testJERO(uint64_t argc, char *argv[]) {
+	int num = 0;
+	while (1) {
+		printBase(num, 10);
+		print(" ");
+		num = (num + 1) % 10;
+		sleepUser(10);
+	}
+}
+
+void run_test_jero(char *args) {
+	print("\n=== Running JERO Test ===\n");
+	char *argv[] = {NULL};
+	int pid = create_process("testJERO", (void *) testJERO, 1, argv, 1);
+	waitpid(pid);
+	print("\n=== JERO Test Completed ===\n\n");
+}
+////////////////////////////////////////////////////////////////
 
 void intToString(int value, char *buffer) {
 	if (value == 0) {

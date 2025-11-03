@@ -1,5 +1,11 @@
 #include "include/keyboard.h"
 
+#include "scheduler/include/process.h"
+#include "scheduler/include/scheduler.h"
+
+// extern de ASM para forzar scheduler inmediatamente
+extern void _force_scheduler_interrupt(void);
+
 #define BACKSPACE_P 0x0E
 #define ENTER_P 0x1C
 #define LSHIFT_P 0x2a
@@ -23,11 +29,29 @@ int dim = 0;
 int toPrint = 0;
 int upperCase = 0;
 int shift = 0;
+int ctrlPressed = 0;
 
 void bufferLoader(char input) {
 	char release = input;
 	release = release >> 7;
 	char key = input & 0x7F;
+
+	// Detectar Ctrl (make/break)
+	if (key == LCTRL_P && !release) {
+		ctrlPressed = 1;
+		return;
+	}
+	if (key == LCTRL_P && release) {
+		ctrlPressed = 0;
+		return;
+	}
+
+	// Detectar Ctrl + C (make)
+	if (key == 0x2E && !release && ctrlPressed) {
+		handle_ctrl_c();
+		return; // no cargar 'c' al buffer
+	}
+
 	if (key == LSHIFT_P || key == RSHIFT_P) {
 		shift = !release;
 		return;

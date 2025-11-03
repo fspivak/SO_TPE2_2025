@@ -28,7 +28,7 @@ void process_b(int argc, char **argv) {
 }
 
 /* Main test: creates both processes and waits */
-int64_t test_ab(uint64_t argc, char *argv[]) {
+uint64_t test_ab(uint64_t argc, char *argv[]) {
 	(void) argc;
 	(void) argv;
 
@@ -63,19 +63,4 @@ int64_t test_ab(uint64_t argc, char *argv[]) {
 	print("Both processes should have finished by now.\n");
 
 	return 0;
-}
-
-/* Wrapper function for terminal integration */
-void run_test_ab() {
-	extern int64_t test_ab(uint64_t argc, char *argv[]);
-
-	char *argv[] = {NULL};
-	int64_t result = test_ab(0, argv);
-
-	if (result != 0) {
-		print("test_ab: ERROR occurred during test\n");
-	}
-	else {
-		print("test_ab: Test completed successfully\n");
-	}
 }
