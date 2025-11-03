@@ -42,3 +42,19 @@ int ps(void *buffer, int max_processes) {
 int waitpid(int pid) {
 	return (int) sys_call(SYS_WAITPID, (uint64_t) pid, 0, 0, 0, 0, 0);
 }
+
+int sem_open(const char *name, uint32_t initial_value) {
+	return (int) sys_call(SYS_SEM_OPEN, (uint64_t) name, (uint64_t) initial_value, 0, 0, 0, 0);
+}
+
+int sem_wait(const char *name) {
+	return (int) sys_call(SYS_SEM_WAIT, (uint64_t) name, 0, 0, 0, 0, 0);
+}
+
+int sem_post(const char *name) {
+	return (int) sys_call(SYS_SEM_POST, (uint64_t) name, 0, 0, 0, 0, 0);
+}
+
+int sem_close(const char *name) {
+	return (int) sys_call(SYS_SEM_CLOSE, (uint64_t) name, 0, 0, 0, 0, 0);
+}

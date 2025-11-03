@@ -171,6 +171,35 @@ uint64_t syscallDispatcher(uint64_t rax, ...) {
 		va_end(args);
 		return (uint64_t) result;
 	}
+	else if (rax == 70) {
+		/* sys_sem_open */
+		const char *name = va_arg(args, const char *);
+		uint32_t initial_value = va_arg(args, uint32_t);
+		int result = sys_sem_open(name, initial_value);
+		va_end(args);
+		return (uint64_t) result;
+	}
+	else if (rax == 71) {
+		/* sys_sem_wait */
+		const char *name = va_arg(args, const char *);
+		int result = sys_sem_wait(name);
+		va_end(args);
+		return (uint64_t) result;
+	}
+	else if (rax == 72) {
+		/* sys_sem_post */
+		const char *name = va_arg(args, const char *);
+		int result = sys_sem_post(name);
+		va_end(args);
+		return (uint64_t) result;
+	}
+	else if (rax == 73) {
+		/* sys_sem_close */
+		const char *name = va_arg(args, const char *);
+		int result = sys_sem_close(name);
+		va_end(args);
+		return (uint64_t) result;
+	}
 
 	else if (rax == 100) {
 		// sys_pipe_open
@@ -379,4 +408,32 @@ int sys_waitpid(process_id_t pid) {
 	}
 
 	return waitpid(pid);
+}
+
+int sys_sem_open(const char *name, uint32_t initial_value) {
+	if (name == NULL) {
+		return -1;
+	}
+	return sem_open(name, initial_value);
+}
+
+int sys_sem_wait(const char *name) {
+	if (name == NULL) {
+		return -1;
+	}
+	return sem_wait(name);
+}
+
+int sys_sem_post(const char *name) {
+	if (name == NULL) {
+		return -1;
+	}
+	return sem_post(name);
+}
+
+int sys_sem_close(const char *name) {
+	if (name == NULL) {
+		return -1;
+	}
+	return sem_close(name);
 }

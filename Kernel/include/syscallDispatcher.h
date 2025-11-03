@@ -1,5 +1,6 @@
 #include "../memory-manager/include/memory_manager.h"
 #include "../scheduler/include/process.h"
+#include "../scheduler/include/semaphore.h"
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -37,3 +38,9 @@ void sys_yield();
 int sys_ps(ProcessInfo *buffer, int max_processes);
 void sys_exit();
 int sys_waitpid(process_id_t pid);
+
+/* Semaphore syscalls */
+int sys_sem_open(const char *name, uint32_t initial_value);
+int sys_sem_wait(const char *name);
+int sys_sem_post(const char *name);
+int sys_sem_close(const char *name);

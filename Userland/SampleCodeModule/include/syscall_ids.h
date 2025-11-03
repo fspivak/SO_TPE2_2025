@@ -20,4 +20,10 @@
 #define SYS_EXIT 68
 #define SYS_WAITPID 69
 
+/* Syscalls - Semaforos */
+#define SYS_SEM_OPEN 70
+#define SYS_SEM_WAIT 71
+#define SYS_SEM_POST 72
+#define SYS_SEM_CLOSE 73
+
 #endif

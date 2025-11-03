@@ -199,3 +199,32 @@ int ps(void *buffer, int max_processes);
  * @return 0 si exitoso, -1 si hay error
  */
 int waitpid(int pid);
+
+/**
+ * @brief Abre o crea un semaforo con el nombre y valor inicial especificados
+ * @param name Nombre del semaforo
+ * @param initial_value Valor inicial del semaforo
+ * @return 0 si exitoso, -1 si hay error
+ */
+int sem_open(const char *name, uint32_t initial_value);
+
+/**
+ * @brief Espera en el semaforo (decrementa el valor o bloquea el proceso)
+ * @param name Nombre del semaforo
+ * @return 0 si exitoso, -1 si hay error
+ */
+int sem_wait(const char *name);
+
+/**
+ * @brief Libera el semaforo (incrementa el valor o desbloquea un proceso)
+ * @param name Nombre del semaforo
+ * @return 0 si exitoso, -1 si hay error
+ */
+int sem_post(const char *name);
+
+/**
+ * @brief Cierra el semaforo (decrementa contador de referencias)
+ * @param name Nombre del semaforo
+ * @return 0 si exitoso, -1 si hay error
+ */
+int sem_close(const char *name);
