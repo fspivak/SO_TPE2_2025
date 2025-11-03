@@ -29,4 +29,53 @@ void ps_cmd(int argc, char **argv);
  */
 void mem_cmd(int argc, char **argv);
 
+/**
+ * @brief Ejecuta el test del memory manager
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void test_mm_cmd(int argc, char **argv);
+
+/**
+ * @brief Ejecuta el test de procesos
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void test_process_cmd(int argc, char **argv);
+
+/**
+ * @brief Ejecuta el test AB (dos procesos alternando A y B)
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void test_ab_cmd(int argc, char **argv);
+
+/**
+ * @brief Funcion principal del test del memory manager
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void test_mm_main(int argc, char **argv);
+
+/**
+ * @brief Funcion principal del test de procesos
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void test_process_main(int argc, char **argv);
+
+/**
+ * @brief Funcion principal del test AB
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void test_ab_main(int argc, char **argv);
+
+/**
+ * @brief Muestra el PID del proceso actual
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void getpid_cmd(int argc, char **argv);
+
 #endif // COMMANDS_H

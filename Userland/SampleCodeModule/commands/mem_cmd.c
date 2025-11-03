@@ -56,8 +56,6 @@ static void mem_main(int argc, char **argv) {
 		printBase(used_percent, 10);
 		print("%\n");
 	}
-
-	exit();
 }
 
 void mem_cmd(int argc, char **argv) {

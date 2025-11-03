@@ -51,8 +51,6 @@ static void ps_main(int argc, char **argv) {
 	print("Total processes: ");
 	printBase(count, 10);
 	print("\n");
-
-	exit();
 }
 
 void ps_cmd(int argc, char **argv) {
