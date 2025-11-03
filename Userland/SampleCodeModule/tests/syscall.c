@@ -1,20 +1,13 @@
 #include "syscall.h"
 #include "../include/libasmUser.h"
 #include "../include/stinUser.h"
-#include "include/test_util.h"
 #include <stdint.h>
 
 // Declaración forward para waitpid
 int waitpid(int pid);
 
-static void endless_loop_wrapper(int argc, char **argv) {
-	(void) argc;
-	(void) argv;
-	endless_loop();
-}
-
-int64_t my_create_process(char *name, uint64_t argc, char *argv[]) {
-	return (int64_t) create_process(name, endless_loop_wrapper, (int) argc, argv, 128);
+int64_t my_create_process(char *name, void *function, uint64_t argc, char *argv[]) {
+	return (int64_t) create_process(name, function, (int) argc, argv, 128);
 }
 
 int64_t my_getpid() {

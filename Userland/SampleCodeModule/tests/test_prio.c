@@ -38,7 +38,7 @@ uint64_t test_prio(uint64_t argc, char *argv[]) {
 	print("SAME PRIORITY...\n");
 
 	for (i = 0; i < TOTAL_PROCESSES; i++)
-		pids[i] = my_create_process("zero_to_max", 0, ztm_argv);
+		pids[i] = my_create_process("zero_to_max", zero_to_max, 0, ztm_argv);
 
 	// Expect to see them finish at the same time
 
@@ -48,7 +48,7 @@ uint64_t test_prio(uint64_t argc, char *argv[]) {
 	print("SAME PRIORITY, THEN CHANGE IT...\n");
 
 	for (i = 0; i < TOTAL_PROCESSES; i++) {
-		pids[i] = my_create_process("zero_to_max", 0, ztm_argv);
+		pids[i] = my_create_process("zero_to_max", zero_to_max, 0, ztm_argv);
 		my_nice(pids[i], prio[i]);
 		print("  PROCESS ");
 		printBase(pids[i], 10);
@@ -65,7 +65,7 @@ uint64_t test_prio(uint64_t argc, char *argv[]) {
 	print("SAME PRIORITY, THEN CHANGE IT WHILE BLOCKED...\n");
 
 	for (i = 0; i < TOTAL_PROCESSES; i++) {
-		pids[i] = my_create_process("zero_to_max", 0, ztm_argv);
+		pids[i] = my_create_process("zero_to_max", zero_to_max, 0, ztm_argv);
 		my_block(pids[i]);
 		my_nice(pids[i], prio[i]);
 		print("  PROCESS ");

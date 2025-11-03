@@ -5,6 +5,13 @@
 
 enum State { RUNNING, BLOCKED, KILLED };
 
+// Wrapper para endless_loop_print con firma correcta
+static void endless_loop_wrapper(int argc, char **argv) {
+	(void) argc;
+	(void) argv;
+	endless_loop_print(1000000); // Usar un valor por defecto
+}
+
 typedef struct P_rq {
 	int32_t pid;
 	enum State state;
@@ -28,7 +35,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
 	while (1) {
 		// Create max_processes processes
 		for (rq = 0; rq < max_processes; rq++) {
-			p_rqs[rq].pid = my_create_process("endless_loop", 0, argvAux);
+			p_rqs[rq].pid = my_create_process("endless_loop", endless_loop_wrapper, 0, argvAux);
 
 			if (p_rqs[rq].pid == -1) {
 				print("test_process: ERROR creating process\n");
