@@ -11,7 +11,6 @@ void process_a(int argc, char **argv) {
 		print("A");
 		// yield(); /* Force context switch */
 	}
-	print("\n[Process A finished]\n");
 	exit(); /* Terminate process using syscall */
 }
 
@@ -23,7 +22,6 @@ void process_b(int argc, char **argv) {
 		print("B");
 		// yield(); /* Force context switch */
 	}
-	print("\n[Process B finished]\n");
 	exit(); /* Terminate process using syscall */
 }
 
@@ -35,32 +33,25 @@ uint64_t test_ab(uint64_t argc, char *argv[]) {
 	print("Starting AB test...\n");
 	print("This will create two processes that print 'A' and 'B' alternately.\n");
 	print("You should see them switching back and forth.\n\n");
-	print("Creating process A...\n");
 
-	int pid_a = create_process("process_a", process_a, 0, NULL, 4);
+	int pid_a = create_process("process_a", process_a, 0, NULL, 1);
 	if (pid_a < 0) {
 		print("ERROR: Failed to create process A\n");
 		return -1;
 	}
 
-	print("Creating process B...\n");
 	int pid_b = create_process("process_b", process_b, 0, NULL, 1);
 	if (pid_b < 0) {
 		print("ERROR: Failed to create process B\n");
 		return -1;
 	}
 
-	print("Both processes created! You should see 'A' and 'B' alternating.\n");
-	print("Each process will print 50 times and then terminate.\n\n");
+	// Esperamos a que los procesos terminen
+	waitpid(pid_a);
+	waitpid(pid_b);
 
-	/* Main process yields enough times to let children finish */
-	/* Each child does 50 iterations, so we need to yield enough times */
-	for (int i = 0; i < 200; i++) {
-		yield();
-	}
-
-	print("\n=== AB Test Completed ===\n");
-	print("Both processes should have finished by now.\n");
+	print("\n\n=== AB Test Completed ===\n");
+	print("Both processes have finished.\n");
 
 	return 0;
 }
