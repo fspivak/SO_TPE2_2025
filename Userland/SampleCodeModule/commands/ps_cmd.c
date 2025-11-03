@@ -40,8 +40,8 @@ static void ps_main(int argc, char **argv) {
 	print_padded("Priority", 10);
 	print_padded("State", 12);
 	print_padded("Stack Base", 16);
-	print_padded("RSP", 16);
-	print("FG\n");
+	print_padded("RSP", 16); // Stack Pointer
+	print("FG\n");			 // Foreground
 	print("-----------------------------------------------------------------------------\n");
 
 	for (int i = 0; i < count; i++) {
