@@ -37,9 +37,13 @@ void test_pipe_cmd(int argc, char **argv) {
 	print("\n=== INICIO TEST PIPE ===\n");
 
 	char *args[] = {NULL};
-	my_create_process("writer", writer_process, 0, args);
-	my_create_process("reader", reader_process, 0, args);
+	int writer_pid = my_create_process("writer", writer_process, 0, args);
+	int reader_pid = my_create_process("reader", reader_process, 0, args);
+
+	waitpid(writer_pid);
+	waitpid(reader_pid);
 
 	print("Se lanzaron procesos reader y writer.\n");
 	print("Cada uno alterna escritura y lectura en el pipe 'demo'.\n");
+	return;
 }
