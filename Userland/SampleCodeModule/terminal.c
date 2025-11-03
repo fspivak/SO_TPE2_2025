@@ -1,12 +1,12 @@
 #include "include/terminal.h"
 #include "include/commands.h"
+#include "include/format_utils.h"
 #include "include/libasmUser.h"
 #include "include/process_entries.h"
 #include "include/screen.h"
 #include "include/snake.h"
 #include "include/stinUser.h"
 #include "include/stringUser.h"
-#include "tests/include/test_util.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -87,22 +87,14 @@ void terminal() {
 				ps_cmd(0, NULL);
 			}
 			else if (!strcmp(buffer, "getpid")) {
-				show_current_pid();
-			}
-			else if (startsWith(buffer, "test_process")) {
-				// Extraer argumentos si los hay
-				char *args = NULL;
-				if (buffer[12] == ' ') {
-					args = &buffer[13]; // Saltar el espacio
-				}
-				run_test_process(args);
+				getpid_cmd(0, NULL);
 			}
 			else if (!strcmp(buffer, "exit")) {
 				/// TODO; el dia de mañana debería matar a la terminal///
 				print("Goodbye!\n");
 				sound(2);
 				sleepUser(20);
-				exit(); /* Halt del sistema */
+				exit();
 			}
 			else if (!strcmp(buffer, "snake")) {
 				print("Snake not available in VGA text mode\n");
@@ -117,15 +109,19 @@ void terminal() {
 				mem_cmd(0, NULL);
 			}
 			else if (!strcmp(buffer, "test_ab")) {
-				run_test_ab();
+				test_ab_cmd(0, NULL);
 			}
-			else if (startsWith(buffer, "test_mm")) {
-				// Extraer argumentos si los hay
-				char *args = NULL;
-				if (buffer[7] == ' ') {
-					args = &buffer[8]; // Saltar el espacio
-				}
-				run_test_mm(args);
+			else if (!strcmp(buffer, "test_mm")) {
+				test_mm_cmd(0, NULL);
+			}
+			else if (startsWith(buffer, "test_mm ")) {
+				execute_command_with_args(buffer, "test_mm ", 8, test_mm_cmd);
+			}
+			else if (!strcmp(buffer, "test_process")) {
+				test_process_cmd(0, NULL);
+			}
+			else if (startsWith(buffer, "test_process ")) {
+				execute_command_with_args(buffer, "test_process ", 13, test_process_cmd);
 			}
 
 			// TODO: borrar este test
@@ -261,47 +257,4 @@ void run_test_jero(char *args) {
 	int pid = create_process("testJERO", (void *) testJERO, 1, argv, 1);
 	waitpid(pid);
 	print("\n=== JERO Test Completed ===\n\n");
-}
-////////////////////////////////////////////////////////////////
-
-void intToString(int value, char *buffer) {
-	if (value == 0) {
-		buffer[0] = '0';
-		buffer[1] = '\0';
-		return;
-	}
-
-	char temp[10];
-	int pos = 0;
-	int temp_value = value;
-
-	if (temp_value < 0) {
-		temp_value = -temp_value;
-	}
-
-	while (temp_value > 0) {
-		temp[pos++] = '0' + (temp_value % 10);
-		temp_value /= 10;
-	}
-
-	int buffer_pos = 0;
-	if (value < 0) {
-		buffer[buffer_pos++] = '-';
-	}
-
-	for (int i = pos - 1; i >= 0; i--) {
-		buffer[buffer_pos++] = temp[i];
-	}
-	buffer[buffer_pos] = '\0';
-}
-
-int startsWith(const char *str, const char *prefix) {
-	while (*prefix) {
-		if (*str != *prefix) {
-			return 0;
-		}
-		str++;
-		prefix++;
-	}
-	return 1;
 }

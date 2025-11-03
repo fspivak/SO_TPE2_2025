@@ -1,4 +1,5 @@
 #include "../include/commands.h"
+#include "../include/format_utils.h"
 #include "../include/libasmUser.h"
 #include "../include/stinUser.h"
 #include "../include/stringUser.h"

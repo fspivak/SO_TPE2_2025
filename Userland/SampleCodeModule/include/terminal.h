@@ -19,11 +19,6 @@ void refreshScreen();
 /* Process management functions */
 
 /**
- * @brief Muestra el PID del proceso actual
- */
-void show_current_pid();
-
-/**
  * @brief Ejecuta el test de procesos
  * @param args Argumentos opcionales para el test (cantidad de procesos)
  */
