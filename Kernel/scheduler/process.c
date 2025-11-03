@@ -132,13 +132,58 @@ process_id_t create_process(const char *name, void (*entry_point)(int, char **),
 		new_process->name[1] = '\0';
 	}
 	new_process->entry_point = entry_point;
+
+	// Copiar argumentos al PCB
+	new_process->argc = argc;
+	if (argc > 0 && argv != NULL) {
+		// Asignar memoria para el array de argumentos
+		new_process->argv = (char **) memory_alloc(memory_manager, (argc + 1) * sizeof(char *));
+		if (new_process->argv == NULL) {
+			new_process->state = TERMINATED;
+			return -1;
+		}
+
+		// Copia cada argumento
+		for (int i = 0; i < argc; i++) {
+			if (argv[i] != NULL) {
+				int len = 0;
+				while (argv[i][len] != '\0')
+					len++; // Calcula longitud
+
+				new_process->argv[i] = (char *) memory_alloc(memory_manager, len + 1);
+				if (new_process->argv[i] == NULL) {
+					// Limpia memoria ya asignada
+					for (int j = 0; j < i; j++) {
+						memory_free(memory_manager, new_process->argv[j]);
+					}
+					memory_free(memory_manager, new_process->argv);
+					new_process->state = TERMINATED;
+					return -1;
+				}
+
+				// Copia string
+				for (int j = 0; j <= len; j++) {
+					new_process->argv[i][j] = argv[i][j];
+				}
+			}
+			else {
+				new_process->argv[i] = NULL;
+			}
+		}
+		new_process->argv[argc] = NULL; // Termina array
+	}
+	else {
+		new_process->argv = NULL;
+	}
+
 	new_process->stack_base = memory_alloc(memory_manager, STACK_SIZE);
 	if (new_process->stack_base == NULL) {
 		new_process->state = TERMINATED;
 		return -1;
 	}
 	void *stack_top = (void *) ((uint64_t) new_process->stack_base + STACK_SIZE - 8);
-	new_process->stack_pointer = set_process_stack(argc, argv, stack_top, (void *) new_process);
+	new_process->stack_pointer =
+		set_process_stack(new_process->argc, new_process->argv, stack_top, (void *) new_process);
 	if (addToScheduler(new_process) < 0) {
 		memory_free(memory_manager, new_process->stack_base);
 		new_process->stack_base = NULL;
@@ -189,6 +234,17 @@ int kill_process(process_id_t pid) {
 
 	process->state = TERMINATED;
 	removeFromScheduler(process);
+
+	// Libera memoria de argumentos
+	if (process->argv != NULL) {
+		for (int i = 0; i < process->argc; i++) {
+			if (process->argv[i] != NULL) {
+				memory_free(memory_manager, process->argv[i]);
+			}
+		}
+		memory_free(memory_manager, process->argv);
+		process->argv = NULL;
+	}
 
 	if (process->stack_base != NULL) {
 		memory_free(memory_manager, process->stack_base);
@@ -335,6 +391,17 @@ void free_terminated_processes() {
 	for (int i = 1; i < MAX_PROCESSES; i++) { // No liberar idle (i=0)
 		if (process_table[i].state == TERMINATED) {
 			removeFromScheduler(&process_table[i]);
+
+			// Libera memoria de argumentos
+			if (process_table[i].argv != NULL) {
+				for (int j = 0; j < process_table[i].argc; j++) {
+					if (process_table[i].argv[j] != NULL) {
+						memory_free(memory_manager, process_table[i].argv[j]);
+					}
+				}
+				memory_free(memory_manager, process_table[i].argv);
+			}
+
 			if (process_table[i].stack_base != NULL) {
 				memory_free(memory_manager, process_table[i].stack_base);
 			}
@@ -342,6 +409,8 @@ void free_terminated_processes() {
 			process_table[i].stack_base = NULL;
 			process_table[i].stack_pointer = NULL;
 			process_table[i].entry_point = NULL;
+			process_table[i].argc = 0;
+			process_table[i].argv = NULL;
 			process_table[i].pid = -1;		   // Marcar como slot libre
 			process_table[i].in_scheduler = 0; // Limpiar flag del scheduler
 
@@ -470,8 +539,8 @@ void process_entry_wrapper(int argc, char **argv, void *rsp, PCB *proc) {
 		return;
 	}
 
-	// Llamar a la funcion userland con los argumentos correctos
-	((void (*)(int, char **)) proc->entry_point)(argc, argv);
+	// Llamar a la funcion userland con los argumentos del PCB
+	((void (*)(int, char **)) proc->entry_point)(proc->argc, proc->argv);
 
 	kill_process(proc->pid);
 }

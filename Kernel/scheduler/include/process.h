@@ -28,6 +28,8 @@ typedef struct PCB {
 	void *stack_base;			// Base del stack
 	void *stack_pointer;		// Current stack pointer (RSP)
 	void *entry_point;			// Punto de entrada del proceso
+	int argc;					// Cantidad de argumentos
+	char **argv;				// Array de argumentos
 	uint64_t scheduler_counter; // Contador para Round Robin
 	int in_scheduler;			// 1 = puede ser elegido por scheduler, 0 = removido
 	process_id_t waiting_pid;	// PID del proceso que esta esperando a este proceso
