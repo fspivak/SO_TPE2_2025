@@ -36,6 +36,15 @@ void printHexa(uint64_t value) {
 }
 
 void printBase(uint64_t value, uint32_t base) {
+	if (base == 10) {
+		int64_t signed_value = (int64_t) value;
+		if (signed_value < 0) {
+			print("-");
+			uintToBase((uint64_t) (-signed_value), buffer, base);
+			print(buffer);
+			return;
+		}
+	}
 	uintToBase(value, buffer, base);
 	print(buffer);
 }
