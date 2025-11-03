@@ -3,8 +3,12 @@
 #include "../include/stinUser.h"
 #include <stdint.h>
 
-// Declaracion
+// Declaraciones
 int waitpid(int pid);
+int sem_open(const char *name, uint32_t initial_value);
+int sem_wait(const char *name);
+int sem_post(const char *name);
+int sem_close(const char *name);
 
 int64_t my_create_process(char *name, void *function, uint64_t argc, char *argv[]) {
 	return (int64_t) create_process(name, function, (int) argc, argv, 128);
@@ -36,24 +40,20 @@ int64_t my_yield() {
 }
 
 int64_t my_sem_open(char *sem_id, uint64_t initialValue) {
-	(void) sem_id;
-	(void) initialValue;
-	return -1;
+	int result = sem_open(sem_id, (uint32_t) initialValue);
+	return (result == 0) ? 1 : 0;
 }
 
 int64_t my_sem_wait(char *sem_id) {
-	(void) sem_id;
-	return -1;
+	return (int64_t) sem_wait(sem_id);
 }
 
 int64_t my_sem_post(char *sem_id) {
-	(void) sem_id;
-	return -1;
+	return (int64_t) sem_post(sem_id);
 }
 
 int64_t my_sem_close(char *sem_id) {
-	(void) sem_id;
-	return -1;
+	return (int64_t) sem_close(sem_id);
 }
 
 int64_t my_wait(int64_t pid) {

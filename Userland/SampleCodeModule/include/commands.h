@@ -78,6 +78,13 @@ void test_ab_main(int argc, char **argv);
  */
 void getpid_cmd(int argc, char **argv);
 
+/**
+ * @brief Ejecuta el test de sincronizacion (semaforos)
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void test_sync_cmd(int argc, char **argv);
+
 /////////////TODO: fletar este test////////////////
 void test_pipe_cmd(int argc, char **argv); // declaración arriba
 

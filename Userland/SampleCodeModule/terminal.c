@@ -120,6 +120,9 @@ void terminal() {
 			else if (startsWith(buffer, "test_process ")) {
 				execute_command_with_args(buffer, "test_process ", 13, test_process_cmd);
 			}
+			else if (startsWith(buffer, "test_sync ")) {
+				execute_command_with_args(buffer, "test_sync ", 10, test_sync_cmd);
+			}
 			else if (!strcmp(buffer, "sh")) {
 				create_new_shell();
 			}
@@ -210,7 +213,6 @@ void run_test_ab() {
 	printBase(pid, 10);
 	print("\n");
 
-	// // TDOD: Ver si queremos que la terminal espere a que termine:
 	waitpid(pid);
 	return;
 }
@@ -266,13 +268,18 @@ void run_test_mm(char *args) {
 }
 
 void kill_process(int argc, char *argv[]) {
-	if (argc < 2) {
+	if (argc < 2 || argv[1] == NULL || argv[1][0] == '\0' || satoi(argv[1]) <= 0) {
 		print("Error: missing PID argument\n");
 		return;
 	}
 	int pid = 0;
 	pid = satoi(argv[1]);
-	kill(pid);
+	if (kill(pid) <= 0) {
+		print("Error: invalid PID: ");
+		printBase(pid, 10);
+		print("\n");
+		return;
+	}
 }
 
 //////////////////////TODO: BORRAR ESTE TEST////////////////////////

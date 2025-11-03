@@ -24,6 +24,9 @@ static void help_main(int argc, char **argv) {
 	print("  test_process <n>  - Run process management test with n processes (1-64)\n");
 	print("                          Example: test_process 5\n");
 	print("  test_ab           - Run simple AB test (two processes printing A and B)\n");
+	print("  test_sync <n> <use_sem> - Run synchronization test (semaphores)\n");
+	print("                          Example: test_sync 1000 1 (with semaphores)\n");
+	print("                          Example: test_sync 1000 0 (without semaphores)\n");
 	print("  sh                - Create a new shell\n");
 	print("  kill <pid>        - Kill the process with pid <pid>\n");
 }
