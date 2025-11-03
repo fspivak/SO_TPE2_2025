@@ -61,17 +61,17 @@ int64_t my_wait(int64_t pid) {
 }
 
 int64_t my_pipe_open(char *name) {
-	return syscall(100, (uint64_t) name, 0, 0, 0, 0);
+	return sys_call(100, (uint64_t) name, 0, 0, 0, 0, 0);
 }
 
 int64_t my_pipe_close(uint64_t id) {
-	return syscall(101, id, 0, 0, 0, 0);
+	return sys_call(101, id, 0, 0, 0, 0, 0);
 }
 
 int64_t my_pipe_write(uint64_t id, const char *data, uint64_t size) {
-	return syscall(102, id, (uint64_t) data, size, 0, 0);
+	return sys_call(102, id, (uint64_t) data, size, 0, 0, 0);
 }
 
 int64_t my_pipe_read(uint64_t id, char *buffer, uint64_t size) {
-	return syscall(103, id, (uint64_t) buffer, size, 0, 0);
+	return sys_call(103, id, (uint64_t) buffer, size, 0, 0, 0);
 }

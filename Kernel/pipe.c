@@ -1,8 +1,8 @@
 //////////////TODO: Borrar esta version sin semaforos//////////////7
 #include "include/pipe.h"
 #include "include/lib.h"
+#include "include/stringKernel.h"
 #include "scheduler/include/process.h"
-
 // Tabla global de pipes
 static Pipe pipes[MAX_PIPES];
 
@@ -15,7 +15,7 @@ void init_pipes() {
 // Busca un pipe existente por nombre
 static int find_pipe(char *name) {
 	for (int i = 0; i < MAX_PIPES; i++) {
-		if (pipes[i].active && strcmp(pipes[i].name, name) == 0)
+		if (pipes[i].active && !kstrcmp(pipes[i].name, name))
 			return i;
 	}
 	return -1;
@@ -31,7 +31,7 @@ int pipe_open(char *name) {
 		if (!pipes[i].active) {
 			Pipe *p = &pipes[i];
 			p->active = 1;
-			strncpy(p->name, name, sizeof(p->name));
+			kstrncpy(p->name, name, sizeof(p->name));
 			p->readIndex = p->writeIndex = p->count = 0;
 			p->readers = p->writers = 1;
 			return i;

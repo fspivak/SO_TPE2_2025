@@ -78,4 +78,7 @@ void test_ab_main(int argc, char **argv);
  */
 void getpid_cmd(int argc, char **argv);
 
+/////////////TODO: fletar este test////////////////
+void test_pipe_cmd(int argc, char **argv); // declaración arriba
+
 #endif // COMMANDS_H

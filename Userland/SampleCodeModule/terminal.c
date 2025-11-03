@@ -91,11 +91,6 @@ void terminal() {
 				getpid_cmd(0, NULL);
 			}
 			else if (!strcmp(buffer, "exit")) {
-				/// TODO; el dia de mañana debería matar a la terminal///
-				// print("Goodbye!\n");
-				// sound(2);
-				// sleepUser(20);
-				// exit();
 				exit_shell();
 			}
 			else if (!strcmp(buffer, "snake")) {
@@ -132,7 +127,7 @@ void terminal() {
 				/// TODO: ver si esto está bien
 				execute_command_with_args(buffer, "kill", 5, kill_process);
 			}
-			// TODO: borrar este test
+			//////////////////TODO: borrar estos tests/////////////////////////////
 			else if (startsWith(buffer, "test_jero")) {
 				// Extraer argumentos si los hay
 				char *args = NULL;
@@ -141,6 +136,10 @@ void terminal() {
 				}
 				run_test_jero(args);
 			}
+			else if (!strcmp(buffer, "test_pipe")) {
+				test_pipe_cmd(0, NULL);
+			}
+			///////////////////////////////////////////////////////////////////////////////
 			else if (i > 0) { /* Solo mostrar error si se escribio algo */
 				print("Command '");
 				print(buffer);
