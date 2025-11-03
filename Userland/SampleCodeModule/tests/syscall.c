@@ -1,9 +1,9 @@
-#include "syscall.h"
+#include "include/syscall.h"
 #include "../include/libasmUser.h"
 #include "../include/stinUser.h"
 #include <stdint.h>
 
-// Declaración forward para waitpid
+// Declaracion
 int waitpid(int pid);
 
 int64_t my_create_process(char *name, void *function, uint64_t argc, char *argv[]) {
@@ -35,7 +35,6 @@ int64_t my_yield() {
 	return 0;
 }
 
-// Stubs para semaforos (Fase 4 - no implementada)
 int64_t my_sem_open(char *sem_id, uint64_t initialValue) {
 	(void) sem_id;
 	(void) initialValue;

@@ -1,7 +1,7 @@
 #include "../include/commands.h"
 #include "../include/libasmUser.h"
 #include "../include/stinUser.h"
-#include "../tests/syscall.h"
+#include "../tests/include/syscall.h"
 #include <stddef.h>
 #include <stdint.h>
 

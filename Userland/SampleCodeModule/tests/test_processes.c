@@ -1,15 +1,15 @@
 #include "../include/stinUser.h"
+#include "include/syscall.h"
 #include "include/test_util.h"
-#include "syscall.h"
 #include <stddef.h>
 
 enum State { RUNNING, BLOCKED, KILLED };
 
-// Wrapper para endless_loop_print con firma correcta
+// Wrapper para endless_loop con firma correcta
 static void endless_loop_wrapper(int argc, char **argv) {
 	(void) argc;
 	(void) argv;
-	endless_loop_print(1000000); // Usar un valor por defecto
+	endless_loop(); // Loop infinito sin prints
 }
 
 typedef struct P_rq {

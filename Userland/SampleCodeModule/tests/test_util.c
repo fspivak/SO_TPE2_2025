@@ -1,6 +1,6 @@
 #include "include/test_util.h"
 #include "../include/stinUser.h"
-#include "syscall.h"
+#include "include/syscall.h"
 
 /* Generador de numeros aleatorios - Multiply-with-carry */
 static uint32_t m_z = 362436069;
