@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <stdint.h>
 
 void *memset(void *destination, int32_t c, uint64_t length) {
@@ -42,4 +43,29 @@ void *memcpy(void *destination, const void *source, uint64_t length) {
 	}
 
 	return destination;
+}
+
+uint64_t strlen(const char *str) {
+	if (str == NULL) {
+		return 0;
+	}
+	uint64_t len = 0;
+	while (str[len] != '\0') {
+		len++;
+	}
+	return len;
+}
+
+int strcmp(const char *s1, const char *s2) {
+	if (s1 == NULL || s2 == NULL) {
+		return (s1 == s2) ? 0 : 1;
+	}
+	while (*s1 != '\0' && *s2 != '\0') {
+		if (*s1 != *s2) {
+			return (*s1 - *s2);
+		}
+		s1++;
+		s2++;
+	}
+	return (*s1 - *s2);
 }
