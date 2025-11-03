@@ -3,6 +3,7 @@
 #include "../include/libasmUser.h"
 #include "../include/screen.h"
 #include "../include/stinUser.h"
+#include <stddef.h>
 #include <stdint.h>
 
 static void ps_main(int argc, char **argv) {
@@ -18,11 +19,18 @@ static void ps_main(int argc, char **argv) {
 		uint8_t hasForeground;
 	} ProcessInfo;
 
-	ProcessInfo processes[64];
+	// Usar malloc para evitar problemas de contexto
+	ProcessInfo *processes = (ProcessInfo *) malloc(sizeof(ProcessInfo) * 64);
+	if (processes == NULL) {
+		print("ERROR: Failed to allocate memory for ps\n");
+		return;
+	}
+
 	int count = ps(processes, 64);
 
 	if (count <= 0) {
 		print("No processes found or error occurred\n");
+		free(processes);
 		return;
 	}
 
@@ -51,6 +59,8 @@ static void ps_main(int argc, char **argv) {
 	print("Total processes: ");
 	printBase(count, 10);
 	print("\n");
+
+	free(processes);
 }
 
 void ps_cmd(int argc, char **argv) {
