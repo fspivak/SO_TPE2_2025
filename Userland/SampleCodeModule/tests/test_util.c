@@ -1,5 +1,6 @@
 #include "include/test_util.h"
 #include "../include/stinUser.h"
+#include "syscall.h"
 
 /* Generador de numeros aleatorios - Multiply-with-carry */
 static uint32_t m_z = 362436069;
@@ -72,8 +73,7 @@ void endless_loop() {
 
 /* Loop infinito que imprime PID - para tests de procesos */
 void endless_loop_print(uint64_t wait) {
-	/* Stub - necesita implementacion de procesos */
-	int64_t pid = 0; /* my_getpid() cuando este implementado */
+	int64_t pid = my_getpid();
 
 	while (1) {
 		print("PID: ");
