@@ -1,5 +1,5 @@
 //////////////TODO: Ver si es totalmente necesario, creo que si xq los pipes tienen nombre para que se pueda compartir
-///entre procesos
+/// entre procesos
 
 #include "include/stringKernel.h"
 

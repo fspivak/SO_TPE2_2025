@@ -41,7 +41,7 @@ int64_t my_yield() {
 
 int64_t my_sem_open(char *sem_id, uint64_t initialValue) {
 	int result = sem_open(sem_id, (uint32_t) initialValue);
-	return (result == 0) ? 1 : 0;
+	return (result >= 0) ? 1 : 0;
 }
 
 int64_t my_sem_wait(char *sem_id) {

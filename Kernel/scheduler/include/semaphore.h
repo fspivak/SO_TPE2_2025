@@ -14,8 +14,9 @@ typedef struct {
 	char name[MAX_SEM_NAME];
 	uint32_t value;
 	process_id_t waiting_processes[MAX_PROCESSES];
-	uint16_t current_index;
-	uint16_t last_index;
+	uint16_t head;	// Índice del primer proceso en la cola
+	uint16_t tail;	// Índice donde se insertará el próximo proceso
+	uint16_t count; // Número de procesos en la cola
 	SemaphoreState state;
 	uint16_t users; // Contador de referencias (sem_open/sem_close)
 } sem_t;
@@ -24,7 +25,7 @@ typedef struct {
  * @brief Abre o crea un semaforo con el nombre y valor inicial especificados
  * @param name Nombre del semaforo
  * @param initial_value Valor inicial del semaforo
- * @return 0 si exitoso, -1 si hay error
+ * @return sem_id del semaforo (>= 0) si exitoso, -1 si hay error
  */
 int sem_open(const char *name, uint32_t initial_value);
 
