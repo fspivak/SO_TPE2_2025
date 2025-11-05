@@ -50,4 +50,11 @@ int sem_post(const char *name);
  */
 int sem_close(const char *name);
 
+/**
+ * @brief Obtiene la cantidad de procesos esperando en un semaforo
+ * @param name Nombre del semaforo
+ * @return Cantidad de procesos esperando, -1 si hay error
+ */
+int sem_get_waiting_count(const char *name);
+
 #endif

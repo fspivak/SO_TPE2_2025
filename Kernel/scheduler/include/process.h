@@ -6,8 +6,9 @@
 #define MAX_PROCESSES 64
 #define STACK_SIZE 4096 // 4KB por process stack
 #define MAX_PROCESS_NAME 32
-#define MIN_PRIORITY 0
-#define MAX_PRIORITY 4
+#define MIN_PRIORITY 0	   // mayor prioridad
+#define MAX_PRIORITY 255   // menor prioridad
+#define CLEANUP_INTERVAL 3 // Limpiar procesos terminados cada N context switches
 
 typedef int process_id_t;
 
@@ -33,6 +34,7 @@ typedef struct PCB {
 	uint64_t scheduler_counter; // Contador para Round Robin
 	int in_scheduler;			// 1 = puede ser elegido por scheduler, 0 = removido
 	process_id_t waiting_pid;	// PID del proceso que esta esperando a este proceso
+	process_id_t parent_pid;	// PID del proceso padre (-1 si no tiene padre)
 } PCB;
 
 // Informacion de proceso para userland

@@ -304,3 +304,25 @@ int sem_close(const char *name) {
 
 	return 0;
 }
+
+int sem_get_waiting_count(const char *name) {
+	if (!initialized)
+		init_semaphores();
+	if (name == NULL)
+		return -1;
+
+	char name_buffer[MAX_SEM_NAME];
+	if (validate_and_copy_name(name, name_buffer) != 0)
+		return -1;
+
+	_cli();
+	int sem_id = find_semaphore(name_buffer);
+	if (sem_id == SEM_NOT_FOUND) {
+		_sti();
+		return -1;
+	}
+
+	int count = sem_table[sem_id].count;
+	_sti();
+	return count;
+}
