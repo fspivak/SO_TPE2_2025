@@ -1,5 +1,6 @@
 #include "../include/libasmUser.h"
 #include "../include/stinUser.h"
+#include "../include/stringUser.h"
 #include "../tests/include/test_util.h"
 #include <stddef.h>
 
@@ -20,7 +21,13 @@ int validate_pid_arg(const char *cmd_name, int argc, char **argv, int arg_index)
 		print(": missing operand\n");
 		print("Usage: ");
 		print((char *) cmd_name);
-		print(" <pid>\n");
+		if (strcmp(cmd_name, "nice") == 0) {
+			print(" <pid> <priority>\n");
+			print("Priority range: 0-255\n");
+		}
+		else {
+			print(" <pid>\n");
+		}
 		return 0;
 	}
 

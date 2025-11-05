@@ -125,14 +125,23 @@ void terminal() {
 			else if (!strcmp(buffer, "sh")) {
 				create_new_shell();
 			}
+			else if (!strcmp(buffer, "kill")) {
+				kill_cmd(0, NULL);
+			}
 			else if (startsWith(buffer, "kill ")) {
 				execute_command_with_args(buffer, "kill ", 5, kill_cmd);
 			}
 			else if (!strcmp(buffer, "loop")) {
 				loop_cmd(0, NULL);
 			}
+			else if (!strcmp(buffer, "nice")) {
+				nice_cmd(0, NULL);
+			}
 			else if (startsWith(buffer, "nice ")) {
 				execute_command_with_args(buffer, "nice ", 5, nice_cmd);
+			}
+			else if (!strcmp(buffer, "block")) {
+				block_cmd(0, NULL);
 			}
 			else if (startsWith(buffer, "block ")) {
 				execute_command_with_args(buffer, "block ", 6, block_cmd);
