@@ -28,11 +28,14 @@ static void help_main(int argc, char **argv) {
 	print("                          Example: test_sync 1000 1 (with semaphores)\n");
 	print("                          Example: test_sync 1000 0 (without semaphores)\n");
 	print("  sh                - Create a new shell\n");
+	print("  loop              - Create a process that runs in infinite loop\n");
 	print("  kill <pid>        - Kill the process with pid <pid>\n");
+	print("  nice <pid> <prio> - Change priority of process <pid> to <prio> (0-255)\n");
+	print("  block <pid>       - Block the process with pid <pid>\n");
 }
 
 void help_cmd(int argc, char **argv) {
-	int pid_help = create_process("help", help_main, 0, NULL, 4);
+	int pid_help = create_process("help", help_main, 0, NULL, 1);
 	if (pid_help < 0) {
 		print("ERROR: Failed to create process help\n");
 		return;

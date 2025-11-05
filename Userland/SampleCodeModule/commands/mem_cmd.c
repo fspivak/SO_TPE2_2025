@@ -21,8 +21,8 @@ static void print_human_size(uint64_t bytes) {
 }
 
 static void mem_main(int argc, char **argv) {
-	(void) argc; // No usamos (convencion)
-	(void) argv; // No usamos (convencion)
+	(void) argc;
+	(void) argv;
 	typedef struct {
 		uint64_t total_memory;
 		uint64_t used_memory;
@@ -59,7 +59,7 @@ static void mem_main(int argc, char **argv) {
 }
 
 void mem_cmd(int argc, char **argv) {
-	int pid_mem = create_process("mem", mem_main, argc, argv, 4);
+	int pid_mem = create_process("mem", mem_main, argc, argv, 1);
 	if (pid_mem < 0) {
 		print("ERROR: Failed to create process mem\n");
 		return;

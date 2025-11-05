@@ -9,17 +9,7 @@
 static void ps_main(int argc, char **argv) {
 	(void) argc; // No usamos (convencion)
 	(void) argv; // No usamos (convencion)
-	typedef struct {
-		int pid;
-		char name[32];
-		uint8_t priority;
-		uint64_t stack_base;
-		uint64_t rsp;
-		char state_name[16];
-		uint8_t hasForeground;
-	} ProcessInfo;
 
-	// Usar malloc para evitar problemas de contexto
 	ProcessInfo *processes = (ProcessInfo *) malloc(sizeof(ProcessInfo) * 64);
 	if (processes == NULL) {
 		print("ERROR: Failed to allocate memory for ps\n");
@@ -40,8 +30,8 @@ static void ps_main(int argc, char **argv) {
 	print_padded("Priority", 10);
 	print_padded("State", 12);
 	print_padded("Stack Base", 16);
-	print_padded("RSP", 16); // Stack Pointer
-	print("FG\n");			 // Foreground
+	print_padded("RSP", 16);
+	print("FG\n");
 	print("-----------------------------------------------------------------------------\n");
 
 	for (int i = 0; i < count; i++) {
@@ -64,7 +54,7 @@ static void ps_main(int argc, char **argv) {
 }
 
 void ps_cmd(int argc, char **argv) {
-	int pid_ps = create_process("ps", ps_main, argc, argv, 4);
+	int pid_ps = create_process("ps", ps_main, argc, argv, 1);
 	if (pid_ps < 0) {
 		print("ERROR: Failed to create process ps\n");
 		return;
