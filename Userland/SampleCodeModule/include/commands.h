@@ -116,4 +116,43 @@ void block_cmd(int argc, char **argv);
 /////////////TODO: fletar este test////////////////
 void test_pipe_cmd(int argc, char **argv);
 
+/**
+ * @brief Valida un argumento de PID y verifica que existe
+ * @param cmd_name Nombre del comando que llama a esta funcion
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ * @param arg_index Indice del argumento a validar
+ * @return PID validado si es correcto, 0 si hay error
+ */
+int validate_pid_arg(const char *cmd_name, int argc, char **argv, int arg_index);
+
+/**
+ * @brief Valida un argumento de prioridad
+ * @param cmd_name Nombre del comando que llama a esta funcion
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ * @param arg_index Indice del argumento a validar
+ * @return Prioridad validada (0-255) si es correcta, -1 si hay error
+ */
+int validate_priority_arg(const char *cmd_name, int argc, char **argv, int arg_index);
+
+/**
+ * @brief Valida que un argumento sea un entero no negativo
+ * @param cmd_name Nombre del comando que llama a esta funcion
+ * @param arg_name Nombre del argumento para mensajes de error
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ * @param arg_index Indice del argumento a validar
+ * @return Valor entero no negativo si es correcto, -1 si hay error
+ */
+int validate_non_negative_int(const char *cmd_name, const char *arg_name, int argc, char **argv, int arg_index);
+
+/**
+ * @brief Valida el resultado de create_process y muestra error si falla
+ * @param cmd_name Nombre del comando que intento crear el proceso
+ * @param pid PID retornado por create_process
+ * @return 1 si el proceso se creo correctamente, 0 si hubo error
+ */
+int validate_create_process_error(const char *cmd_name, int pid);
+
 #endif // COMMANDS_H
