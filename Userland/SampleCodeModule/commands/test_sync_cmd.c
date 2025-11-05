@@ -2,23 +2,32 @@
 #include "../include/libasmUser.h"
 #include "../include/stinUser.h"
 #include "../tests/include/syscall.h"
+#include "../tests/include/test_util.h"
 #include <stddef.h>
 #include <stdint.h>
 
 extern uint64_t test_sync(uint64_t argc, char *argv[]);
 
 void test_sync_main(int argc, char **argv) {
-	// test_sync requiere 2 argumentos: n (iteraciones) y use_sem (0 o 1)
-	// argv[0] es "test_sync", argv[1] es n, argv[2] es use_sem
 	if (argc < 3 || argv == NULL || argv[1] == NULL || argv[2] == NULL) {
 		print("test_sync: Usage: test_sync <n> <use_sem>\n");
-		print("  n: Number of iterations\n");
+		print("  n: Number of iterations (must be non-negative)\n");
 		print("  use_sem: 1 to use semaphores, 0 to test without semaphores\n");
 		print("  Example: test_sync 1000 1\n");
 		return;
 	}
 
-	// test_sync espera recibir los argumentos directamente (n y use_sem)
+	int n = validate_non_negative_int("test_sync", "n (iterations)", argc, argv, 1);
+	if (n < 0) {
+		return;
+	}
+
+	int use_sem = satoi(argv[2]);
+	if (use_sem != 0 && use_sem != 1) {
+		print("ERROR: use_sem must be 0 or 1\n");
+		return;
+	}
+
 	char *args[] = {argv[1], argv[2], NULL};
 
 	int64_t result = test_sync(2, args);
@@ -31,8 +40,7 @@ void test_sync_main(int argc, char **argv) {
 void test_sync_cmd(int argc, char **argv) {
 	int pid_test = my_create_process("test_sync", test_sync_main, argc, argv);
 
-	if (pid_test < 0) {
-		print("ERROR: Failed to create process test_sync\n");
+	if (!validate_create_process_error("test_sync", pid_test)) {
 		return;
 	}
 

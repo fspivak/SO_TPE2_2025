@@ -7,10 +7,13 @@
 extern uint64_t test_mm(uint64_t argc, char *argv[]);
 
 void test_mm_main(int argc, char **argv) {
-	// Usar argumento por defecto si no se proporciona
 	char *size_arg = "1048576"; // 1MB por defecto
-	if (argc > 0 && argv[0] != NULL) {
-		size_arg = argv[0];
+	if (argc > 1 && argv != NULL && argv[1] != NULL) {
+		int size = validate_non_negative_int("test_mm", "size", argc, argv, 1);
+		if (size < 0) {
+			return;
+		}
+		size_arg = argv[1];
 	}
 
 	print("=== Running Memory Manager Test ===\n");
@@ -34,8 +37,7 @@ void test_mm_main(int argc, char **argv) {
 
 void test_mm_cmd(int argc, char **argv) {
 	int pid_test = create_process("test_mm", test_mm_main, argc, argv, 4);
-	if (pid_test < 0) {
-		print("ERROR: Failed to create process test_mm\n");
+	if (!validate_create_process_error("test_mm", pid_test)) {
 		return;
 	}
 
