@@ -219,7 +219,7 @@ static int read_line_from_pipe(int pipe_id, char *out, int maxlen) {
 
 void reader_process(int argc, char **argv) {
 	int id = my_pipe_open("demo");
-	print("[Reader] Abrió pipe id = ");
+	print("[Reader] Abrio pipe id = ");
 	printBase((uint64_t) id, 10);
 	print("\n");
 
@@ -252,7 +252,7 @@ void test_pipe_cmd(int argc, char **argv) {
 	waitpid(writer2_pid);
 	waitpid(reader_pid);
 
-	print("Finalizó test de 2 writers escribiendo concurrentemente en el pipe 'demo'.\n");
+	print("Finalizo test de 2 writers escribiendo concurrentemente en el pipe 'demo'.\n");
 }
 
 /////////////////////////////////TEST printeando los dos//////////

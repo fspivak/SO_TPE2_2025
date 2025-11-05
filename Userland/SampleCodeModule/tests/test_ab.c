@@ -34,13 +34,13 @@ uint64_t test_ab(uint64_t argc, char *argv[]) {
 	print("This will create two processes that print 'A' and 'B' alternately.\n");
 	print("You should see them switching back and forth.\n\n");
 
-	int pid_a = create_process("process_a", process_a, 0, NULL, 1);
+	int pid_a = create_process("process_a", process_a, 0, NULL, 200);
 	if (pid_a < 0) {
 		print("ERROR: Failed to create process A\n");
 		return -1;
 	}
 
-	int pid_b = create_process("process_b", process_b, 0, NULL, 1);
+	int pid_b = create_process("process_b", process_b, 0, NULL, 200);
 	if (pid_b < 0) {
 		print("ERROR: Failed to create process B\n");
 		return -1;
