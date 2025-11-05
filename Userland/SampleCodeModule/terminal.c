@@ -7,7 +7,6 @@
 #include "include/snake.h"
 #include "include/stinUser.h"
 #include "include/stringUser.h"
-#include "tests/include/test_util.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -127,18 +126,19 @@ void terminal() {
 				create_new_shell();
 			}
 			else if (startsWith(buffer, "kill ")) {
-				/// TODO: ver si esto está bien
-				execute_command_with_args(buffer, "kill", 5, kill_process);
+				execute_command_with_args(buffer, "kill ", 5, kill_cmd);
+			}
+			else if (!strcmp(buffer, "loop")) {
+				loop_cmd(0, NULL);
+			}
+			else if (startsWith(buffer, "nice ")) {
+				execute_command_with_args(buffer, "nice ", 5, nice_cmd);
+			}
+			else if (startsWith(buffer, "block ")) {
+				execute_command_with_args(buffer, "block ", 6, block_cmd);
 			}
 			//////////////////TODO: borrar estos tests/////////////////////////////
-			else if (startsWith(buffer, "test_jero")) {
-				// Extraer argumentos si los hay
-				char *args = NULL;
-				if (buffer[9] == ' ') {
-					args = &buffer[10]; // Saltar el espacio
-				}
-				run_test_jero(args);
-			}
+
 			else if (!strcmp(buffer, "test_pipe")) {
 				test_pipe_cmd(0, NULL);
 			}
@@ -157,71 +157,11 @@ void terminal() {
 	}
 }
 
-void clean(int ammount) {
-	for (int j = 0; j < ammount; j++) {
-		putchar(' ');
-	}
-}
-
-void refreshScreen() {
-	for (int i = 0; i <= screenHeight; i++) {
-		for (int j = 0; j <= screenWidth; j++) {
-			putPixel(0, j, i);
-		}
-	}
-}
-
-void show_current_pid() {
-	int pid = getpid();
-	print("Current PID: ");
-	printBase(pid, 10);
-	print("\n");
-}
-
-void run_test_process(char *args) {
-	char *argv[] = {args};
-	uint64_t argc = (args != NULL && args[0] != '\0') ? 1 : 0;
-
-	void test_process_entry(uint64_t argc, char *argv[]);
-
-	int pid = create_process("test_process", (void *) test_process_entry, argc, argv, 1);
-	if (pid < 0) {
-		print("Error: could not create test process\n");
-		return;
-	}
-
-	// TODO: BORRAR ESTE PRINT///
-	print("Created process 'test_process' with PID ");
-	printBase(pid, 10);
-	print("\n");
-
-	// // TODO: Ver si queremos que la terminal espere a que termine el test:
-	waitpid(pid);
-	return;
-}
-
-void run_test_ab() {
-	char *argv[] = {NULL};
-
-	int pid = create_process("test_ab", (void *) test_ab_entry, 0, argv, 1);
-	if (pid < 0) {
-		print("Error: could not create AB test process\n");
-		return;
-	}
-
-	print("AB test process created with PID ");
-	printBase(pid, 10);
-	print("\n");
-
-	waitpid(pid);
-	return;
-}
-
 void create_new_shell() {
 	char *argv[] = {NULL};
 
 	print("Creating new shell: \n");
-	int pid = create_process("shellCreated", (void *) terminal, 0, argv, 1);
+	int pid = create_process("shellCreated", (void *) terminal, 0, argv, 8);
 	if (pid < 0) {
 		print("Error: could not create clock process\n");
 		return;
@@ -243,60 +183,6 @@ void callClock() {
 		return;
 	}
 
-	// // TODO: Ver si queremos que la terminal espere a que termine el test:
 	waitpid(pid);
 	return;
-}
-
-void run_test_mm(char *args) {
-	char *argv[] = {args};
-	uint64_t argc = (args != NULL && args[0] != '\0') ? 1 : 0;
-
-	int pid = create_process("test_mm", (void *) test_mm_entry, argc, argv, 1);
-	if (pid < 0) {
-		print("Error: could not create Memory Manager test process\n");
-		return;
-	}
-
-	print("Memory Manager test process created with PID ");
-	printBase(pid, 10);
-	print("\n");
-
-	// // TODO: Ver si queremos que la terminal espere a que termine el test:
-	waitpid(pid);
-	return;
-}
-
-void kill_process(int argc, char *argv[]) {
-	if (argc < 2 || argv[1] == NULL || argv[1][0] == '\0' || satoi(argv[1]) <= 0) {
-		print("Error: missing PID argument\n");
-		return;
-	}
-	int pid = 0;
-	pid = satoi(argv[1]);
-	if (kill(pid) <= 0) {
-		print("Error: invalid PID: ");
-		printBase(pid, 10);
-		print("\n");
-		return;
-	}
-}
-
-//////////////////////TODO: BORRAR ESTE TEST////////////////////////
-void testJERO(uint64_t argc, char *argv[]) {
-	int num = 0;
-	while (1) {
-		printBase(num, 10);
-		print(" ");
-		num = (num + 1) % 10;
-		sleepUser(10);
-	}
-}
-
-void run_test_jero(char *args) {
-	print("\n=== Running JERO Test ===\n");
-	char *argv[] = {NULL};
-	int pid = create_process("testJERO", (void *) testJERO, 1, argv, 1);
-	waitpid(pid);
-	print("\n=== JERO Test Completed ===\n\n");
 }

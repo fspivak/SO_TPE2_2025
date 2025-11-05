@@ -85,7 +85,35 @@ void getpid_cmd(int argc, char **argv);
  */
 void test_sync_cmd(int argc, char **argv);
 
+/**
+ * @brief Crea un proceso que ejecuta un loop infinito
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void loop_cmd(int argc, char **argv);
+
+/**
+ * @brief Mata un proceso por su PID
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void kill_cmd(int argc, char **argv);
+
+/**
+ * @brief Cambia la prioridad de un proceso
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void nice_cmd(int argc, char **argv);
+
+/**
+ * @brief Bloquea un proceso por su PID
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void block_cmd(int argc, char **argv);
+
 /////////////TODO: fletar este test////////////////
-void test_pipe_cmd(int argc, char **argv); // declaración arriba
+void test_pipe_cmd(int argc, char **argv);
 
 #endif // COMMANDS_H

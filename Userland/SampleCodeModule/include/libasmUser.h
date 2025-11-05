@@ -185,6 +185,17 @@ int nice(int pid, int priority);
  */
 void yield(void);
 
+// Informacion de proceso para userland
+typedef struct {
+	int pid;
+	char name[32];
+	uint8_t priority;
+	uint64_t stack_base;
+	uint64_t rsp;
+	char state_name[16];
+	uint8_t hasForeground;
+} ProcessInfo;
+
 /**
  * @brief Lista procesos activos
  * @param buffer Buffer donde guardar la informacion

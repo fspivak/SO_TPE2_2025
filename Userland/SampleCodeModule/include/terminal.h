@@ -5,30 +5,7 @@
  */
 void terminal();
 
-/**
- * @brief Limpia una cantidad especifica de caracteres en pantalla
- * @param ammount Cantidad de caracteres a limpiar
- */
-void clean(int ammount);
-
-/**
- * @brief Refresca toda la pantalla
- */
-void refreshScreen();
-
 /* Process management functions */
-
-/**
- * @brief Ejecuta el test de procesos
- * @param args Argumentos opcionales para el test (cantidad de procesos)
- */
-void run_test_process(char *args);
-
-/**
- * @brief Ejecuta el test del Memory Manager
- * @param args Argumentos opcionales para el test (tamaño de memoria en bytes)
- */
-void run_test_mm(char *args);
 
 /* Utility functions */
 
@@ -48,21 +25,16 @@ void intToString(int value, char *buffer);
 int startsWith(const char *str, const char *prefix);
 
 /**
- * @brief llama al entry para usar el clock como un proceso
+ * @brief Llama al entry para usar el clock como un proceso
  */
 void callClock();
 
 /**
- * @brief crea una n ueva shell a apartir de la actual
+ * @brief Crea una nueva shell a partir de la actual
  */
 void create_new_shell();
 
 /**
- * @brief sale y mata la terminal actual
+ * @brief Sale y mata la terminal actual
  */
 void exit_shell();
-
-void kill_process(int argc, char *argv[]);
-
-////TODO: BORRAR ESTE TEST/////////
-void run_test_jero(char *args);

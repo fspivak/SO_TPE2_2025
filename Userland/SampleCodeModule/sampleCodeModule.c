@@ -7,7 +7,7 @@
 /* Punto de entrada de userland */
 int main() {
 	char *argv[] = {NULL};
-	int pid = create_process("shell", (void *) terminal, 0, argv, 1);
+	int pid = create_process("shell", (void *) terminal, 0, argv, 8);
 	if (pid < 0) {
 		print("Error: could not create clock process\n");
 		return 1;
