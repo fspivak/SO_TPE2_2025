@@ -30,6 +30,16 @@ void pipes_cmd(char *input) {
 	void *func1 = find_function(cmd1);
 	void *func2 = find_function(cmd2);
 
+	// char cmd1_copy[100], cmd2_copy[100];
+	// strcpy(cmd1_copy, cmd1);
+	// strcpy(cmd2_copy, cmd2);
+
+	// char *cmd1_name = strtok(cmd1_copy, " ");
+	// char *cmd2_name = strtok(cmd2_copy, " ");
+
+	// void *func1 = find_function(cmd1_name);
+	// void *func2 = find_function(cmd2_name);
+
 	if (func1 == NULL || func2 == NULL) {
 		print("[Pipe Error] One of the commands is invalid.\n");
 		my_pipe_close(pipe_id);
@@ -52,12 +62,18 @@ void pipes_cmd(char *input) {
 }
 
 void *find_function(char *cmd) {
-	if (!strcmp(cmd, "cat"))
+	if (!strcmp(cmd, "cat")) {
 		return cat_cmd;
-	if (!strcmp(cmd, "wc"))
+	}
+	if (!strcmp(cmd, "wc")) {
 		return wc_cmd;
-	if (!strcmp(cmd, "ps"))
+	}
+	if (!strcmp(cmd, "filter")) {
+		return filter_cmd;
+	}
+	if (!strcmp(cmd, "ps")) {
 		return ps_cmd;
+	}
 
 	// Si el comando no se reconoce o no es apto para pipe
 	print("\n[Pipe Help] Command '");
@@ -66,7 +82,9 @@ void *find_function(char *cmd) {
 
 	print("Available pipe commands:\n");
 	print("  - cat : reads from stdin and writes to stdout\n");
-	// print("  - wc  : counts lines/words from stdin\n"); // si lo agregás después
+	print("  - wc  : counts lines/words from stdin\n");
 	print("  - ps  : prints process information (stdout only)\n\n");
+	print("  - filter : filters lines containing a given word\n");
+
 	return NULL;
 }

@@ -166,6 +166,11 @@ void cat_cmd(int argc, char **argv);
 void wc_cmd(int argc, char **argv);
 
 /**
+ * @brief filtra lineas
+ */
+void filter_cmd(int argc, char **argv);
+
+/**
  * @brief implementa los comandos pipeados
  */
 void pipes_cmd(char *input);

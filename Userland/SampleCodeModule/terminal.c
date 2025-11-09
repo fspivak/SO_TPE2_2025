@@ -161,6 +161,12 @@ void terminal() {
 			else if (strchr(buffer, '|') != NULL) {
 				pipes_cmd(buffer);
 			}
+			else if (startsWith(buffer, "filter ")) {
+				execute_command_with_args(buffer, "filter ", 7, filter_cmd);
+			}
+			else if (!strcmp(buffer, "filter")) {
+				filter_cmd(0, NULL);
+			}
 
 			//////////////////TODO: borrar estos tests/////////////////////////////
 

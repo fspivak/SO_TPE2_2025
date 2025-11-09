@@ -34,6 +34,7 @@ static void help_main(int argc, char **argv) {
 	print("  block <pid>       - Block the process with pid <pid>\n");
 	print("  cat               - Display input (stdin) to output or write to a pipe\n");
 	print("  wc                - Count lines, words and characters from input or pipe\n");
+	print("  filter <word>     - Show only lines containing <word> from input or pipe\n");
 }
 
 void help_cmd(int argc, char **argv) {
