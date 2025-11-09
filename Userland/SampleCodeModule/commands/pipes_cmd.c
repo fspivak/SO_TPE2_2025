@@ -27,18 +27,17 @@ void pipes_cmd(char *input) {
 	char *argv1[] = {cmd1, id_buffer, "write", NULL};
 	char *argv2[] = {cmd2, id_buffer, "read", NULL};
 
-	void *func1 = find_function(cmd1);
-	void *func2 = find_function(cmd2);
+	// void *func1 = find_function(cmd1);
+	// void *func2 = find_function(cmd2);
 
-	// char cmd1_copy[100], cmd2_copy[100];
-	// strcpy(cmd1_copy, cmd1);
-	// strcpy(cmd2_copy, cmd2);
+	char cmd1_name[50];
+	char cmd2_name[50];
 
-	// char *cmd1_name = strtok(cmd1_copy, " ");
-	// char *cmd2_name = strtok(cmd2_copy, " ");
+	first_token(cmd1, cmd1_name, sizeof(cmd1_name));
+	first_token(cmd2, cmd2_name, sizeof(cmd2_name));
 
-	// void *func1 = find_function(cmd1_name);
-	// void *func2 = find_function(cmd2_name);
+	void *func1 = find_function(cmd1_name);
+	void *func2 = find_function(cmd2_name);
 
 	if (func1 == NULL || func2 == NULL) {
 		print("[Pipe Error] One of the commands is invalid.\n");

@@ -69,3 +69,16 @@ char *strstr(const char *haystack, const char *needle) {
 	}
 	return NULL;
 }
+
+char *first_token(const char *str, char *dest, int max_len) {
+	if (str == NULL || dest == NULL)
+		return NULL;
+
+	int i = 0;
+	while (str[i] != '\0' && str[i] != ' ' && i < max_len - 1) {
+		dest[i] = str[i];
+		i++;
+	}
+	dest[i] = '\0';
+	return dest;
+}

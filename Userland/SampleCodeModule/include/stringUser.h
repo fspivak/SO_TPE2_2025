@@ -9,3 +9,5 @@ char *strchr(const char *str, int c);
 char *trim(char *str);
 
 char *strstr(const char *haystack, const char *needle);
+
+char *first_token(const char *str, char *dest, int max_len);
