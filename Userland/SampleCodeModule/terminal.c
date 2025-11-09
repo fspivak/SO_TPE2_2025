@@ -146,6 +146,19 @@ void terminal() {
 			else if (startsWith(buffer, "block ")) {
 				execute_command_with_args(buffer, "block ", 6, block_cmd);
 			}
+			else if (!strcmp(buffer, "cat")) {
+				cat_cmd(0, NULL);
+			}
+			else if (c == 4) { // Ctrl+D
+				print("\n[EOF]\n");
+				// close_fd(0); // 🔹 (tu syscall que cierre el descriptor 0, STDIN)
+				break; // termina la lectura actual
+			}
+			// Detectar comando con pipe
+			else if (strchr(buffer, '|') != NULL) {
+				pipes_cmd(buffer);
+			}
+
 			//////////////////TODO: borrar estos tests/////////////////////////////
 
 			else if (!strcmp(buffer, "test_pipe")) {

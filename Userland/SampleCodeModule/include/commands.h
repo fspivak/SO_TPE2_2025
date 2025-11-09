@@ -155,4 +155,16 @@ int validate_non_negative_int(const char *cmd_name, const char *arg_name, int ar
  */
 int validate_create_process_error(const char *cmd_name, int pid);
 
+/**
+ * @brief printea en pantalla lo ingresado en stdin
+ */
+void cat_cmd(int argc, char **argv);
+
+/**
+ * @brief implementa los comandos pipeados
+ */
+void pipes_cmd(char *input);
+
+void *find_function(char *cmd);
+
 #endif // COMMANDS_H

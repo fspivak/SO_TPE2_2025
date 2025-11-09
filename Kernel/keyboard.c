@@ -31,6 +31,8 @@ int upperCase = 0;
 int shift = 0;
 int ctrlPressed = 0;
 
+int ctrlCharPending = 0;
+
 void bufferLoader(char input) {
 	char release = input;
 	release = release >> 7;
@@ -50,6 +52,17 @@ void bufferLoader(char input) {
 	if (key == 0x2E && !release && ctrlPressed) {
 		handle_ctrl_c();
 		return; // no cargar 'c' al buffer
+	}
+
+	// //quiero deterctar Ctrl + D
+	// if (key ==0x20  && !release && ctrlPressed) {
+	// 	handle_ctrl_d();
+	// 	return; // no cargar 'd' al buffer
+	// }
+
+	// Detectar Ctrl + D (make)
+	if (isCtrlPressed() && (key == 'd' || key == 'D')) {
+		return; // señal de EOF
 	}
 
 	if (key == LSHIFT_P || key == RSHIFT_P) {
@@ -80,6 +93,10 @@ int isUpperCase() {
 
 int isShiftPressed() {
 	return shift;
+}
+
+int isCtrlPressed() {
+	return ctrlPressed;
 }
 
 int isSpecialKey(char scancode) {

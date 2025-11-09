@@ -32,24 +32,48 @@ char shiftConversionArray[] = {
 	[0x27] = '|', [0x28] = '>', [0x29] = '~', [0x2B] = '|', [0x33] = ';', [0x34] = ':', [0x35] = '_',
 };
 
-/* Obtiene el ultimo caracter del buffer de entrada, devuelve -1 si no hay */
+// /* Obtiene el ultimo caracter del buffer de entrada, devuelve -1 si no hay */
+// char getChar() {
+// 	_sti();
+// 	char letter;
+// 	do {
+// 		letter = getKey();
+// 	} while (letter == -1 || conversionArray[letter] == -1);
+
+// 	/* Si shift esta presionado y hay mapeo especial, usarlo */
+// 	if (isShiftPressed() && shiftConversionArray[letter] != 0) {
+// 		return shiftConversionArray[letter];
+// 	}
+
+// 	/* Sino, usar conversion normal (mayusculas para letras) */
+// 	return (isUpperCase() && letter != -1 && conversionArray[letter] <= 'z' && conversionArray[letter] >= 'a') ?
+// 			   conversionArray[letter] - ('a' - 'A') :
+// 		   (letter != -1) ? conversionArray[letter] :
+// 							letter;
+// }
+
 char getChar() {
 	_sti();
 	char letter;
 	do {
 		letter = getKey();
 	} while (letter == -1 || conversionArray[letter] == -1);
+	char c;
 
-	/* Si shift esta presionado y hay mapeo especial, usarlo */
-	if (isShiftPressed() && shiftConversionArray[letter] != 0) {
-		return shiftConversionArray[letter];
+	/* Si shift está presionado y hay mapeo especial, usarlo */
+	if (isShiftPressed() && shiftConversionArray[letter] != 0)
+		c = shiftConversionArray[letter];
+	else if (isUpperCase() && letter != -1 && conversionArray[letter] <= 'z' && conversionArray[letter] >= 'a')
+		c = conversionArray[letter] - ('a' - 'A');
+	else
+		c = (letter != -1) ? conversionArray[letter] : letter;
+
+	/* 🚨 Detectar Ctrl+D (EOF) */
+	if (isCtrlPressed() && c == 'd') {
+		return -1; // señal de EOF
 	}
 
-	/* Sino, usar conversion normal (mayusculas para letras) */
-	return (isUpperCase() && letter != -1 && conversionArray[letter] <= 'z' && conversionArray[letter] >= 'a') ?
-			   conversionArray[letter] - ('a' - 'A') :
-		   (letter != -1) ? conversionArray[letter] :
-							letter;
+	return c;
 }
 
 char getcharNonLoop() {
