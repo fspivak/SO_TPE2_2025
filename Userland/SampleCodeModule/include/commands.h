@@ -161,6 +161,11 @@ int validate_create_process_error(const char *cmd_name, int pid);
 void cat_cmd(int argc, char **argv);
 
 /**
+ * @brief cuante las lineas y caracteres
+ */
+void wc_cmd(int argc, char **argv);
+
+/**
  * @brief implementa los comandos pipeados
  */
 void pipes_cmd(char *input);

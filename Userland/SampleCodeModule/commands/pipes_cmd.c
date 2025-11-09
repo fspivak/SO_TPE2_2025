@@ -54,7 +54,8 @@ void pipes_cmd(char *input) {
 void *find_function(char *cmd) {
 	if (!strcmp(cmd, "cat"))
 		return cat_cmd;
-	// if (!strcmp(cmd, "wc")) return wc_cmd;
+	if (!strcmp(cmd, "wc"))
+		return wc_cmd;
 	if (!strcmp(cmd, "ps"))
 		return ps_cmd;
 

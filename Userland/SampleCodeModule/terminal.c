@@ -149,6 +149,9 @@ void terminal() {
 			else if (!strcmp(buffer, "cat")) {
 				cat_cmd(0, NULL);
 			}
+			else if (!strcmp(buffer, "wc")) {
+				wc_cmd(0, NULL);
+			}
 			else if (c == 4) { // Ctrl+D
 				print("\n[EOF]\n");
 				// close_fd(0); // 🔹 (tu syscall que cierre el descriptor 0, STDIN)

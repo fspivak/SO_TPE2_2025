@@ -32,6 +32,8 @@ static void help_main(int argc, char **argv) {
 	print("  kill <pid>        - Kill the process with pid <pid>\n");
 	print("  nice <pid> <prio> - Change priority of process <pid> to <prio> (0-255)\n");
 	print("  block <pid>       - Block the process with pid <pid>\n");
+	print("  cat               - Display input (stdin) to output or write to a pipe\n");
+	print("  wc                - Count lines, words and characters from input or pipe\n");
 }
 
 void help_cmd(int argc, char **argv) {
