@@ -239,3 +239,8 @@ int sem_post(const char *name);
  * @return 0 si exitoso, -1 si hay error
  */
 int sem_close(const char *name);
+
+/**
+ * @brief Termina el proceso actual liberando sus recursos
+ */
+void exit_process(void);

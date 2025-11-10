@@ -7,16 +7,14 @@
 static void print_human_size(uint64_t bytes) {
 	if (bytes >= 1024 * 1024) {
 		uint64_t mb = bytes / (1024 * 1024);
-		printBase(mb, 10);
-		print("M");
+		print_format("%uM", (unsigned int) mb);
 	}
 	else if (bytes >= 1024) {
 		uint64_t kb = bytes / 1024;
-		printBase(kb, 10);
-		print("K");
+		print_format("%uK", (unsigned int) kb);
 	}
 	else {
-		printBase(bytes, 10);
+		print_format("%u", (unsigned int) bytes);
 	}
 }
 
@@ -37,31 +35,27 @@ static void mem_main(int argc, char **argv) {
 	uint64_t used_bytes = state.used_memory;
 	uint64_t free_bytes = state.free_memory;
 
-	print("=== Memory Status (");
-	print(state.mm_type);
-	print(") ===\n");
-	print("Total: ");
+	print_format("=== Memory Status (%s) ===\n", state.mm_type);
+	print_format("Total: ");
 	print_human_size(total_bytes);
-	print("\n");
-	print("Used:  ");
+	print_format("\n");
+	print_format("Used:  ");
 	print_human_size(used_bytes);
-	print("\n");
-	print("Free:  ");
+	print_format("\n");
+	print_format("Free:  ");
 	print_human_size(free_bytes);
-	print("\n");
+	print_format("\n");
 
 	if (state.total_memory > 0) {
 		uint64_t used_percent = (state.used_memory * 100) / state.total_memory;
-		print("Usage: ");
-		printBase(used_percent, 10);
-		print("%\n");
+		print_format("Usage: %u%%\n", (unsigned int) used_percent);
 	}
 }
 
 void mem_cmd(int argc, char **argv) {
 	int pid_mem = create_process("mem", mem_main, argc, argv, 1);
 	if (pid_mem < 0) {
-		print("ERROR: Failed to create process mem\n");
+		print_format("ERROR: Failed to create process mem\n");
 		return;
 	}
 

@@ -15,33 +15,31 @@ void test_process_main(int argc, char **argv) {
 			return;
 		}
 		if (count > 64) {
-			print("ERROR: process_count must be between 1 and 64\n");
+			print_format("ERROR: process_count must be between 1 and 64\n");
 			return;
 		}
 		if (count == 0) {
-			print("ERROR: process_count must be at least 1\n");
+			print_format("ERROR: process_count must be at least 1\n");
 			return;
 		}
 		process_count = argv[1];
 	}
 
-	print("=== Running Process Test ===\n");
-	print("Starting test_process with ");
-	print(process_count);
-	print(" processes...\n\n");
+	print_format("=== Running Process Test ===\n");
+	print_format("Starting test_process with %s processes...\n\n", process_count);
 
 	char *args[] = {process_count, NULL};
 
 	int64_t result = test_processes(1, args);
 
 	if (result != 0) {
-		print("test_process: ERROR occurred during test\n");
+		print_format("test_process: ERROR occurred during test\n");
 	}
 	else {
-		print("test_process: Test completed successfully\n");
+		print_format("test_process: Test completed successfully\n");
 	}
 
-	print("\n=== Process Test Completed ===\n\n");
+	print_format("\n=== Process Test Completed ===\n\n");
 }
 
 void test_process_cmd(int argc, char **argv) {

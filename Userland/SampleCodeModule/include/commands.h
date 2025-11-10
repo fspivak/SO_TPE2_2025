@@ -86,6 +86,13 @@ void getpid_cmd(int argc, char **argv);
 void test_sync_cmd(int argc, char **argv);
 
 /**
+ * @brief Ejecuta el test de prioridades
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void test_prio_cmd(int argc, char **argv);
+
+/**
  * @brief Crea un proceso que ejecuta un loop infinito
  * @param argc Cantidad de argumentos
  * @param argv Array de argumentos
@@ -157,24 +164,36 @@ int validate_create_process_error(const char *cmd_name, int pid);
 
 /**
  * @brief printea en pantalla lo ingresado en stdin
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
  */
 void cat_cmd(int argc, char **argv);
 
 /**
  * @brief cuante las lineas y caracteres
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
  */
 void wc_cmd(int argc, char **argv);
 
 /**
  * @brief filtra lineas
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
  */
 void filter_cmd(int argc, char **argv);
 
 /**
  * @brief implementa los comandos pipeados
+ * @param input Input de la pipe
  */
 void pipes_cmd(char *input);
 
+/**
+ * @brief encuentra la funcion de un comando
+ * @param cmd Nombre del comando
+ * @return Puntero a la funcion del comando
+ */
 void *find_function(char *cmd);
 
 #endif // COMMANDS_H

@@ -58,3 +58,7 @@ int sem_post(const char *name) {
 int sem_close(const char *name) {
 	return (int) sys_call(SYS_SEM_CLOSE, (uint64_t) name, 0, 0, 0, 0, 0);
 }
+
+void exit_process(void) {
+	sys_call(SYS_EXIT, 0, 0, 0, 0, 0, 0);
+}

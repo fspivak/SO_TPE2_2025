@@ -16,27 +16,25 @@ void test_mm_main(int argc, char **argv) {
 		size_arg = argv[1];
 	}
 
-	print("=== Running Memory Manager Test ===\n");
-	print("Running test_mm with size: ");
-	print(size_arg);
-	print(" bytes\n\n");
+	print_format("=== Running Memory Manager Test ===\n");
+	print_format("Running test_mm with size: %s bytes\n\n", size_arg);
 
 	char *args[] = {size_arg, NULL};
 
 	int64_t result = test_mm(1, args);
 
 	if (result != 0) {
-		print("test_mm: ERROR occurred during test\n");
+		print_format("test_mm: ERROR occurred during test\n");
 	}
 	else {
-		print("test_mm: Test completed successfully\n");
+		print_format("test_mm: Test completed successfully\n");
 	}
 
-	print("\n=== Memory Manager Test Completed ===\n\n");
+	print_format("\n=== Memory Manager Test Completed ===\n\n");
 }
 
 void test_mm_cmd(int argc, char **argv) {
-	int pid_test = create_process("test_mm", test_mm_main, argc, argv, 4);
+	int pid_test = create_process("test_mm", test_mm_main, argc, argv, 128);
 	if (!validate_create_process_error("test_mm", pid_test)) {
 		return;
 	}

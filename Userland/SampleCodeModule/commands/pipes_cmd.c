@@ -17,7 +17,7 @@ void pipes_cmd(char *input) {
 
 	int64_t pipe_id = my_pipe_open("terminal_pipe");
 	if (pipe_id < 0) {
-		print("Error creating pipe\n");
+		print_format("Error creating pipe\n");
 		return;
 	}
 
@@ -40,16 +40,16 @@ void pipes_cmd(char *input) {
 	void *func2 = find_function(cmd2_name);
 
 	if (func1 == NULL || func2 == NULL) {
-		print("[Pipe Error] One of the commands is invalid.\n");
+		print_format("[Pipe Error] One of the commands is invalid.\n");
 		my_pipe_close(pipe_id);
 		return;
 	}
 
-	int pid_writer = create_process(cmd1, func1, 3, argv1, 8);
-	int pid_reader = create_process(cmd2, func2, 3, argv2, 8);
+	int pid_writer = create_process(cmd1, func1, 3, argv1, 128);
+	int pid_reader = create_process(cmd2, func2, 3, argv2, 128);
 
 	if (pid_writer < 0 || pid_reader < 0) {
-		print("Error creating processes for pipe\n");
+		print_format("Error creating processes for pipe\n");
 		my_pipe_close(pipe_id);
 		return;
 	}
@@ -75,15 +75,12 @@ void *find_function(char *cmd) {
 	}
 
 	// Si el comando no se reconoce o no es apto para pipe
-	print("\n[Pipe Help] Command '");
-	print(cmd);
-	print("' not found or not supported for a pipe.\n");
-
-	print("Available pipe commands:\n");
-	print("  - cat : reads from stdin and writes to stdout\n");
-	print("  - wc  : counts lines/words from stdin\n");
-	print("  - ps  : prints process information (stdout only)\n\n");
-	print("  - filter : filters lines containing a given word\n");
+	print_format("\n[Pipe Help] Command '%s' not found or not supported for a pipe.\n", cmd);
+	print_format("Available pipe commands:\n");
+	print_format("  - cat : reads from stdin and writes to stdout\n");
+	print_format("  - wc  : counts lines/words from stdin\n");
+	print_format("  - ps  : prints process information (stdout only)\n\n");
+	print_format("  - filter : filters lines containing a given word\n");
 
 	return NULL;
 }

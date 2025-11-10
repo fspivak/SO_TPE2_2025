@@ -9,7 +9,5 @@ void getpid_cmd(int argc, char **argv) {
 	(void) argv; // No usamos (convencion)
 
 	int pid = getpid();
-	print("Current PID: ");
-	printBase(pid, 10);
-	print("\n");
+	print_format("Current PID: %d\n", pid);
 }

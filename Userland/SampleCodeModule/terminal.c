@@ -32,9 +32,9 @@ void terminal() {
 	getScreenSize(&screenWidth, &screenHeight);
 
 	/* Mensaje de bienvenida */
-	print("\nWelcome to x64 BareBones OS\n");
-	print("Type 'help' for available commands\n\n");
-	print(">  "); /* Prompt inicial */
+	print_format("\nWelcome to x64 BareBones OS\n");
+	print_format("Type 'help' for available commands\n\n");
+	print_format(">  "); /* Prompt inicial */
 
 	while (1) {
 		if ((c = getchar()) != '\n') {
@@ -69,16 +69,16 @@ void terminal() {
 		}
 		else {
 			buffer[i] = 0;
-			print("\n"); /* Nueva linea despues del comando */
+			print_format("\n"); /* Nueva linea despues del comando */
 
 			if (!strcmp(buffer, "help")) {
 				help_cmd(0, NULL);
 			}
 			else if (!strcmp(buffer, "zoom in")) {
-				print("Zoom not available in VGA text mode\n");
+				print_format("Zoom not available in VGA text mode\n");
 			}
 			else if (!strcmp(buffer, "zoom out")) {
-				print("Zoom not available in VGA text mode\n");
+				print_format("Zoom not available in VGA text mode\n");
 			}
 			else if (!strcmp(buffer, "showRegisters")) {
 				imprimirRegistros();
@@ -93,7 +93,7 @@ void terminal() {
 				exit_shell();
 			}
 			else if (!strcmp(buffer, "snake")) {
-				print("Snake not available in VGA text mode\n");
+				print_format("Snake not available in VGA text mode\n");
 			}
 			else if (!strcmp(buffer, "clock")) {
 				callClock();
@@ -121,6 +121,12 @@ void terminal() {
 			}
 			else if (startsWith(buffer, "test_sync ")) {
 				execute_command_with_args(buffer, "test_sync ", 10, test_sync_cmd);
+			}
+			else if (!strcmp(buffer, "test_prio")) {
+				test_prio_cmd(0, NULL);
+			}
+			else if (startsWith(buffer, "test_prio ")) {
+				execute_command_with_args(buffer, "test_prio ", 10, test_prio_cmd);
 			}
 			else if (!strcmp(buffer, "sh")) {
 				create_new_shell();
@@ -153,7 +159,7 @@ void terminal() {
 				wc_cmd(0, NULL);
 			}
 			else if (c == 4) { // Ctrl+D
-				print("\n[EOF]\n");
+				print_format("\n[EOF]\n");
 				// close_fd(0); // 🔹 (tu syscall que cierre el descriptor 0, STDIN)
 				break; // termina la lectura actual
 			}
@@ -175,12 +181,10 @@ void terminal() {
 			}
 			///////////////////////////////////////////////////////////////////////////////
 			else if (i > 0) { /* Solo mostrar error si se escribio algo */
-				print("Command '");
-				print(buffer);
-				print("' not found\n");
+				print_format("Command '%s' not found\n", buffer);
 			}
 
-			print(">  "); /* Mostrar prompt para siguiente comando */
+			print_format(">  "); /* Mostrar prompt para siguiente comando */
 			// previousLength=i;
 			tabs = 0;
 			i = 0;
@@ -191,10 +195,10 @@ void terminal() {
 void create_new_shell() {
 	char *argv[] = {NULL};
 
-	print("Creating new shell: \n");
-	int pid = create_process("shellCreated", (void *) terminal, 0, argv, 8);
+	print_format("Creating new shell: \n");
+	int pid = create_process("shellCreated", (void *) terminal, 0, argv, 128);
 	if (pid < 0) {
-		print("Error: could not create clock process\n");
+		print_format("Error: could not create clock process\n");
 		return;
 	}
 	waitpid(pid);
@@ -202,15 +206,14 @@ void create_new_shell() {
 }
 
 void exit_shell() {
-	int pid = getpid();
-	kill(pid);
+	exit_process();
 }
 
 void callClock() {
 	char *argv[] = {NULL};
 	int pid = create_process("clock", (void *) clock_entry, 0, argv, 1);
 	if (pid < 0) {
-		print("Error: could not create clock process\n");
+		print_format("Error: could not create clock process\n");
 		return;
 	}
 

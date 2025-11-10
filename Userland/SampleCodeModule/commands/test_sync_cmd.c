@@ -10,10 +10,10 @@ extern uint64_t test_sync(uint64_t argc, char *argv[]);
 
 void test_sync_main(int argc, char **argv) {
 	if (argc < 3 || argv == NULL || argv[1] == NULL || argv[2] == NULL) {
-		print("test_sync: Usage: test_sync <n> <use_sem>\n");
-		print("  n: Number of iterations (must be non-negative)\n");
-		print("  use_sem: 1 to use semaphores, 0 to test without semaphores\n");
-		print("  Example: test_sync 1000 1\n");
+		print_format("test_sync: Usage: test_sync <n> <use_sem>\n");
+		print_format("  n: Number of iterations (must be non-negative)\n");
+		print_format("  use_sem: 1 to use semaphores, 0 to test without semaphores\n");
+		print_format("  Example: test_sync 1000 1\n");
 		return;
 	}
 
@@ -24,7 +24,7 @@ void test_sync_main(int argc, char **argv) {
 
 	int use_sem = satoi(argv[2]);
 	if (use_sem != 0 && use_sem != 1) {
-		print("ERROR: use_sem must be 0 or 1\n");
+		print_format("ERROR: use_sem must be 0 or 1\n");
 		return;
 	}
 
@@ -33,7 +33,7 @@ void test_sync_main(int argc, char **argv) {
 	int64_t result = test_sync(2, args);
 
 	if (result != 0) {
-		print("test_sync: ERROR occurred during test\n");
+		print_format("test_sync: ERROR occurred during test\n");
 	}
 }
 

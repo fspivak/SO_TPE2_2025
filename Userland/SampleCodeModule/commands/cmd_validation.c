@@ -5,43 +5,51 @@
 #include <stddef.h>
 
 static int validate_pid_exists(int pid) {
-	ProcessInfo processes[64];
+	ProcessInfo *processes = (ProcessInfo *) malloc(sizeof(ProcessInfo) * 64);
+	if (processes == NULL) {
+		print_format("ERROR: Unable to list processes\n");
+		return 0;
+	}
+
 	int count = ps(processes, 64);
+	if (count <= 0) {
+		print_format("ERROR: Unable to list processes\n");
+		free(processes);
+		return 0;
+	}
+
+	int found = 0;
 	for (int i = 0; i < count; i++) {
 		if (processes[i].pid == pid) {
-			return 1;
+			found = 1;
+			break;
 		}
 	}
-	return 0;
+
+	free(processes);
+	return found;
 }
 
 int validate_pid_arg(const char *cmd_name, int argc, char **argv, int arg_index) {
 	if (argc <= arg_index || argv == NULL || argv[arg_index] == NULL) {
-		print((char *) cmd_name);
-		print(": missing operand\n");
-		print("Usage: ");
-		print((char *) cmd_name);
 		if (strcmp(cmd_name, "nice") == 0) {
-			print(" <pid> <priority>\n");
-			print("Priority range: 0-255\n");
+			print_format("%s: missing operand\nUsage: %s <pid> <priority>\nPriority range: 0-255\n", cmd_name,
+						 cmd_name);
 		}
 		else {
-			print(" <pid>\n");
+			print_format("%s: missing operand\nUsage: %s <pid>\n", cmd_name, cmd_name);
 		}
 		return 0;
 	}
 
 	int pid = satoi(argv[arg_index]);
 	if (pid <= 0) {
-		print("ERROR: Invalid PID (must be a positive number)\n");
+		print_format("ERROR: Invalid PID (must be a positive number)\n");
 		return 0;
 	}
 
 	if (!validate_pid_exists(pid)) {
-		print((char *) cmd_name);
-		print(": ");
-		printBase(pid, 10);
-		print(": arguments must be process or job IDs\n");
+		print_format("%s: %d: arguments must be process or job IDs\n", cmd_name, pid);
 		return 0;
 	}
 
@@ -50,18 +58,14 @@ int validate_pid_arg(const char *cmd_name, int argc, char **argv, int arg_index)
 
 int validate_priority_arg(const char *cmd_name, int argc, char **argv, int arg_index) {
 	if (argc <= arg_index || argv == NULL || argv[arg_index] == NULL) {
-		print((char *) cmd_name);
-		print(": missing priority operand\n");
-		print("Usage: ");
-		print((char *) cmd_name);
-		print(" <pid> <priority>\n");
-		print("Priority range: 0-255\n");
+		print_format("%s: missing priority operand\nUsage: %s <pid> <priority>\nPriority range: 0-255\n", cmd_name,
+					 cmd_name);
 		return -1;
 	}
 
 	int priority = satoi(argv[arg_index]);
 	if (priority < 0 || priority > 255) {
-		print("ERROR: Priority must be between 0 and 255\n");
+		print_format("ERROR: Priority must be between 0 and 255\n");
 		return -1;
 	}
 
@@ -70,18 +74,13 @@ int validate_priority_arg(const char *cmd_name, int argc, char **argv, int arg_i
 
 int validate_non_negative_int(const char *cmd_name, const char *arg_name, int argc, char **argv, int arg_index) {
 	if (argc <= arg_index || argv == NULL || argv[arg_index] == NULL) {
-		print((char *) cmd_name);
-		print(": missing ");
-		print((char *) arg_name);
-		print(" operand\n");
+		print_format("%s: missing %s operand\n", cmd_name, arg_name);
 		return -1;
 	}
 
 	int value = satoi(argv[arg_index]);
 	if (value < 0) {
-		print("ERROR: ");
-		print((char *) arg_name);
-		print(" must be a non-negative number\n");
+		print_format("ERROR: %s must be a non-negative number\n", arg_name);
 		return -1;
 	}
 
@@ -90,9 +89,7 @@ int validate_non_negative_int(const char *cmd_name, const char *arg_name, int ar
 
 int validate_create_process_error(const char *cmd_name, int pid) {
 	if (pid < 0) {
-		print("ERROR: Failed to create process '");
-		print((char *) cmd_name);
-		print("': insufficient memory or process table full\n");
+		print_format("ERROR: Failed to create process '%s': insufficient memory or process table full\n", cmd_name);
 		return 0;
 	}
 	return 1;

@@ -84,7 +84,7 @@
 void cat_main(int argc, char *argv[]) {
 	char c;
 
-	print("Entrando a cat (Ctrl+D para EOF)\n");
+	print_format("Entrando a cat (Ctrl+D para EOF)\n");
 
 	while (1) {
 		c = getchar(); // 🔹 esto ya lee del STDIN del proceso
@@ -93,7 +93,7 @@ void cat_main(int argc, char *argv[]) {
 			continue; // sin input aún
 
 		if (c == -1) { // Ctrl+D
-			print("\n[EOF]\n");
+			print_format("\n[EOF]\n");
 			return;
 		}
 

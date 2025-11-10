@@ -4,7 +4,7 @@
 #include "../include/stringUser.h"
 #include <stddef.h>
 
-static void nice_main(int argc, char **argv) {
+void nice_cmd(int argc, char **argv) {
 	int pid = validate_pid_arg("nice", argc, argv, 1);
 	if (pid <= 0) {
 		return;
@@ -17,24 +17,9 @@ static void nice_main(int argc, char **argv) {
 
 	int result = nice(pid, priority);
 	if (result < 0) {
-		print("ERROR: Failed to change priority of process ");
-		printBase(pid, 10);
-		print("\n");
+		print_format("ERROR: Failed to change priority of process %d\n", pid);
 	}
 	else {
-		print("Priority of process ");
-		printBase(pid, 10);
-		print(" changed to ");
-		printBase(priority, 10);
-		print("\n");
+		print_format("Priority of process %d changed to %d\n", pid, priority);
 	}
-}
-
-void nice_cmd(int argc, char **argv) {
-	int pid_nice = create_process("nice", nice_main, argc, argv, 1);
-	if (!validate_create_process_error("nice", pid_nice)) {
-		return;
-	}
-
-	waitpid(pid_nice);
 }
