@@ -29,6 +29,8 @@ void sys_mem_status(HeapState *state);
 /* Process syscalls */
 process_id_t sys_create_process(const char *name, void (*entry_point)(int, char **), int argc, char **argv,
 								uint8_t priority);
+process_id_t sys_create_process_foreground(const char *name, void (*entry_point)(int, char **), int argc, char **argv,
+										   uint8_t priority);
 process_id_t sys_getpid();
 int sys_kill(process_id_t pid);
 int sys_block(process_id_t pid);
@@ -44,3 +46,7 @@ int sys_sem_open(const char *name, uint32_t initial_value);
 int sys_sem_wait(const char *name);
 int sys_sem_post(const char *name);
 int sys_sem_close(const char *name);
+
+/* Foreground helpers */
+int sys_set_foreground(process_id_t pid);
+int sys_clear_foreground(process_id_t pid);

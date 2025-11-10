@@ -6,7 +6,7 @@
 char conversionArray[] = {
 	[0x01] = -1, // escape no tiene carácter imprimible
 	[0x02] = '1',  [0x03] = '2', [0x04] = '3', [0x05] = '4', [0x06] = '5',	[0x07] = '6',
-	[0x08] = '7',  [0x09] = '8', [0x0A] = '9', [0x0B] = '0', [0x0C] = '-',	[0x0D] = '=',
+	[0x08] = '7',  [0x09] = '8', [0x0A] = '9', [0x0B] = '0', [0x0C] = '\'', [0x0D] = '=',
 	[0x0E] = 8,	   // backspace no es imprimible
 	[0x0F] = '\t', // tab no es imprimible
 	[0x10] = 'q',  [0x11] = 'w', [0x12] = 'e', [0x13] = 'r', [0x14] = 't',	[0x15] = 'y',
@@ -17,7 +17,7 @@ char conversionArray[] = {
 	[0x24] = 'j',  [0x25] = 'k', [0x26] = 'l', [0x27] = ';', [0x28] = '\'', [0x29] = '`',
 	[0x2A] = -1, // left shift no es imprimible
 	[0x2B] = '\\', [0x2C] = 'z', [0x2D] = 'x', [0x2E] = 'c', [0x2F] = 'v',	[0x30] = 'b',
-	[0x31] = 'n',  [0x32] = 'm', [0x33] = ',', [0x34] = '.', [0x35] = '/',
+	[0x31] = 'n',  [0x32] = 'm', [0x33] = ',', [0x34] = '.', [0x35] = '-',
 	[0x36] = -1,  // right shift no es imprimible
 	[0x37] = '*', // (keypad) * es imprimible
 	[0x38] = -1,  // left alt no es imprimible
@@ -60,7 +60,7 @@ char getChar() {
 	} while (letter == -1 || conversionArray[letter] == -1);
 	char c;
 
-	/* Si shift está presionado y hay mapeo especial, usarlo */
+	/* Si shift esta presionado y hay mapeo especial, usarlo */
 	if (isShiftPressed() && shiftConversionArray[letter] != 0)
 		c = shiftConversionArray[letter];
 	else if (isUpperCase() && letter != -1 && conversionArray[letter] <= 'z' && conversionArray[letter] >= 'a')
@@ -68,7 +68,7 @@ char getChar() {
 	else
 		c = (letter != -1) ? conversionArray[letter] : letter;
 
-	/* 🚨 Detectar Ctrl+D (EOF) */
+	/* Detectar Ctrl+D (EOF) */
 	if (isCtrlPressed() && c == 'd') {
 		return -1; // señal de EOF
 	}

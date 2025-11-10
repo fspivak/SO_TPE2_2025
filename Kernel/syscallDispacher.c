@@ -108,6 +108,18 @@ uint64_t syscallDispatcher(uint64_t rax, ...) {
 		va_end(args);
 		return (uint64_t) pid;
 	}
+	else if (rax == 76) {
+		/* sys_create_process_foreground */
+		const char *name = va_arg(args, const char *);
+		void (*entry_point)(int, char **) = va_arg(args, void (*)(int, char **));
+		int argc = va_arg(args, int);
+		char **argv = va_arg(args, char **);
+		int priority_int = va_arg(args, int);
+		uint8_t priority = (uint8_t) priority_int;
+		process_id_t pid = sys_create_process_foreground(name, entry_point, argc, argv, priority);
+		va_end(args);
+		return (uint64_t) pid;
+	}
 	else if (rax == 61) {
 		/* sys_getpid */
 		process_id_t pid = sys_getpid();
@@ -197,6 +209,20 @@ uint64_t syscallDispatcher(uint64_t rax, ...) {
 		/* sys_sem_close */
 		const char *name = va_arg(args, const char *);
 		int result = sys_sem_close(name);
+		va_end(args);
+		return (uint64_t) result;
+	}
+	else if (rax == 74) {
+		/* sys_set_foreground */
+		process_id_t pid = va_arg(args, process_id_t);
+		int result = sys_set_foreground(pid);
+		va_end(args);
+		return (uint64_t) result;
+	}
+	else if (rax == 75) {
+		/* sys_clear_foreground */
+		process_id_t pid = va_arg(args, process_id_t);
+		int result = sys_clear_foreground(pid);
 		va_end(args);
 		return (uint64_t) result;
 	}
@@ -340,6 +366,25 @@ process_id_t sys_create_process(const char *name, void (*entry_point)(int, char 
 	return create_process(name, entry_point, argc, argv, priority);
 }
 
+process_id_t sys_create_process_foreground(const char *name, void (*entry_point)(int, char **), int argc, char **argv,
+										   uint8_t priority) {
+	if (entry_point == NULL) {
+		return -1;
+	}
+
+	process_id_t pid = create_process(name, entry_point, argc, argv, priority);
+	if (pid < 0) {
+		return pid;
+	}
+
+	if (set_foreground_process(pid) < 0) {
+		kill_process(pid);
+		return -1;
+	}
+
+	return pid;
+}
+
 process_id_t sys_getpid() {
 	return get_current_pid();
 }
@@ -433,4 +478,12 @@ int sys_sem_close(const char *name) {
 		return -1;
 	}
 	return sem_close(name);
+}
+
+int sys_set_foreground(process_id_t pid) {
+	return set_foreground_process(pid);
+}
+
+int sys_clear_foreground(process_id_t pid) {
+	return clear_foreground_process(pid);
 }

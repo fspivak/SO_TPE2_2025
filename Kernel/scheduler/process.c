@@ -24,6 +24,7 @@ static int duplicate_arguments(PCB *process, int argc, char **argv);
 static uint8_t clamp_priority(uint8_t priority);
 static uint8_t normalize_priority(uint8_t priority);
 static uint8_t get_time_slice_budget(const PCB *process);
+static void release_foreground_owner(void);
 
 static PCB process_table[MAX_PROCESSES];
 static PCB *current_process = NULL;
@@ -47,6 +48,23 @@ static process_id_t get_next_valid_pid() {
 	}
 
 	return pid;
+}
+
+static void release_foreground_owner(void) {
+	if (foregroundProcessPid == -1) {
+		return;
+	}
+
+	PCB *current_foreground = get_process_by_pid(foregroundProcessPid);
+	if (current_foreground != NULL) {
+		current_foreground->has_foreground = 0;
+		if (current_foreground->foreground_priority_boost) {
+			current_foreground->priority = current_foreground->saved_priority;
+			current_foreground->foreground_priority_boost = 0;
+		}
+	}
+
+	foregroundProcessPid = -1;
 }
 static int initialized_flag = 0;
 
@@ -108,8 +126,11 @@ static void release_process_resources(PCB *process) {
 	process->pid = -1;
 	process->priority = 0;
 	process->base_priority = 0;
+	process->saved_priority = 0;
+	process->foreground_priority_boost = 0;
 	process->waiting_ticks = 0;
 	process->pending_cleanup = 0;
+	process->has_foreground = 0;
 
 	if (pending_cleanup_process == process) {
 		pending_cleanup_process = NULL;
@@ -202,6 +223,8 @@ int init_processes() {
 		process_table[i].pid = -1;
 		process_table[i].priority = 0;
 		process_table[i].base_priority = 0;
+		process_table[i].saved_priority = 0;
+		process_table[i].foreground_priority_boost = 0;
 		process_table[i].scheduler_counter = 0;
 		process_table[i].stack_base = NULL;
 		process_table[i].stack_pointer = NULL;
@@ -211,6 +234,7 @@ int init_processes() {
 		process_table[i].parent_pid = -1;
 		process_table[i].waiting_ticks = 0;
 		process_table[i].pending_cleanup = 0;
+		process_table[i].has_foreground = 0;
 		for (int j = 0; j < MAX_PROCESS_NAME; j++) {
 			process_table[i].name[j] = '\0';
 		}
@@ -221,8 +245,11 @@ int init_processes() {
 	idle_pcb->state = READY;
 	idle_pcb->priority = 0;
 	idle_pcb->base_priority = 0;
+	idle_pcb->saved_priority = 0;
+	idle_pcb->foreground_priority_boost = 0;
 	idle_pcb->scheduler_counter = 0;
 	idle_pcb->in_scheduler = 1;
+	idle_pcb->has_foreground = 0;
 	const char *idle_name = "idle";
 	int i = 0;
 	while (idle_name[i] != '\0' && i < MAX_PROCESS_NAME - 1) {
@@ -284,10 +311,13 @@ process_id_t create_process(const char *name, void (*entry_point)(int, char **),
 	new_process->state = READY;
 	new_process->priority = priority;
 	new_process->base_priority = priority;
+	new_process->saved_priority = priority;
+	new_process->foreground_priority_boost = 0;
 	new_process->scheduler_counter = 0;
 	new_process->waiting_ticks = 0;
 	new_process->pending_cleanup = 0;
 	new_process->parent_pid = get_current_pid();
+	new_process->has_foreground = 0;
 	if (name != NULL) {
 		int i = 0;
 		while (name[i] != '\0' && i < MAX_PROCESS_NAME - 1) {
@@ -336,6 +366,78 @@ process_id_t get_current_pid() {
 		return -1;
 	}
 	return current_process->pid;
+}
+
+int set_foreground_process(process_id_t pid) {
+	if (pid == -1) {
+		release_foreground_owner();
+		return 0;
+	}
+
+	if (pid <= 0) {
+		return -1;
+	}
+
+	PCB *process = get_process_by_pid(pid);
+	if (process == NULL) {
+		return -1;
+	}
+
+	if (process->state == TERMINATED) {
+		release_foreground_owner();
+		return 0;
+	}
+
+	if (foregroundProcessPid == pid) {
+		process->has_foreground = 1;
+		return 0;
+	}
+
+	process_id_t previous_pid = foregroundProcessPid;
+	PCB *previous_process = NULL;
+	if (previous_pid > 0) {
+		previous_process = get_process_by_pid(previous_pid);
+	}
+
+	foregroundProcessPid = pid;
+	process->has_foreground = 1;
+	if (!process->foreground_priority_boost) {
+		process->saved_priority = process->priority;
+		process->priority = MIN_PRIORITY;
+		process->foreground_priority_boost = 1;
+	}
+
+	if (previous_process != NULL) {
+		previous_process->has_foreground = 0;
+		if (previous_process->foreground_priority_boost) {
+			previous_process->priority = previous_process->saved_priority;
+			previous_process->foreground_priority_boost = 0;
+		}
+	}
+
+	return 0;
+}
+
+int clear_foreground_process(process_id_t pid) {
+	if (pid == -1) {
+		release_foreground_owner();
+		return 0;
+	}
+
+	if (foregroundProcessPid == -1) {
+		return 0;
+	}
+
+	if (foregroundProcessPid != pid) {
+		return -1;
+	}
+
+	release_foreground_owner();
+	return 0;
+}
+
+process_id_t get_foreground_process(void) {
+	return foregroundProcessPid;
 }
 
 static PCB *get_process_by_pid(process_id_t pid) {
@@ -396,9 +498,14 @@ static int terminate_process(PCB *process, int kill_descendants) {
 		}
 	}
 
+	if (foregroundProcessPid == pid) {
+		release_foreground_owner();
+	}
+
 	process->state = TERMINATED;
 	process->in_scheduler = 0;
 	process->pending_cleanup = (process == current_process) ? 1 : 0;
+	process->has_foreground = 0;
 	if (process == current_process) {
 		pending_cleanup_process = process;
 	}
@@ -503,7 +610,12 @@ int change_priority(process_id_t pid, uint8_t new_priority) {
 		return -1;
 	}
 	process->base_priority = new_priority;
-	process->priority = new_priority;
+	if (process->foreground_priority_boost) {
+		process->saved_priority = new_priority;
+	}
+	else {
+		process->priority = new_priority;
+	}
 	process->waiting_ticks = 0;
 
 	return 0;
@@ -553,7 +665,8 @@ int get_processes_info(ProcessInfo *buffer, int max_processes) {
 			}
 			buffer[count].state_name[j] = '\0';
 
-			buffer[count].hasForeground = (foregroundProcessPid == process_table[i].pid) ? 1 : 0;
+			buffer[count].hasForeground =
+				(foregroundProcessPid == process_table[i].pid) ? 1 : process_table[i].has_foreground;
 
 			count++;
 		}

@@ -25,19 +25,22 @@ typedef struct PCB {
 	process_id_t pid;
 	char name[MAX_PROCESS_NAME];
 	ProcessState state;
-	uint8_t priority;			// 0 (alta) -> 255 (baja)
-	uint8_t base_priority;		// Prioridad original para restaurar tras aging
-	void *stack_base;			// Base del stack
-	void *stack_pointer;		// Current stack pointer (RSP)
-	void *entry_point;			// Punto de entrada del proceso
-	int argc;					// Cantidad de argumentos
-	char **argv;				// Array de argumentos
-	uint64_t scheduler_counter; // Contador para Round Robin
-	int in_scheduler;			// 1 = puede ser elegido por scheduler, 0 = removido
-	process_id_t waiting_pid;	// PID del proceso que esta esperando a este proceso
-	process_id_t parent_pid;	// PID del proceso padre (-1 si no tiene padre)
-	uint16_t waiting_ticks;		// Contador para aging
-	uint8_t pending_cleanup;	// 1 si falta liberar recursos luego del context switch
+	uint8_t priority;				   // 0 (alta) -> 255 (baja)
+	uint8_t base_priority;			   // Prioridad original para restaurar tras aging
+	uint8_t saved_priority;			   // Prioridad almacenada para restaurar al liberar foreground
+	uint8_t foreground_priority_boost; // 1 si priorizamos por foreground
+	void *stack_base;				   // Base del stack
+	void *stack_pointer;			   // Current stack pointer (RSP)
+	void *entry_point;				   // Punto de entrada del proceso
+	int argc;						   // Cantidad de argumentos
+	char **argv;					   // Array de argumentos
+	uint64_t scheduler_counter;		   // Contador para Round Robin
+	int in_scheduler;				   // 1 = puede ser elegido por scheduler, 0 = removido
+	process_id_t waiting_pid;		   // PID del proceso que esta esperando a este proceso
+	process_id_t parent_pid;		   // PID del proceso padre (-1 si no tiene padre)
+	uint16_t waiting_ticks;			   // Contador para aging
+	uint8_t pending_cleanup;		   // 1 si falta liberar recursos luego del context switch
+	uint8_t has_foreground;			   // 1 si el proceso es foreground actual
 } PCB;
 
 // Informacion de proceso para userland
@@ -80,6 +83,26 @@ process_id_t create_process(const char *name, void (*entry_point)(int, char **),
  * @return PID del proceso actual
  */
 process_id_t get_current_pid();
+
+/**
+ * @brief Registra el PID del proceso en foreground
+ * @param pid PID del proceso a marcar como foreground (-1 para limpiar)
+ * @return 0 si se actualiza correctamente, -1 en caso contrario
+ */
+int set_foreground_process(process_id_t pid);
+
+/**
+ * @brief Limpia el foreground si coincide con el PID indicado
+ * @param pid PID del proceso que libera el foreground
+ * @return 0 si se limpia, -1 si no coincide
+ */
+int clear_foreground_process(process_id_t pid);
+
+/**
+ * @brief Obtiene el PID del proceso actualmente en foreground
+ * @return PID foreground, -1 si ninguno
+ */
+process_id_t get_foreground_process(void);
 
 /**
  * @brief Termina un proceso y libera sus recursos

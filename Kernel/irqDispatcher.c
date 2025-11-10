@@ -31,7 +31,7 @@ void int_21() {
 }
 
 void handle_ctrl_c(void) {
-	process_id_t pid = get_current_pid();
+	process_id_t pid = get_foreground_process();
 	if (pid > 0) {
 		kill_process(pid);
 	}
