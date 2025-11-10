@@ -44,15 +44,16 @@ void snake() {
 	char buffer[128];
 	int jugadores = 1;
 	printColor("Bienvenido a snake!\n", ROJO, 0x000000);
-	print("Como jugar: El objetivo es agarrar las manzanas (rojo), para ello, el jugador 1 (naranja) se puede mover "
-		  "con 'wasd'\nY el jugador 2 (azul) con 'ijkl'.\nSeleccione numero de jugadores: ");
+	print_format(
+		"Como jugar: El objetivo es agarrar las manzanas (rojo), para ello, el jugador 1 (naranja) se puede mover "
+		"con 'wasd'\nY el jugador 2 (azul) con 'ijkl'.\nSeleccione numero de jugadores: ");
 	printColor("[1jug]", NARANJA, 0x000000);
-	print("  o  ");
+	print_format("  o  ");
 	printColor("[2jug]\n", CIAN, 0x000000);
 	printColor("[quit]  ", ROJO, 0x000000);
-	print("para salir, ");
+	print_format("para salir, ");
 	printColor("[play] ", AMARILLO, 0x000000);
-	print("para jugar\n\n");
+	print_format("para jugar\n\n");
 	putCharColor('>', 0xFFCC0F, 0);
 	printTablero(); // 11x11 de cuadrados de 45x45
 	while (!quit) {
@@ -130,8 +131,7 @@ void sigleplayer() {
 	char pressed;
 	int last_dir = 0;
 	int points = 0;
-	print("jug1 ");
-	printBase(points, 10);
+	print_format("jug1 %d", points);
 	while (crashed == 0) {
 		sleepUser(TIME_INTERVAL);
 		while ((pressed = getcharNonLoop()) != -1) {
@@ -164,8 +164,7 @@ void sigleplayer() {
 				PutManzana(&apple_x, &apple_y, map);
 				cleanResult(4 + checkPoints(points));
 				points++;
-				print("jug1 ");
-				printBase(points, 10);
+				print_format("jug1 %d", points);
 			}
 			else {
 				siguiente = ((len1 + 1) % (11 * 11));
@@ -238,10 +237,7 @@ void pvpMode() {
 	char pressed;
 	int last_dir = 0;
 	int last_dir2 = 0;
-	print("jug1 ");
-	printBase(points1, 10);
-	print(" jug2 ");
-	printBase(points2, 10);
+	print_format("jug1 %d jug2 %d", points1, points2);
 	while (crashed == 0) {
 		sleepUser(TIME_INTERVAL);
 		while ((pressed = getcharNonLoop()) != -1) {
@@ -281,10 +277,7 @@ void pvpMode() {
 			PutManzana(&apple_x, &apple_y, map);
 			cleanResult(4 + 2 + checkPoints(points1) + 4 + checkPoints(points2));
 			points1++;
-			print("jug1 ");
-			printBase(points1, 10);
-			print(" jug2 ");
-			printBase(points2, 10);
+			print_format("jug1 %d jug2 %d", points1, points2);
 		}
 		else {
 			siguiente = ((len1 + 1) % (11 * 11));
@@ -308,10 +301,7 @@ void pvpMode() {
 			PutManzana(&apple_x, &apple_y, map);
 			cleanResult(4 + 2 + checkPoints(points1) + 4 + checkPoints(points2));
 			points2++;
-			print("jug1 ");
-			printBase(points1, 10);
-			print(" jug2 ");
-			printBase(points2, 10);
+			print_format("jug1 %d jug2 %d", points1, points2);
 		}
 		else {
 			siguiente = ((len2 + 1) % (11 * 11));
