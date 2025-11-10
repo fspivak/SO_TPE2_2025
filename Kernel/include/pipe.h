@@ -48,40 +48,81 @@ typedef struct Pipe {
 	uint64_t readers;
 	uint64_t writers;
 
-	sem_t *sem_mutex;
-	sem_t *sem_read;
-	sem_t *sem_write;
+	char sem_mutex_name[MAX_SEM_NAME];
+	char sem_read_name[MAX_SEM_NAME];
+	char sem_write_name[MAX_SEM_NAME];
+	int sem_mutex_id;
+	int sem_read_id;
+	int sem_write_id;
 
 	uint8_t active;
 } Pipe;
 
 /**
- * @brief Inicializa la tabla global de pipes.
+ * @brief Inicializa la tabla global de pipes
  */
 void init_pipes();
 
 /**
- * @brief Crea o abre un pipe existente por nombre.
- * Retorna índice del pipe o -1 en error.
+ * @brief Crea o abre un pipe existente por nombre
+ * @param name Nombre del pipe
+ * @return Indice del pipe o -1 si ocurre un error
  */
 int pipe_open(char *name);
 
 /**
- * @brief Cierra un pipe, decrementando readers/writers.
- * Si ambos llegan a 0, se destruye.
+ * @brief Cierra un pipe decrementando contadores de lectores y escritores
+ * @param id Identificador del pipe
+ * @return 0 si es exitoso, -1 si ocurre un error
  */
 int pipe_close(int id);
 
 /**
- * @brief Escribe `size` bytes al pipe `id`.
- * Retorna cantidad escrita o -1 en error.
+ * @brief Escribe bytes en el pipe indicado
+ * @param id Identificador del pipe
+ * @param data Datos a escribir
+ * @param size Cantidad de bytes a escribir
+ * @return Cantidad de bytes escritos o -1 si ocurre un error
  */
 int pipe_write(int id, const char *data, uint64_t size);
 
 /**
- * @brief Lee `size` bytes del pipe `id`.
- * Retorna cantidad leída o -1 en error.
+ * @brief Lee bytes desde el pipe indicado
+ * @param id Identificador del pipe
+ * @param buffer Buffer de destino
+ * @param size Cantidad de bytes a leer
+ * @return Cantidad de bytes leidos o -1 si ocurre un error
  */
 int pipe_read(int id, char *buffer, uint64_t size);
+
+/**
+ * @brief Registra un lector adicional para el pipe
+ * @param id Identificador del pipe
+ * @return 0 si es exitoso, -1 si hay error
+ */
+int pipe_register_reader(int id);
+
+/**
+ * @brief Desregistra un lector del pipe
+ * @param id Identificador del pipe
+ * @return 0 si es exitoso, -1 si hay error
+ */
+int pipe_unregister_reader(int id);
+
+/**
+ * @brief Registra un escritor adicional para el pipe
+ * @param id Identificador del pipe
+ * @return 0 si es exitoso, -1 si hay error
+ */
+int pipe_register_writer(int id);
+
+/**
+ * @brief Desregistra un escritor del pipe
+ * @param id Identificador del pipe
+ * @return 0 si es exitoso, -1 si hay error
+ */
+int pipe_unregister_writer(int id);
+
+#define PIPE_RESOURCE_INVALID -1
 
 #endif
