@@ -13,8 +13,21 @@ void block_cmd(int argc, char **argv) {
 	int result = block(pid);
 	if (result < 0) {
 		print_format("ERROR: Failed to block process %d\n", pid);
+		return;
 	}
-	else {
+
+	if (result == 1) {
 		print_format("Process %d blocked successfully\n", pid);
+		return;
+	}
+
+	if (result == 2) {
+		int unblock_result = unblock(pid);
+		if (unblock_result < 0) {
+			print_format("ERROR: Failed to unblock process %d\n", pid);
+		}
+		else {
+			print_format("Process %d unblocked successfully\n", pid);
+		}
 	}
 }
