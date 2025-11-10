@@ -23,6 +23,40 @@ int screenWidth;
 int screenHeight;
 int lastRunHeight = 0;
 
+static int is_space_char(char value) {
+	return value == ' ' || value == '\t' || value == '\r';
+}
+
+static int sanitize_background_flag(char *buffer) {
+	if (buffer == NULL) {
+		return 0;
+	}
+
+	int end = 0;
+	while (buffer[end] != '\0') {
+		end++;
+	}
+
+	end--;
+
+	while (end >= 0 && is_space_char(buffer[end])) {
+		buffer[end] = '\0';
+		end--;
+	}
+
+	if (end >= 0 && buffer[end] == '&') {
+		buffer[end] = '\0';
+		end--;
+		while (end >= 0 && is_space_char(buffer[end])) {
+			buffer[end] = '\0';
+			end--;
+		}
+		return 1;
+	}
+
+	return 0;
+}
+
 void terminal() {
 	char buffer[1000];
 	char c;
@@ -34,6 +68,7 @@ void terminal() {
 	/* Mensaje de bienvenida */
 	print_format("\nWelcome to x64 BareBones OS\n");
 	print_format("Type 'help' for available commands\n\n");
+	set_foreground(getpid());
 	print_format(">  "); /* Prompt inicial */
 
 	while (1) {
@@ -71,91 +106,104 @@ void terminal() {
 			buffer[i] = 0;
 			print_format("\n"); /* Nueva linea despues del comando */
 
-			if (!strcmp(buffer, "help")) {
+			int run_in_background = sanitize_background_flag(buffer);
+			command_set_background_mode(run_in_background);
+
+			char *command = buffer;
+			while (command != NULL && is_space_char(*command)) {
+				command++;
+			}
+
+			if (!strcmp(command, "help")) {
 				help_cmd(0, NULL);
 			}
-			else if (!strcmp(buffer, "zoom in")) {
+			else if (!strcmp(command, "zoom in")) {
 				print_format("Zoom not available in VGA text mode\n");
 			}
-			else if (!strcmp(buffer, "zoom out")) {
+			else if (!strcmp(command, "zoom out")) {
 				print_format("Zoom not available in VGA text mode\n");
 			}
-			else if (!strcmp(buffer, "showRegisters")) {
+			else if (!strcmp(command, "showRegisters")) {
 				imprimirRegistros();
 			}
-			else if (!strcmp(buffer, "ps")) {
+			else if (!strcmp(command, "ps")) {
 				ps_cmd(0, NULL);
 			}
-			else if (!strcmp(buffer, "getpid")) {
+			else if (!strcmp(command, "getpid")) {
 				getpid_cmd(0, NULL);
 			}
-			else if (!strcmp(buffer, "exit")) {
+			else if (!strcmp(command, "exit")) {
 				exit_shell();
 			}
-			else if (!strcmp(buffer, "snake")) {
+			else if (!strcmp(command, "snake")) {
 				print_format("Snake not available in VGA text mode\n");
 			}
-			else if (!strcmp(buffer, "clock")) {
+			else if (!strcmp(command, "clock")) {
 				callClock();
 			}
-			else if (!strcmp(buffer, "clear")) {
+			else if (!strcmp(command, "clear")) {
 				clear_cmd(0, NULL);
 			}
-			else if (!strcmp(buffer, "mem")) {
+			else if (!strcmp(command, "mem")) {
 				mem_cmd(0, NULL);
 			}
-			else if (!strcmp(buffer, "test_ab")) {
+			else if (!strcmp(command, "test_ab")) {
 				test_ab_cmd(0, NULL);
 			}
-			else if (!strcmp(buffer, "test_mm")) {
+			else if (!strcmp(command, "test_mm")) {
 				test_mm_cmd(0, NULL);
 			}
-			else if (startsWith(buffer, "test_mm ")) {
-				execute_command_with_args(buffer, "test_mm ", 8, test_mm_cmd);
+			else if (startsWith(command, "test_mm ")) {
+				execute_command_with_args(command, "test_mm ", 8, test_mm_cmd);
 			}
-			else if (!strcmp(buffer, "test_process")) {
+			else if (!strcmp(command, "test_process")) {
 				test_process_cmd(0, NULL);
 			}
-			else if (startsWith(buffer, "test_process ")) {
-				execute_command_with_args(buffer, "test_process ", 13, test_process_cmd);
+			else if (startsWith(command, "test_process ")) {
+				execute_command_with_args(command, "test_process ", 13, test_process_cmd);
 			}
-			else if (startsWith(buffer, "test_sync ")) {
-				execute_command_with_args(buffer, "test_sync ", 10, test_sync_cmd);
+			else if (startsWith(command, "test_sync ")) {
+				execute_command_with_args(command, "test_sync ", 10, test_sync_cmd);
 			}
-			else if (!strcmp(buffer, "test_prio")) {
+			else if (!strcmp(command, "test_prio")) {
 				test_prio_cmd(0, NULL);
 			}
-			else if (startsWith(buffer, "test_prio ")) {
-				execute_command_with_args(buffer, "test_prio ", 10, test_prio_cmd);
+			else if (startsWith(command, "test_prio ")) {
+				execute_command_with_args(command, "test_prio ", 10, test_prio_cmd);
 			}
-			else if (!strcmp(buffer, "sh")) {
-				create_new_shell();
+			else if (!strcmp(command, "sh")) {
+				if (run_in_background) {
+					print_format("ERROR: sh cannot be run in background\n");
+				}
+				else {
+					create_new_shell();
+				}
 			}
-			else if (!strcmp(buffer, "kill")) {
+			else if (!strcmp(command, "kill")) {
 				kill_cmd(0, NULL);
 			}
-			else if (startsWith(buffer, "kill ")) {
-				execute_command_with_args(buffer, "kill ", 5, kill_cmd);
+			else if (startsWith(command, "kill ")) {
+				execute_command_with_args(command, "kill ", 5, kill_cmd);
 			}
-			else if (!strcmp(buffer, "loop")) {
+			else if (!strcmp(command, "loop")) {
 				loop_cmd(0, NULL);
 			}
-			else if (!strcmp(buffer, "nice")) {
+			else if (!strcmp(command, "nice")) {
 				nice_cmd(0, NULL);
 			}
-			else if (startsWith(buffer, "nice ")) {
-				execute_command_with_args(buffer, "nice ", 5, nice_cmd);
+			else if (startsWith(command, "nice ")) {
+				execute_command_with_args(command, "nice ", 5, nice_cmd);
 			}
-			else if (!strcmp(buffer, "block")) {
+			else if (!strcmp(command, "block")) {
 				block_cmd(0, NULL);
 			}
-			else if (startsWith(buffer, "block ")) {
-				execute_command_with_args(buffer, "block ", 6, block_cmd);
+			else if (startsWith(command, "block ")) {
+				execute_command_with_args(command, "block ", 6, block_cmd);
 			}
-			else if (!strcmp(buffer, "cat")) {
+			else if (!strcmp(command, "cat")) {
 				cat_cmd(0, NULL);
 			}
-			else if (!strcmp(buffer, "wc")) {
+			else if (!strcmp(command, "wc")) {
 				wc_cmd(0, NULL);
 			}
 			else if (c == 4) { // Ctrl+D
@@ -164,26 +212,36 @@ void terminal() {
 				break; // termina la lectura actual
 			}
 			// Detectar comando con pipe
-			else if (strchr(buffer, '|') != NULL) {
-				pipes_cmd(buffer);
+			else if (strchr(command, '|') != NULL) {
+				pipes_cmd(command);
 			}
-			else if (startsWith(buffer, "filter ")) {
-				execute_command_with_args(buffer, "filter ", 7, filter_cmd);
+			else if (startsWith(command, "filter ")) {
+				execute_command_with_args(command, "filter ", 7, filter_cmd);
 			}
-			else if (!strcmp(buffer, "filter")) {
+			else if (!strcmp(command, "filter")) {
 				filter_cmd(0, NULL);
 			}
 
 			//////////////////TODO: borrar estos tests/////////////////////////////
 
-			else if (!strcmp(buffer, "test_pipe")) {
+			else if (!strcmp(command, "test_pipe")) {
 				test_pipe_cmd(0, NULL);
 			}
 			///////////////////////////////////////////////////////////////////////////////
-			else if (i > 0) { /* Solo mostrar error si se escribio algo */
-				print_format("Command '%s' not found\n", buffer);
+			else if (command[0] != '\0') {
+				print_format("Command '%s' not found\n", command);
 			}
 
+			command_reset_background_mode();
+
+			int bg_pid = -1;
+			const char *bg_name = NULL;
+			if (command_pop_background_notification(&bg_pid, &bg_name)) {
+				yield();
+				print_format("Process %s running in background (PID: %d)\n", bg_name, bg_pid);
+			}
+
+			yield();
 			print_format(">  "); /* Mostrar prompt para siguiente comando */
 			// previousLength=i;
 			tabs = 0;
@@ -195,14 +253,13 @@ void terminal() {
 void create_new_shell() {
 	char *argv[] = {NULL};
 
-	print_format("Creating new shell: \n");
-	int pid = create_process("shellCreated", (void *) terminal, 0, argv, 128);
+	print_format("Creating new shell...\n");
+	int pid = command_spawn_process("shellCreated", (void *) terminal, 0, argv, 128);
 	if (pid < 0) {
-		print_format("Error: could not create clock process\n");
+		print_format("ERROR: Failed to create shell\n");
 		return;
 	}
-	waitpid(pid);
-	return;
+	command_handle_child_process(pid, "shell");
 }
 
 void exit_shell() {
@@ -211,12 +268,11 @@ void exit_shell() {
 
 void callClock() {
 	char *argv[] = {NULL};
-	int pid = create_process("clock", (void *) clock_entry, 0, argv, 1);
+	int pid = command_spawn_process("clock", (void *) clock_entry, 0, argv, 1);
 	if (pid < 0) {
-		print_format("Error: could not create clock process\n");
+		print_format("ERROR: Failed to create clock process\n");
 		return;
 	}
 
-	waitpid(pid);
-	return;
+	command_handle_child_process(pid, "clock");
 }

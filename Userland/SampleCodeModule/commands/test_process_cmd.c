@@ -43,11 +43,11 @@ void test_process_main(int argc, char **argv) {
 }
 
 void test_process_cmd(int argc, char **argv) {
-	int pid_test = my_create_process("test_process", test_process_main, argc, argv);
+	int pid_test = command_spawn_process("test_process", test_process_main, argc, argv, 1);
 
 	if (!validate_create_process_error("test_process", pid_test)) {
 		return;
 	}
 
-	waitpid(pid_test);
+	command_handle_child_process(pid_test, "test_process");
 }

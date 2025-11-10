@@ -19,11 +19,16 @@
 #define SYS_PS 67
 #define SYS_EXIT 68
 #define SYS_WAITPID 69
+#define SYS_CREATE_PROCESS_FOREGROUND 76
 
 /* Syscalls - Semaforos */
 #define SYS_SEM_OPEN 70
 #define SYS_SEM_WAIT 71
 #define SYS_SEM_POST 72
 #define SYS_SEM_CLOSE 73
+
+/* Syscalls - Foreground */
+#define SYS_SET_FOREGROUND 74
+#define SYS_CLEAR_FOREGROUND 75
 
 #endif

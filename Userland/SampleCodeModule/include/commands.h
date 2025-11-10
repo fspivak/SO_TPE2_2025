@@ -2,6 +2,49 @@
 #define COMMANDS_H
 
 /**
+ * @brief Configura si el comando actual se ejecuta en background
+ * @param enabled 1 si se ejecuta en background, 0 en caso contrario
+ */
+void command_set_background_mode(int enabled);
+
+/**
+ * @brief Indica si el comando actual se esta ejecutando en background
+ * @return 1 si el comando corre en background, 0 de lo contrario
+ */
+int command_is_background_mode(void);
+
+/**
+ * @brief Resetea el estado global de ejecucion en background
+ */
+void command_reset_background_mode(void);
+
+/**
+ * @brief Obtiene (y limpia) una notificacion pendiente de proceso en background
+ * @param pid Salida opcional para el PID del proceso
+ * @param name Salida opcional para el nombre del proceso
+ * @return 1 si existia notificacion, 0 en caso contrario
+ */
+int command_pop_background_notification(int *pid, const char **name);
+
+/**
+ * @brief Maneja la relacion foreground/waitpid para un proceso hijo
+ * @param pid PID del proceso hijo
+ * @param name Nombre del comando (para mensajes)
+ */
+void command_handle_child_process(int pid, const char *name);
+
+/**
+ * @brief Crea un proceso considerando si debe arrancar en foreground o background
+ * @param name Nombre del proceso
+ * @param entry Funcion de entrada del proceso
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ * @param priority Prioridad solicitada
+ * @return PID del proceso creado o -1 si hay error
+ */
+int command_spawn_process(const char *name, void (*entry)(int, char **), int argc, char **argv, int priority);
+
+/**
  * @brief Muestra la ayuda del terminal con comandos disponibles
  * @param argc Cantidad de argumentos
  * @param argv Array de argumentos

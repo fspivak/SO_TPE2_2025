@@ -146,6 +146,17 @@ extern int64_t sys_call(uint64_t id, uint64_t arg1, uint64_t arg2, uint64_t arg3
 int create_process(const char *name, void (*entry)(int, char **), int argc, char **argv, int priority);
 
 /**
+ * @brief Crea un nuevo proceso asegurando la obtencion inmediata del foreground
+ * @param name Nombre del proceso
+ * @param entry Funcion de entrada del proceso
+ * @param argc Numero de argumentos
+ * @param argv Array de argumentos
+ * @param priority Prioridad del proceso (0-255)
+ * @return PID del proceso creado o -1 si hay error
+ */
+int create_process_foreground(const char *name, void (*entry)(int, char **), int argc, char **argv, int priority);
+
+/**
  * @brief Obtiene el PID del proceso actual
  * @return PID del proceso actual
  */
@@ -210,6 +221,20 @@ int ps(void *buffer, int max_processes);
  * @return 0 si exitoso, -1 si hay error
  */
 int waitpid(int pid);
+
+/**
+ * @brief Marca un proceso como foreground (terminal)
+ * @param pid PID del proceso a marcar (-1 para liberar)
+ * @return 0 si exitoso, -1 si hay error
+ */
+int set_foreground(int pid);
+
+/**
+ * @brief Libera el foreground si coincide con el PID indicado
+ * @param pid PID del proceso que libera el foreground
+ * @return 0 si exitoso, -1 si hay error
+ */
+int clear_foreground(int pid);
 
 /**
  * @brief Abre o crea un semaforo con el nombre y valor inicial especificados

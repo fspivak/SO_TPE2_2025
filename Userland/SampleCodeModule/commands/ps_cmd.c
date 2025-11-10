@@ -41,7 +41,7 @@ static void ps_main(int argc, char **argv) {
 		print_padded(processes[i].state_name, 12);
 		print_hex_padded(processes[i].stack_base, 16);
 		print_hex_padded(processes[i].rsp, 16);
-		print_padded(processes[i].hasForeground ? "1" : "0", 3);
+		print_padded(processes[i].hasForeground ? "Yes" : "No", 3);
 		print_format("\n");
 	}
 
@@ -52,11 +52,11 @@ static void ps_main(int argc, char **argv) {
 }
 
 void ps_cmd(int argc, char **argv) {
-	int pid_ps = create_process("ps", ps_main, argc, argv, 1);
+	int pid_ps = command_spawn_process("ps", ps_main, argc, argv, 1);
 	if (pid_ps < 0) {
 		print_format("ERROR: Failed to create process ps\n");
 		return;
 	}
 
-	waitpid(pid_ps);
+	command_handle_child_process(pid_ps, "ps");
 }

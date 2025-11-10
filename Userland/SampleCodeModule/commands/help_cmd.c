@@ -40,11 +40,11 @@ static void help_main(int argc, char **argv) {
 }
 
 void help_cmd(int argc, char **argv) {
-	int pid_help = create_process("help", help_main, 0, NULL, 1);
+	int pid_help = command_spawn_process("help", help_main, 0, NULL, 1);
 	if (pid_help < 0) {
 		print_format("ERROR: Failed to create process help\n");
 		return;
 	}
 
-	waitpid(pid_help);
+	command_handle_child_process(pid_help, "help");
 }

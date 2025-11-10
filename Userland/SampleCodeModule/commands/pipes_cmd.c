@@ -4,9 +4,53 @@
 #include "../include/stinUser.h"
 #include "../include/stringUser.h"
 #include "../tests/include/syscall.h"
+#include "../tests/include/test_util.h"
 #include <stddef.h>
 
+#define MAX_PIPE_ARGS 8
+#define MAX_PIPE_ARG_LEN 64
+
+static int tokenize_command(const char *command, char storage[][MAX_PIPE_ARG_LEN], char *argv[], int max_tokens) {
+	if (command == NULL || storage == NULL || argv == NULL || max_tokens <= 0) {
+		return 0;
+	}
+
+	int count = 0;
+	const char *ptr = command;
+
+	while (*ptr != '\0' && count < max_tokens) {
+		while (*ptr == ' ') {
+			ptr++;
+		}
+
+		if (*ptr == '\0') {
+			break;
+		}
+
+		int len = 0;
+		while (ptr[len] != '\0' && ptr[len] != ' ' && len < MAX_PIPE_ARG_LEN - 1) {
+			storage[count][len] = ptr[len];
+			len++;
+		}
+		storage[count][len] = '\0';
+		argv[count] = storage[count];
+		count++;
+
+		ptr += len;
+		while (*ptr != '\0' && *ptr != ' ') {
+			ptr++;
+		}
+	}
+
+	return count;
+}
+
 void pipes_cmd(char *input) {
+	if (command_is_background_mode()) {
+		print_format("ERROR: pipes does not support background yet\n");
+		return;
+	}
+
 	char *pipe_pos = strchr(input, '|');
 	if (!pipe_pos)
 		return;
@@ -17,27 +61,26 @@ void pipes_cmd(char *input) {
 
 	int64_t pipe_id = my_pipe_open("terminal_pipe");
 	if (pipe_id < 0) {
-		print_format("Error creating pipe\n");
+		print_format("ERROR: Failed to create pipe\n");
 		return;
 	}
 
-	// argv para ambos procesos: les pasamos el id del pipe
-	char id_buffer[10];
-	intToString((int) pipe_id, id_buffer);
-	char *argv1[] = {cmd1, id_buffer, "write", NULL};
-	char *argv2[] = {cmd2, id_buffer, "read", NULL};
+	char argv1_storage[MAX_PIPE_ARGS + 3][MAX_PIPE_ARG_LEN];
+	char *argv1_tokens[MAX_PIPE_ARGS + 3];
+	int argc1_base = tokenize_command(cmd1, argv1_storage, argv1_tokens, MAX_PIPE_ARGS);
 
-	// void *func1 = find_function(cmd1);
-	// void *func2 = find_function(cmd2);
+	char argv2_storage[MAX_PIPE_ARGS + 3][MAX_PIPE_ARG_LEN];
+	char *argv2_tokens[MAX_PIPE_ARGS + 3];
+	int argc2_base = tokenize_command(cmd2, argv2_storage, argv2_tokens, MAX_PIPE_ARGS);
 
-	char cmd1_name[50];
-	char cmd2_name[50];
+	if (argc1_base == 0 || argc2_base == 0) {
+		print_format("ERROR: Invalid pipe commands\n");
+		my_pipe_close(pipe_id);
+		return;
+	}
 
-	first_token(cmd1, cmd1_name, sizeof(cmd1_name));
-	first_token(cmd2, cmd2_name, sizeof(cmd2_name));
-
-	void *func1 = find_function(cmd1_name);
-	void *func2 = find_function(cmd2_name);
+	void *func1 = find_function(argv1_tokens[0]);
+	void *func2 = find_function(argv2_tokens[0]);
 
 	if (func1 == NULL || func2 == NULL) {
 		print_format("[Pipe Error] One of the commands is invalid.\n");
@@ -45,8 +88,21 @@ void pipes_cmd(char *input) {
 		return;
 	}
 
-	int pid_writer = create_process(cmd1, func1, 3, argv1, 128);
-	int pid_reader = create_process(cmd2, func2, 3, argv2, 128);
+	char id_buffer_writer[16];
+	char id_buffer_reader[16];
+	intToString((int) pipe_id, id_buffer_writer);
+	intToString((int) pipe_id, id_buffer_reader);
+
+	argv1_tokens[argc1_base] = id_buffer_writer;
+	argv1_tokens[argc1_base + 1] = "write";
+	argv1_tokens[argc1_base + 2] = NULL;
+
+	argv2_tokens[argc2_base] = id_buffer_reader;
+	argv2_tokens[argc2_base + 1] = "read";
+	argv2_tokens[argc2_base + 2] = NULL;
+
+	int pid_writer = create_process(argv1_tokens[0], func1, argc1_base + 2, argv1_tokens, 128);
+	int pid_reader = create_process_foreground(argv2_tokens[0], func2, argc2_base + 2, argv2_tokens, 128);
 
 	if (pid_writer < 0 || pid_reader < 0) {
 		print_format("Error creating processes for pipe\n");
@@ -75,12 +131,12 @@ void *find_function(char *cmd) {
 	}
 
 	// Si el comando no se reconoce o no es apto para pipe
-	print_format("\n[Pipe Help] Command '%s' not found or not supported for a pipe.\n", cmd);
-	print_format("Available pipe commands:\n");
+	print_format("\n[Pipe Help] Command '%s' not available for pipe.\n", cmd);
+	print_format("Supported pipe commands:\n");
 	print_format("  - cat : reads from stdin and writes to stdout\n");
-	print_format("  - wc  : counts lines/words from stdin\n");
-	print_format("  - ps  : prints process information (stdout only)\n\n");
-	print_format("  - filter : filters lines containing a given word\n");
+	print_format("  - wc  : counts lines and words from stdin\n");
+	print_format("  - ps  : prints process information\n\n");
+	print_format("  - filter : filters lines containing a word\n");
 
 	return NULL;
 }

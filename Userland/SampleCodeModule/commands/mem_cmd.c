@@ -53,11 +53,11 @@ static void mem_main(int argc, char **argv) {
 }
 
 void mem_cmd(int argc, char **argv) {
-	int pid_mem = create_process("mem", mem_main, argc, argv, 1);
+	int pid_mem = command_spawn_process("mem", mem_main, argc, argv, 1);
 	if (pid_mem < 0) {
 		print_format("ERROR: Failed to create process mem\n");
 		return;
 	}
 
-	waitpid(pid_mem);
+	command_handle_child_process(pid_mem, "mem");
 }

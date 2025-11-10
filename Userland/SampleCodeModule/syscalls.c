@@ -11,6 +11,11 @@ int create_process(const char *name, void (*entry)(int, char **), int argc, char
 						  (uint64_t) priority, 0);
 }
 
+int create_process_foreground(const char *name, void (*entry)(int, char **), int argc, char **argv, int priority) {
+	return (int) sys_call(SYS_CREATE_PROCESS_FOREGROUND, (uint64_t) name, (uint64_t) entry, (uint64_t) argc,
+						  (uint64_t) argv, (uint64_t) priority, 0);
+}
+
 int getpid(void) {
 	return (int) sys_call(SYS_GETPID, 0, 0, 0, 0, 0, 0);
 }
@@ -57,6 +62,14 @@ int sem_post(const char *name) {
 
 int sem_close(const char *name) {
 	return (int) sys_call(SYS_SEM_CLOSE, (uint64_t) name, 0, 0, 0, 0, 0);
+}
+
+int set_foreground(int pid) {
+	return (int) sys_call(SYS_SET_FOREGROUND, (uint64_t) pid, 0, 0, 0, 0, 0);
+}
+
+int clear_foreground(int pid) {
+	return (int) sys_call(SYS_CLEAR_FOREGROUND, (uint64_t) pid, 0, 0, 0, 0, 0);
 }
 
 void exit_process(void) {
