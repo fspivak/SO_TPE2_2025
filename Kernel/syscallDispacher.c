@@ -396,10 +396,7 @@ int sys_ps(ProcessInfo *buffer, int max_processes) {
 }
 
 void sys_exit() {
-	process_id_t current_pid = get_current_pid();
-	if (current_pid > 0) {
-		kill_process(current_pid);
-	}
+	exit_current_process();
 }
 
 int sys_waitpid(process_id_t pid) {

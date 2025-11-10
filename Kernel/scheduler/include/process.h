@@ -25,7 +25,8 @@ typedef struct PCB {
 	process_id_t pid;
 	char name[MAX_PROCESS_NAME];
 	ProcessState state;
-	uint8_t priority;			// 0 (alta) -> 4 (baja)
+	uint8_t priority;			// 0 (alta) -> 255 (baja)
+	uint8_t base_priority;		// Prioridad original para restaurar tras aging
 	void *stack_base;			// Base del stack
 	void *stack_pointer;		// Current stack pointer (RSP)
 	void *entry_point;			// Punto de entrada del proceso
@@ -35,6 +36,8 @@ typedef struct PCB {
 	int in_scheduler;			// 1 = puede ser elegido por scheduler, 0 = removido
 	process_id_t waiting_pid;	// PID del proceso que esta esperando a este proceso
 	process_id_t parent_pid;	// PID del proceso padre (-1 si no tiene padre)
+	uint16_t waiting_ticks;		// Contador para aging
+	uint8_t pending_cleanup;	// 1 si falta liberar recursos luego del context switch
 } PCB;
 
 // Informacion de proceso para userland
@@ -177,5 +180,10 @@ PCB *get_current_process(void);
  * @param proc PCB del proceso
  */
 void process_entry_wrapper(int argc, char **argv, void *rsp, PCB *proc);
+
+/**
+ * @brief Sale del proceso actual y pasa a userland
+ */
+int exit_current_process(void);
 
 #endif /* _PROCESS_H_ */
