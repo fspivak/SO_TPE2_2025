@@ -1,5 +1,4 @@
 #include "../include/commands.h"
-#include "../include/format_utils.h"
 #include "../include/libasmUser.h"
 #include "../include/stinUser.h"
 #include "../include/stringUser.h"
@@ -50,12 +49,5 @@ void wc_cmd(int argc, char **argv) {
 		lines = 1; // una sola línea ingresada
 	}
 
-	print("\n");
-	print("Lines: ");
-	print_int_padded(lines, 0);
-	print("  Words: ");
-	print_int_padded(words, 0);
-	print("  Chars: ");
-	print_int_padded(chars, 0);
-	print("\n");
+	print_format("\n Lines: %d Words: %d Chars: %d\n", lines, words, chars);
 }

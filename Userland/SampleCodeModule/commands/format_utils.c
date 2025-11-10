@@ -9,9 +9,9 @@ void print_padded(const char *str, int width) {
 	while (str[len] != '\0' && len < 100)
 		len++;
 
-	print((char *) str);
+	print_format("%s", str);
 	for (int i = len; i < width; i++) {
-		print(" ");
+		print_format(" ");
 	}
 }
 
@@ -124,7 +124,7 @@ int startsWith(const char *str, const char *prefix) {
 void execute_command_with_args(const char *buffer, const char *command_prefix, int prefix_len,
 							   void (*command_func)(int, char **)) {
 	if (buffer == NULL || command_prefix == NULL || command_func == NULL) {
-		print("ERROR: Invalid arguments to execute_command_with_args\n");
+		print_format("ERROR: Invalid arguments to execute_command_with_args\n");
 		return;
 	}
 

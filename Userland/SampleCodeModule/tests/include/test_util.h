@@ -26,6 +26,14 @@ int64_t test_ab(uint64_t argc, char *argv[]); // TODO: eliminar
  */
 void run_test_ab(); // TODO: eliminar
 
+/**
+ * @brief Test de prioridades - Verifica que las prioridades funcionen correctamente
+ * @param argc Numero de argumentos (debe ser 1)
+ * @param argv Array de argumentos [0] = max_value para el loop
+ * @return 0 si el test termina correctamente, -1 si hay error
+ */
+uint64_t test_prio(uint64_t argc, char *argv[]);
+
 /* Generadores de numeros aleatorios */
 /**
  * @brief Genera un numero aleatorio de 32 bits usando Multiply-with-carry

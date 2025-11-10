@@ -1,5 +1,4 @@
 #include "../include/commands.h"
-#include "../include/format_utils.h"
 #include "../include/libasmUser.h"
 #include "../include/stinUser.h"
 #include "../include/stringUser.h"
@@ -11,7 +10,7 @@
 
 void filter_cmd(int argc, char **argv) {
 	if (argc < 2) {
-		print("Usage: filter <word>\n");
+		print_format("Usage: filter <word>\n");
 		return;
 	}
 
@@ -34,8 +33,7 @@ void filter_cmd(int argc, char **argv) {
 			if (c == '\n' || idx >= MAX_LINE - 1) {
 				buffer[idx] = '\0';
 				if (strstr(buffer, keyword) != NULL) {
-					print(buffer);
-					print("\n");
+					print_format("%s \n", buffer);
 				}
 				idx = 0;
 			}
@@ -46,14 +44,13 @@ void filter_cmd(int argc, char **argv) {
 	}
 	else {
 		// desde teclado
-		print("Enter text (Ctrl+D to finish):\n");
+		print_format("Enter text (Ctrl+D to finish):\n");
 		while ((c = getchar()) != -1) {
 			putchar(c);
 			if (c == '\n' || idx >= MAX_LINE - 1) {
 				buffer[idx] = '\0';
 				if (strstr(buffer, keyword) != NULL) {
-					print(buffer);
-					print("\n");
+					print_format("%s \n", buffer);
 				}
 				idx = 0;
 			}

@@ -1,13 +1,178 @@
 #include "include/stinUser.h"
 #include "include/libasmUser.h"
-#include "include/stinUser.h"
+#include <stdarg.h>
+#include <stddef.h>
 
 static char buffer[64] = {'0'};
+static char format_buffer[256] = {'0'};
+#define PRINT_SEM_NAME "print_sem"
+static int print_sem_initialized = 0;
 
 static uint32_t uintToBase(uint64_t value, char *buffer, uint32_t base);
 
-void print(char *string) {
-	printColor(string, 0x00ffffff, 0);
+static void init_print_semaphore() {
+	if (!print_sem_initialized) {
+		if (sem_open(PRINT_SEM_NAME, 1) >= 0) {
+			print_sem_initialized = 1;
+		}
+	}
+}
+
+void print_format(const char *format, ...) {
+	va_list args;
+	va_start(args, format);
+
+	char *output = format_buffer;
+	int output_pos = 0;
+	const char *fmt = format;
+
+	init_print_semaphore();
+	if (print_sem_initialized) {
+		sem_wait(PRINT_SEM_NAME);
+	}
+
+	while (*fmt != '\0' && output_pos < 255) {
+		if (*fmt != '%') {
+			if (output_pos < 255) {
+				output[output_pos++] = *fmt;
+			}
+			fmt++;
+			continue;
+		}
+
+		fmt++;
+		if (*fmt == '\0') {
+			if (output_pos < 255) {
+				output[output_pos++] = '%';
+			}
+			break;
+		}
+
+		int long_flag = 0;
+		while (*fmt == 'l') {
+			long_flag++;
+			fmt++;
+		}
+
+		char specifier = *fmt;
+		if (specifier == '\0') {
+			break;
+		}
+
+		switch (specifier) {
+			case 'd':
+			case 'i': {
+				int64_t value = (long_flag > 0) ? va_arg(args, long long) : va_arg(args, int);
+				if (value < 0) {
+					if (output_pos < 255) {
+						output[output_pos++] = '-';
+					}
+					uint64_t magnitude = (uint64_t) (-(value + 1)) + 1;
+					uintToBase(magnitude, buffer, 10);
+				}
+				else {
+					uintToBase((uint64_t) value, buffer, 10);
+				}
+				for (int i = 0; buffer[i] != '\0' && output_pos < 255; i++) {
+					output[output_pos++] = buffer[i];
+				}
+				break;
+			}
+			case 'u': {
+				uint64_t value = (long_flag > 0) ? va_arg(args, unsigned long long) : va_arg(args, unsigned int);
+				uintToBase(value, buffer, 10);
+				for (int i = 0; buffer[i] != '\0' && output_pos < 255; i++) {
+					output[output_pos++] = buffer[i];
+				}
+				break;
+			}
+			case 'x':
+			case 'X': {
+				uint64_t value = (long_flag > 0) ? va_arg(args, unsigned long long) : va_arg(args, unsigned int);
+				uintToBase(value, buffer, 16);
+				for (int i = 0; buffer[i] != '\0' && output_pos < 255; i++) {
+					char ch = buffer[i];
+					if (specifier == 'x' && ch >= 'A' && ch <= 'F') {
+						ch = (char) (ch - 'A' + 'a');
+					}
+					output[output_pos++] = ch;
+				}
+				break;
+			}
+			case 'p': {
+				void *ptr = va_arg(args, void *);
+				uint64_t value = (uint64_t) ptr;
+				if (output_pos < 255) {
+					output[output_pos++] = '0';
+				}
+				if (output_pos < 255) {
+					output[output_pos++] = 'x';
+				}
+				uintToBase(value, buffer, 16);
+				for (int i = 0; buffer[i] != '\0' && output_pos < 255; i++) {
+					char ch = buffer[i];
+					if (ch >= 'A' && ch <= 'F') {
+						ch = (char) (ch - 'A' + 'a');
+					}
+					output[output_pos++] = ch;
+				}
+				break;
+			}
+			case 's': {
+				char *str = va_arg(args, char *);
+				if (str == NULL) {
+					str = "(null)";
+				}
+				for (int i = 0; str[i] != '\0' && output_pos < 255; i++) {
+					output[output_pos++] = str[i];
+				}
+				break;
+			}
+			case 'c': {
+				char c = (char) va_arg(args, int);
+				if (output_pos < 255) {
+					output[output_pos++] = c;
+				}
+				break;
+			}
+			case '%': {
+				if (output_pos < 255) {
+					output[output_pos++] = '%';
+				}
+				break;
+			}
+			default: {
+				if (output_pos < 255) {
+					output[output_pos++] = '%';
+				}
+				for (int i = 0; i < long_flag && output_pos < 255; i++) {
+					output[output_pos++] = 'l';
+				}
+				if (output_pos < 255) {
+					output[output_pos++] = specifier;
+				}
+				break;
+			}
+		}
+
+		fmt++;
+	}
+	output[output_pos] = '\0';
+
+	int len = 0;
+	while (output[len] != '\0' && len < 255) {
+		len++;
+	}
+
+	if (print_sem_initialized) {
+		write(1, output, len, 0x00ffffff, 0);
+		sem_post(PRINT_SEM_NAME);
+	}
+	else {
+		write(1, output, len, 0x00ffffff, 0);
+	}
+
+	va_end(args);
 }
 
 void printColor(char *string, int color, int bg) {
@@ -29,24 +194,6 @@ void putchar(char carac) {
 
 void putCharColor(char carac, int color, int bg) {
 	write(1, &carac, 1, color, bg);
-}
-
-void printHexa(uint64_t value) {
-	printBase(value, 16);
-}
-
-void printBase(uint64_t value, uint32_t base) {
-	if (base == 10) {
-		int64_t signed_value = (int64_t) value;
-		if (signed_value < 0) {
-			print("-");
-			uintToBase((uint64_t) (-signed_value), buffer, base);
-			print(buffer);
-			return;
-		}
-	}
-	uintToBase(value, buffer, base);
-	print(buffer);
 }
 
 /* Convierte un entero sin signo a string en la base especificada */
@@ -107,9 +254,7 @@ void clock() {
 }
 
 void printClock(char *str) {
-	print("Hour: ");
-	print(str);
-	print("\n");
+	print_format("Hour: %s\n", str);
 }
 
 char getcharNonLoop() {
