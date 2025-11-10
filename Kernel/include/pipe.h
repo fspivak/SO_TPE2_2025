@@ -53,6 +53,8 @@ typedef struct Pipe {
 	sem_t *sem_write;
 
 	uint8_t active;
+	uint8_t eof; // 🔹 Nuevo flag para EOF
+
 } Pipe;
 
 /**

@@ -173,6 +173,12 @@ void terminal() {
 			else if (!strcmp(buffer, "filter")) {
 				filter_cmd(0, NULL);
 			}
+			else if (!strcmp(buffer, "mvar")) {
+				print_format("Uso: mvar <writers> <readers>\n");
+			}
+			else if (startsWith(buffer, "mvar ")) {
+				execute_command_with_args(buffer, "mvar ", 5, mvar_cmd);
+			}
 
 			//////////////////TODO: borrar estos tests/////////////////////////////
 

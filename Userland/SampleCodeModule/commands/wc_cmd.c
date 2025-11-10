@@ -1,4 +1,5 @@
 #include "../include/commands.h"
+#include "../include/format_utils.h"
 #include "../include/libasmUser.h"
 #include "../include/stinUser.h"
 #include "../include/stringUser.h"
@@ -7,22 +8,44 @@
 #include <stddef.h>
 
 void wc_cmd(int argc, char **argv) {
-	int pipe_mode = 0;
-	int pipe_id = -1;
+	int is_write = 0, is_read = 0, pipe_id = -1;
 
-	// Si se ejecuta en modo pipe: argv[1] = id, argv[2] = "read"
-	if (argc >= 3 && strcmp(argv[2], "read") == 0) {
-		pipe_mode = 1;
-		pipe_id = satoi(argv[1]);
+	for (int i = 0; i < argc; i++) {
+		if (!argv[i])
+			continue;
+		if (strcmp(argv[i], "read") == 0 && i > 0) {
+			is_read = 1;
+			pipe_id = satoi(argv[i - 1]);
+		}
+		else if (strcmp(argv[i], "write") == 0 && i > 0) {
+			is_write = 1;
+			pipe_id = satoi(argv[i - 1]);
+		}
 	}
 
 	char c;
-	int lines = 1, words = 0, chars = 0;
+	int lines = 0, words = 0, chars = 0;
 	int in_word = 0;
 
-	if (pipe_mode) {
-		// Leemos del pipe hasta que se vacíe
+	if (is_write) {
+		print_format("Enter text (Ctrl+D to finish):\n");
+		while ((c = getchar()) != -1) {
+			// eco local para que el usuario vea lo que tipea
+			putchar(c);
+			int w = my_pipe_write(pipe_id, &c, 1);
+			if (w <= 0)
+				print_format("[DEBUG] wc(write): write error\n");
+		}
+		my_pipe_close(pipe_id);
+		print_format("[EOF]\n");
+		return;
+	}
+
+	if (is_read) {
+		print_format("[DEBUG] wc: leyendo desde pipe...\n");
+		int total = 0;
 		while (my_pipe_read(pipe_id, &c, 1) > 0) {
+			total++;
 			chars++;
 			if (c == '\n')
 				lines++;
@@ -33,32 +56,17 @@ void wc_cmd(int argc, char **argv) {
 				words++;
 			}
 		}
+		print_format("[DEBUG] wc: EOF (read %d bytes)\n", total);
 	}
-	// else {
-	// 	// Leemos desde stdin (usando getchar porque read es void)
-	// 	while ((c = getchar()) != -1) {
-	// 		putchar(c);
-	// 		chars++;
-	// 		if (c == ' ' || c == '\t')
-	// 			in_word = 0;
-	// 		else if (!in_word) {
-	// 			in_word = 1;
-	// 			words++;
-	// 		}
-	// 	}
-	// 	lines = 1; // una sola línea ingresada
-	// }
 	else {
-		// Leemos desde stdin (usando getchar porque read es void)
+		print_format("Enter text (Ctrl+D to finish):\n");
 		while ((c = getchar()) != -1) {
 			putchar(c);
 			chars++;
-
 			if (c == '\n') {
 				lines++;
-				in_word = 0;
 			}
-			else if (c == ' ' || c == '\t') {
+			if (c == ' ' || c == '\n' || c == '\t') {
 				in_word = 0;
 			}
 			else if (!in_word) {

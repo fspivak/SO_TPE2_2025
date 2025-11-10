@@ -37,6 +37,7 @@ static void help_main(int argc, char **argv) {
 	print_format("  cat               - Display input (stdin) to output or write to a pipe\n");
 	print_format("  wc                - Count lines, words and characters from input or pipe\n");
 	print_format("  filter <word>     - Show only lines containing <word> from input or pipe\n");
+	print_format("  mvar <writers> <readers>  - Multiple writers/readers synchronized via semaphores\n");
 }
 
 void help_cmd(int argc, char **argv) {

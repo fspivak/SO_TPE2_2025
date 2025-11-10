@@ -198,6 +198,7 @@ int sem_wait(const char *name) {
 
 	block_process(current_pid);
 	_sti();
+	_force_scheduler_interrupt(); // ← ***CAMBIO CRÍTICO***
 
 	return 0;
 }

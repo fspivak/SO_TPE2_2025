@@ -18,10 +18,13 @@ void filter_cmd(int argc, char **argv) {
 	int pipe_mode = 0;
 	int pipe_id = -1;
 
-	// Si viene desde un pipe: argv[2] = id, argv[3] = "read"
-	if (argc >= 4 && strcmp(argv[3], "read") == 0) {
-		pipe_mode = 1;
-		pipe_id = satoi(argv[2]);
+	// 🔹 Detectar "read" en cualquier posición y tomar el id anterior
+	for (int i = 0; i < argc; i++) {
+		if (strcmp(argv[i], "read") == 0 && i > 0) {
+			pipe_mode = 1;
+			pipe_id = satoi(argv[i - 1]);
+			break;
+		}
 	}
 
 	char buffer[MAX_LINE];
@@ -41,9 +44,15 @@ void filter_cmd(int argc, char **argv) {
 				buffer[idx++] = c;
 			}
 		}
+
+		// 🔹 Procesar último bloque si no termina con '\n'
+		if (idx > 0) {
+			buffer[idx] = '\0';
+			if (strstr(buffer, keyword) != NULL)
+				print_format("%s\n", buffer);
+		}
 	}
 	else {
-		// desde teclado
 		print_format("Enter text (Ctrl+D to finish):\n");
 		while ((c = getchar()) != -1) {
 			putchar(c);

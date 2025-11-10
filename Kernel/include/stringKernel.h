@@ -17,4 +17,8 @@ char *kstrncpy(char *dest, const char *src, size_t n);
 /* Devuelve la longitud (sin incluir el terminador '\0') */
 size_t kstrlen(const char *s);
 
+char *kstrcat(char *dest, const char *src);
+
+char *kstrcpy(char *dest, const char *src);
+
 #endif

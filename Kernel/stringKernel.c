@@ -34,3 +34,30 @@ size_t kstrlen(const char *s) {
 		len++;
 	return len;
 }
+
+char *kstrcpy(char *dest, const char *src) {
+	if (!dest || !src)
+		return dest;
+
+	char *d = dest;
+	while ((*d++ = *src++) != '\0')
+		; // copia incluyendo el terminador
+	return dest;
+}
+
+char *kstrcat(char *dest, const char *src) {
+	if (!dest || !src)
+		return dest;
+
+	char *d = dest;
+
+	// ir al final de dest
+	while (*d)
+		d++;
+
+	// copiar src al final
+	while ((*d++ = *src++) != '\0')
+		;
+
+	return dest;
+}

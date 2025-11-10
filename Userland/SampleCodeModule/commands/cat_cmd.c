@@ -1,111 +1,71 @@
-// // #include <stdint.h>
-// // #include <stdio.h>
-// // #include "../include/commands.h"
-// // #include "../include/libasmUser.h"
-// // #include "../include/stringUser.h"
 
-// // typedef enum { STDIN = 0, STDOUT = 1, STDERR = 2 } FDS;
-
-// // void cat_main(int argc, char *argv[]) {
-// //     char buffer[256];
-// //     int bytesRead;
-
-// //     // Si no hay argumentos, leer stdin
-// //     if (argc == 1) {
-// //         while (1) {
-// //             read(STDIN, buffer, sizeof(buffer));
-// //             print(buffer);
-// //         }
-// //     } else {
-// //         // Si hay argumentos, aún no hay FS, mostramos error o simulamos
-// //         for (int i = 1; i < argc; i++) {
-// //             print("cat: no file system implemented\n");
-// //         }
-// //     }
-
-// //     return;
-// // }
-
-// // void cat_cmd(int argc, char **argv) {
-// // 	int pid_cat = create_process("cat", cat_main, 1, argv, 1);
-// // 	if (!validate_create_process_error("cat", pid_cat)) {
-// // 		return;
-// // 	}
-
-// // 	waitpid(pid_cat);
-// // }
-
-// #include <stdint.h>
-// #include "../include/commands.h"
-// #include "../include/libasmUser.h"
-// #include "../include/stinUser.h"
-// #include "../include/stringUser.h"
-
-// // file descriptors estándar (igual que en tu kernel)
-// typedef enum { STDIN = 0, STDOUT = 1, STDERR = 2 } FDS;
-
-// void cat_main(int argc, char *argv[]) {
-//     char buffer[256];
-//     uint64_t bytesRead;
-
-//     // Sin argumentos: leer desde stdin (pipe o teclado)
-//     if (argc == 1) {
-//         while (1) {
-//             print("entro");
-//             read(STDIN, buffer, sizeof(buffer));  // bloqueante
-//             // if (bytesRead == 0) {
-//             //     // EOF (pipe cerrado)
-//             //     break;
-//             // }
-//             print(buffer);
-//         }
-//     } else {
-//         // Todavía no hay FS, mostramos error
-//         for (int i = 1; i < argc; i++) {
-//             print("cat: no file system implemented\n");
-//         }
-//     }
-// }
 
 // void cat_cmd(int argc, char **argv) {
-//     int pid_cat = create_process("cat", cat_main, 1, argv, 1);
-//     if (!validate_create_process_error("cat", pid_cat))
-//         return;
+// 	int pid_cat = create_process("cat", cat_main, argc, argv, 1);
+// 	if (!validate_create_process_error("cat", pid_cat))
+// 		return;
 
-//     waitpid(pid_cat);
+// 	waitpid(pid_cat);
 // }
-
 #include "../include/commands.h"
+#include "../include/format_utils.h"
 #include "../include/libasmUser.h"
-#include "../include/stinUser.h" // por getchar()
+#include "../include/stinUser.h"
 #include "../include/stringUser.h"
+#include "../tests/include/syscall.h"
+#include "../tests/include/test_util.h"
 #include <stdint.h>
 
-void cat_main(int argc, char *argv[]) {
+void cat_cmd(int argc, char **argv) {
+	int is_write = 0, is_read = 0, pipe_id = -1;
+
+	for (int i = 0; i < argc; i++) {
+		if (!argv[i])
+			continue;
+		if (strcmp(argv[i], "write") == 0 && i > 0) {
+			is_write = 1;
+			pipe_id = satoi(argv[i - 1]);
+		}
+		else if (strcmp(argv[i], "read") == 0 && i > 0) {
+			is_read = 1;
+			pipe_id = satoi(argv[i - 1]);
+		}
+	}
+
 	char c;
 
-	print_format("Entrando a cat (Ctrl+D para EOF)\n");
-
-	while (1) {
-		c = getchar(); // 🔹 esto ya lee del STDIN del proceso
-
-		if (c == 0)
-			continue; // sin input aún
-
-		if (c == -1) { // Ctrl+D
-			print_format("\n[EOF]\n");
-			return;
+	if (is_read) {
+		print_format("[DEBUG] cat: reading from pipe...\n");
+		int total = 0;
+		while (my_pipe_read(pipe_id, &c, 1) > 0) {
+			putchar(c);
+			total++;
 		}
-
-		// simplemente reenviamos el carácter a STDOUT
-		putchar(c);
-	}
-}
-
-void cat_cmd(int argc, char **argv) {
-	int pid_cat = create_process("cat", cat_main, argc, argv, 1);
-	if (!validate_create_process_error("cat", pid_cat))
+		print_format("[DEBUG] cat: EOF (read %d bytes)\n", total);
 		return;
+	}
 
-	waitpid(pid_cat);
+	if (is_write) {
+		print_format("Entrando a cat (Ctrl+D para EOF)\n");
+		while ((c = getchar()) != -1) {
+			// eco local opcional para “ver” lo que escribo al pipe
+			putchar(c);
+			int w = my_pipe_write(pipe_id, &c, 1);
+			if (w <= 0)
+				print_format("[DEBUG] cat: write error\n");
+		}
+		my_pipe_close(pipe_id);
+		print_format("[EOF]\n");
+		return;
+	}
+
+	print_format("Entrando a cat (Ctrl+D para EOF)\n");
+	// while ((c = getchar()) != -1)
+	//     putchar(c);
+	// print_format("[EOF]\n");
+
+	while ((c = getchar()) != -1) {
+		print_format("[DEBUG] cat got '%c' (%d)\n", c, c);
+		my_pipe_write(pipe_id, &c, 1);
+	}
 }

@@ -196,4 +196,5 @@ void pipes_cmd(char *input);
  */
 void *find_function(char *cmd);
 
+void mvar_cmd(int argc, char **argv);
 #endif // COMMANDS_H

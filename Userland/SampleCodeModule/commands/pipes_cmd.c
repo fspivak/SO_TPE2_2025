@@ -6,6 +6,32 @@
 #include "../tests/include/syscall.h"
 #include <stddef.h>
 
+#define MAX_ARGS 10
+
+static int split_args(char *cmd, char *args[], int max_args) {
+	int count = 0;
+	char *p = cmd;
+
+	while (*p && count < max_args - 1) {
+		while (*p == ' ' || *p == '\t')
+			p++;
+		if (*p == '\0')
+			break;
+
+		args[count++] = p;
+
+		while (*p && *p != ' ' && *p != '\t')
+			p++;
+
+		if (*p != '\0') {
+			*p = '\0';
+			p++;
+		}
+	}
+	args[count] = NULL;
+	return count;
+}
+
 void pipes_cmd(char *input) {
 	char *pipe_pos = strchr(input, '|');
 	if (!pipe_pos)
@@ -17,24 +43,34 @@ void pipes_cmd(char *input) {
 
 	int64_t pipe_id = my_pipe_open("terminal_pipe");
 	if (pipe_id < 0) {
-		print_format("Error creating pipe\n");
+		print_format("[Pipe Error] Cannot create pipe\n");
 		return;
 	}
 
-	// argv para ambos procesos: les pasamos el id del pipe
-	char id_buffer[10];
+	char id_buffer[16];
 	intToString((int) pipe_id, id_buffer);
-	char *argv1[] = {cmd1, id_buffer, "write", NULL};
-	char *argv2[] = {cmd2, id_buffer, "read", NULL};
 
-	// void *func1 = find_function(cmd1);
-	// void *func2 = find_function(cmd2);
-
+	// ---- writer (cmd1)
 	char cmd1_name[50];
-	char cmd2_name[50];
-
 	first_token(cmd1, cmd1_name, sizeof(cmd1_name));
-	first_token(cmd2, cmd2_name, sizeof(cmd2_name));
+	char *argv1[] = {cmd1_name, id_buffer, "write", NULL};
+
+	// ---- reader (cmd2)
+	char *tokens[MAX_ARGS];
+	int argc2 = split_args(cmd2, tokens, MAX_ARGS);
+	if (argc2 == 0) {
+		print_format("[Pipe Error] Empty second command.\n");
+		return;
+	}
+	char *cmd2_name = tokens[0];
+
+	char *argv2[MAX_ARGS];
+	int j;
+	for (j = 0; j < argc2; j++)
+		argv2[j] = tokens[j];
+	argv2[j++] = id_buffer;
+	argv2[j++] = (char *) "read";
+	argv2[j] = NULL;
 
 	void *func1 = find_function(cmd1_name);
 	void *func2 = find_function(cmd2_name);
@@ -45,19 +81,24 @@ void pipes_cmd(char *input) {
 		return;
 	}
 
-	int pid_writer = create_process(cmd1, func1, 3, argv1, 128);
-	int pid_reader = create_process(cmd2, func2, 3, argv2, 128);
+	print_format("[DEBUG] Creating pipe %d between '%s' -> '%s'\n", (int) pipe_id, cmd1_name, cmd2_name);
 
-	if (pid_writer < 0 || pid_reader < 0) {
-		print_format("Error creating processes for pipe\n");
-		my_pipe_close(pipe_id);
+	// ⚠️ crear primero el reader, luego el writer
+	int pid_reader = create_process(cmd2_name, func2, j, argv2, 128);
+	int pid_writer = create_process(cmd1_name, func1, 3, argv1, 128);
+
+	if (pid_reader < 0 || pid_writer < 0) {
+		print_format("[Pipe Error] Failed to create processes.\n");
 		return;
 	}
 
 	waitpid(pid_writer);
 	waitpid(pid_reader);
 
-	my_pipe_close(pipe_id);
+	print_format("[DEBUG] pipe %d finished.\n", (int) pipe_id);
+
+	// IMPORTANTE: no cerrar desde el shell; lo cierran los procesos.
+	// my_pipe_close(pipe_id);
 }
 
 void *find_function(char *cmd) {
@@ -70,17 +111,11 @@ void *find_function(char *cmd) {
 	if (!strcmp(cmd, "filter")) {
 		return filter_cmd;
 	}
-	if (!strcmp(cmd, "ps")) {
-		return ps_cmd;
-	}
 
-	// Si el comando no se reconoce o no es apto para pipe
 	print_format("\n[Pipe Help] Command '%s' not found or not supported for a pipe.\n", cmd);
 	print_format("Available pipe commands:\n");
-	print_format("  - cat : reads from stdin and writes to stdout\n");
-	print_format("  - wc  : counts lines/words from stdin\n");
-	print_format("  - ps  : prints process information (stdout only)\n\n");
-	print_format("  - filter : filters lines containing a given word\n");
-
+	print_format("  - cat    : stdin -> stdout / pipe\n");
+	print_format("  - wc     : counts lines/words/chars\n");
+	print_format("  - filter : filters lines containing a word\n\n");
 	return NULL;
 }

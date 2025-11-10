@@ -2,12 +2,19 @@
 #include <stddef.h>
 #include <stdint.h>
 
-int strlen(char *string) {
-	int count = 0;
-	while (string[count] != 0) {
-		count++;
-	}
-	return count + 1;
+// int strlen(char *string) {
+// 	int count = 0;
+// 	while (string[count] != 0) {
+// 		count++;
+// 	}
+// 	return count + 1;
+// }
+
+int strlen(char *s) {
+	int n = 0;
+	while (s[n] != 0)
+		n++;
+	return n;
 }
 
 /* Compara dos strings lexicograficamente */
