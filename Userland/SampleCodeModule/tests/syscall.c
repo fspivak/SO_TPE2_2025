@@ -11,7 +11,7 @@ int sem_post(const char *name);
 int sem_close(const char *name);
 
 int64_t my_create_process(char *name, void *function, uint64_t argc, char *argv[]) {
-	return (int64_t) create_process(name, function, (int) argc, argv, 128);
+	return (int64_t) create_process(name, function, (int) argc, argv, 1);
 }
 
 int64_t my_getpid() {

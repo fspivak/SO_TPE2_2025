@@ -8,7 +8,7 @@ void process_a(int argc, char **argv) {
 	(void) argc;
 	(void) argv;
 	for (int i = 0; i < 50; i++) {
-		print("A");
+		print_format("A");
 		// yield(); /* Force context switch */
 	}
 	exit(); /* Terminate process using syscall */
@@ -19,7 +19,7 @@ void process_b(int argc, char **argv) {
 	(void) argc;
 	(void) argv;
 	for (int i = 0; i < 50; i++) {
-		print("B");
+		print_format("B");
 		// yield(); /* Force context switch */
 	}
 	exit(); /* Terminate process using syscall */
@@ -30,19 +30,19 @@ uint64_t test_ab(uint64_t argc, char *argv[]) {
 	(void) argc;
 	(void) argv;
 
-	print("Starting AB test...\n");
-	print("This will create two processes that print 'A' and 'B' alternately.\n");
-	print("You should see them switching back and forth.\n\n");
+	print_format("Starting AB test...\n");
+	print_format("This will create two processes that print 'A' and 'B' alternately.\n");
+	print_format("You should see them switching back and forth.\n\n");
 
-	int pid_a = create_process("process_a", process_a, 0, NULL, 200);
+	int pid_a = create_process("process_a", process_a, 0, NULL, 128);
 	if (pid_a < 0) {
-		print("ERROR: Failed to create process A\n");
+		print_format("ERROR: Failed to create process A\n");
 		return -1;
 	}
 
-	int pid_b = create_process("process_b", process_b, 0, NULL, 200);
+	int pid_b = create_process("process_b", process_b, 0, NULL, 128);
 	if (pid_b < 0) {
-		print("ERROR: Failed to create process B\n");
+		print_format("ERROR: Failed to create process B\n");
 		return -1;
 	}
 
@@ -50,8 +50,8 @@ uint64_t test_ab(uint64_t argc, char *argv[]) {
 	waitpid(pid_a);
 	waitpid(pid_b);
 
-	print("\n\n=== AB Test Completed ===\n");
-	print("Both processes have finished.\n");
+	print_format("\n\n=== AB Test Completed ===\n");
+	print_format("Both processes have finished.\n");
 
 	return 0;
 }

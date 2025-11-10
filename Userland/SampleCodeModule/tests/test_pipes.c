@@ -219,17 +219,13 @@ static int read_line_from_pipe(int pipe_id, char *out, int maxlen) {
 
 void reader_process(int argc, char **argv) {
 	int id = my_pipe_open("demo");
-	print("[Reader] Abrio pipe id = ");
-	printBase((uint64_t) id, 10);
-	print("\n");
+	print_format("[Reader] Abrio pipe id = %d\n", id);
 
 	char buf[MSG_LEN];
 	// Espera todos los mensajes (2 writers × 3 líneas = 6)
 	for (int i = 0; i < 2 * LINES_PER_WRITER; i++) {
 		read_line_from_pipe(id, buf, sizeof(buf));
-		print("[Reader] Recibido: ");
-		print(buf);
-		print("\n");
+		print_format("[Reader] Recibido: %s\n", buf);
 		my_yield();
 	}
 
@@ -238,7 +234,7 @@ void reader_process(int argc, char **argv) {
 
 // ======================== COMANDO PRINCIPAL ========================
 void test_pipe_cmd(int argc, char **argv) {
-	print("\n=== INICIO TEST PIPE MULTI (2 WRITERS, 1 READER) ===\n");
+	print_format("\n=== INICIO TEST PIPE MULTI (2 WRITERS, 1 READER) ===\n");
 
 	char *args1[] = {"1", NULL};
 	char *args2[] = {"2", NULL};
@@ -252,7 +248,7 @@ void test_pipe_cmd(int argc, char **argv) {
 	waitpid(writer2_pid);
 	waitpid(reader_pid);
 
-	print("Finalizo test de 2 writers escribiendo concurrentemente en el pipe 'demo'.\n");
+	print_format("Finalizo test de 2 writers escribiendo concurrentemente en el pipe 'demo'.\n");
 }
 
 /////////////////////////////////TEST printeando los dos//////////

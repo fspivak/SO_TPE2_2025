@@ -76,9 +76,7 @@ void endless_loop_print(uint64_t wait) {
 	int64_t pid = my_getpid();
 
 	while (1) {
-		print("PID: ");
-		printBase(pid, 10);
-		print(" ");
+		print_format("PID: %d ", (int) pid);
 		bussy_wait(wait);
 	}
 }

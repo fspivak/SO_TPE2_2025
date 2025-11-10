@@ -38,7 +38,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
 			p_rqs[rq].pid = my_create_process("endless_loop", endless_loop_wrapper, 0, argvAux);
 
 			if (p_rqs[rq].pid == -1) {
-				print("test_process: ERROR creating process\n");
+				print_format("test_process: ERROR creating process\n");
 				return -1;
 			}
 			else {
@@ -56,7 +56,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
 					case 0:
 						if (p_rqs[rq].state == RUNNING || p_rqs[rq].state == BLOCKED) {
 							if (my_kill(p_rqs[rq].pid) == -1) {
-								print("test_process: ERROR killing process\n");
+								print_format("test_process: ERROR killing process\n");
 								return -1;
 							}
 							p_rqs[rq].state = KILLED;
@@ -67,7 +67,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
 					case 1:
 						if (p_rqs[rq].state == RUNNING) {
 							if (my_block(p_rqs[rq].pid) == -1) {
-								print("test_process: ERROR blocking process\n");
+								print_format("test_process: ERROR blocking process\n");
 								return -1;
 							}
 							p_rqs[rq].state = BLOCKED;
@@ -80,7 +80,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
 			for (rq = 0; rq < max_processes; rq++)
 				if (p_rqs[rq].state == BLOCKED && GetUniform(100) % 2) {
 					if (my_unblock(p_rqs[rq].pid) == -1) {
-						print("test_process: ERROR unblocking process\n");
+						print_format("test_process: ERROR unblocking process\n");
 						return -1;
 					}
 					p_rqs[rq].state = RUNNING;

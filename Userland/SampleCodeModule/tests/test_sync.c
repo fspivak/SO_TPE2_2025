@@ -33,7 +33,7 @@ uint64_t my_process_inc(uint64_t argc, char *argv[]) {
 
 	if (use_sem)
 		if (!my_sem_open(SEM_ID, 1)) {
-			print("test_sync: ERROR opening semaphore\n");
+			print_format("test_sync: ERROR opening semaphore\n");
 			return -1;
 		}
 
@@ -74,9 +74,7 @@ uint64_t test_sync(uint64_t argc, char *argv[]) { //{n, use_sem, 0}
 		my_wait(pids[i + TOTAL_PAIR_PROCESSES]);
 	}
 
-	print("Final value: ");
-	printBase(global, 10);
-	print("\n");
+	print_format("Final value: %d\n", (int) global);
 
 	return 0;
 }

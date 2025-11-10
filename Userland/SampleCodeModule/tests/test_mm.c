@@ -48,9 +48,7 @@ uint64_t test_mm(uint64_t argc, char *argv[]) {
 		for (i = 0; i < rq; i++)
 			if (mm_rqs[i].address)
 				if (!memcheck(mm_rqs[i].address, i, mm_rqs[i].size)) {
-					print("test_mm ERROR - memcheck failed at block ");
-					printBase(i, 10);
-					print("\n");
+					print_format("test_mm ERROR - memcheck failed at block %u\n", i);
 					return -1;
 				}
 
