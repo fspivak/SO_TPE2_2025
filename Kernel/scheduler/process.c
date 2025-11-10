@@ -1,6 +1,9 @@
 #include "include/process.h"
 #include "../include/interrupts.h"
+#include "../include/pipe.h"
 #include "../include/stddef.h"
+#include "../include/stdinout.h"
+#include "../include/syscallDispatcher.h"
 #include "../include/videoDriver.h"
 #include "../memory-manager/include/memory_manager.h"
 
@@ -25,6 +28,16 @@ static uint8_t clamp_priority(uint8_t priority);
 static uint8_t normalize_priority(uint8_t priority);
 static uint8_t get_time_slice_budget(const PCB *process);
 static void release_foreground_owner(void);
+static void init_process_io_defaults(ProcessIOState *io_state);
+static int retain_process_io_resources(PCB *process);
+static void release_process_io_resources(PCB *process);
+static int override_process_io(PCB *process, const process_io_config_t *config);
+static int set_process_stdin_descriptor(PCB *process, uint32_t type, int32_t resource);
+static int set_process_stdout_descriptor(PCB *process, uint32_t type, int32_t resource);
+static int set_process_stderr_descriptor(PCB *process, uint32_t type, int32_t resource);
+static process_id_t create_process_internal(const char *name, void (*entry_point)(int, char **), int argc, char **argv,
+											uint8_t priority, const process_io_config_t *io_config,
+											int assign_foreground);
 
 static PCB process_table[MAX_PROCESSES];
 static PCB *current_process = NULL;
@@ -72,7 +85,7 @@ static PCB *ready_queue[MAX_PROCESSES];
 static int ready_queue_head = 0;
 static int ready_queue_tail = 0;
 static int ready_queue_count = 0;
-static int cleanup_counter = 0; // Contador para limpieza periódica
+static int cleanup_counter = 0; // Contador para limpieza periodica
 
 extern MemoryManagerADT memory_manager;
 
@@ -187,6 +200,248 @@ static int duplicate_arguments(PCB *process, int argc, char **argv) {
 	return 0;
 }
 
+static void init_process_io_defaults(ProcessIOState *io_state) {
+	if (io_state == NULL) {
+		return;
+	}
+
+	io_state->stdin_desc.type = IO_SOURCE_KEYBOARD;
+	io_state->stdin_desc.resource_id = PROCESS_IO_RESOURCE_INVALID;
+	io_state->stdout_desc.type = IO_SINK_SCREEN;
+	io_state->stdout_desc.resource_id = PROCESS_IO_RESOURCE_INVALID;
+	io_state->stderr_desc.type = IO_SINK_SCREEN;
+	io_state->stderr_desc.resource_id = PROCESS_IO_RESOURCE_INVALID;
+}
+
+static int retain_process_io_resources(PCB *process) {
+	if (process == NULL) {
+		return -1;
+	}
+
+	int stdin_registered = 0;
+	int stdout_registered = 0;
+	int stderr_registered = 0;
+
+	if (process->io_state.stdin_desc.type == IO_SOURCE_PIPE && process->io_state.stdin_desc.resource_id >= 0) {
+		if (pipe_register_reader(process->io_state.stdin_desc.resource_id) != 0) {
+			return -1;
+		}
+		stdin_registered = 1;
+	}
+
+	if (process->io_state.stdout_desc.type == IO_SINK_PIPE && process->io_state.stdout_desc.resource_id >= 0) {
+		if (pipe_register_writer(process->io_state.stdout_desc.resource_id) != 0) {
+			if (stdin_registered) {
+				pipe_unregister_reader(process->io_state.stdin_desc.resource_id);
+			}
+			return -1;
+		}
+		stdout_registered = 1;
+	}
+
+	if (process->io_state.stderr_desc.type == IO_SINK_PIPE && process->io_state.stderr_desc.resource_id >= 0) {
+		if (pipe_register_writer(process->io_state.stderr_desc.resource_id) != 0) {
+			if (stdout_registered) {
+				pipe_unregister_writer(process->io_state.stdout_desc.resource_id);
+			}
+			if (stdin_registered) {
+				pipe_unregister_reader(process->io_state.stdin_desc.resource_id);
+			}
+			return -1;
+		}
+		stderr_registered = 1;
+	}
+
+	return 0;
+}
+
+static void release_process_io_resources(PCB *process) {
+	if (process == NULL) {
+		return;
+	}
+
+	if (process->io_state.stdin_desc.type == IO_SOURCE_PIPE && process->io_state.stdin_desc.resource_id >= 0) {
+		pipe_unregister_reader(process->io_state.stdin_desc.resource_id);
+	}
+
+	if (process->io_state.stdout_desc.type == IO_SINK_PIPE && process->io_state.stdout_desc.resource_id >= 0) {
+		pipe_unregister_writer(process->io_state.stdout_desc.resource_id);
+	}
+
+	if (process->io_state.stderr_desc.type == IO_SINK_PIPE && process->io_state.stderr_desc.resource_id >= 0) {
+		pipe_unregister_writer(process->io_state.stderr_desc.resource_id);
+	}
+
+	init_process_io_defaults(&process->io_state);
+}
+
+static int set_process_stdin_descriptor(PCB *process, uint32_t type, int32_t resource) {
+	if (process == NULL) {
+		return -1;
+	}
+
+	if (type == PROCESS_IO_STDIN_INHERIT) {
+		return 0;
+	}
+
+	ProcessInputDescriptor previous = process->io_state.stdin_desc;
+
+	if (type == PROCESS_IO_STDIN_KEYBOARD) {
+		if (previous.type == IO_SOURCE_PIPE && previous.resource_id >= 0) {
+			pipe_unregister_reader(previous.resource_id);
+		}
+		process->io_state.stdin_desc.type = IO_SOURCE_KEYBOARD;
+		process->io_state.stdin_desc.resource_id = PROCESS_IO_RESOURCE_INVALID;
+		return 0;
+	}
+
+	if (type == PROCESS_IO_STDIN_PIPE) {
+		if (resource < 0) {
+			return -1;
+		}
+
+		if (previous.type == IO_SOURCE_PIPE && previous.resource_id == resource) {
+			return 0;
+		}
+
+		if (previous.type == IO_SOURCE_PIPE && previous.resource_id >= 0) {
+			pipe_unregister_reader(previous.resource_id);
+		}
+
+		if (pipe_register_reader(resource) != 0) {
+			if (previous.type == IO_SOURCE_PIPE && previous.resource_id >= 0) {
+				pipe_register_reader(previous.resource_id);
+			}
+			process->io_state.stdin_desc = previous;
+			return -1;
+		}
+
+		process->io_state.stdin_desc.type = IO_SOURCE_PIPE;
+		process->io_state.stdin_desc.resource_id = resource;
+		return 0;
+	}
+
+	return -1;
+}
+
+static int set_process_stdout_descriptor(PCB *process, uint32_t type, int32_t resource) {
+	if (process == NULL) {
+		return -1;
+	}
+
+	if (type == PROCESS_IO_STDOUT_INHERIT) {
+		return 0;
+	}
+
+	ProcessOutputDescriptor previous = process->io_state.stdout_desc;
+
+	if (type == PROCESS_IO_STDOUT_SCREEN) {
+		if (previous.type == IO_SINK_PIPE && previous.resource_id >= 0) {
+			pipe_unregister_writer(previous.resource_id);
+		}
+		process->io_state.stdout_desc.type = IO_SINK_SCREEN;
+		process->io_state.stdout_desc.resource_id = PROCESS_IO_RESOURCE_INVALID;
+		return 0;
+	}
+
+	if (type == PROCESS_IO_STDOUT_PIPE) {
+		if (resource < 0) {
+			return -1;
+		}
+
+		if (previous.type == IO_SINK_PIPE && previous.resource_id == resource) {
+			return 0;
+		}
+
+		if (previous.type == IO_SINK_PIPE && previous.resource_id >= 0) {
+			pipe_unregister_writer(previous.resource_id);
+		}
+
+		if (pipe_register_writer(resource) != 0) {
+			if (previous.type == IO_SINK_PIPE && previous.resource_id >= 0) {
+				pipe_register_writer(previous.resource_id);
+			}
+			process->io_state.stdout_desc = previous;
+			return -1;
+		}
+
+		process->io_state.stdout_desc.type = IO_SINK_PIPE;
+		process->io_state.stdout_desc.resource_id = resource;
+		return 0;
+	}
+
+	return -1;
+}
+
+static int set_process_stderr_descriptor(PCB *process, uint32_t type, int32_t resource) {
+	if (process == NULL) {
+		return -1;
+	}
+
+	if (type == PROCESS_IO_STDERR_INHERIT) {
+		return 0;
+	}
+
+	ProcessOutputDescriptor previous = process->io_state.stderr_desc;
+
+	if (type == PROCESS_IO_STDERR_SCREEN) {
+		if (previous.type == IO_SINK_PIPE && previous.resource_id >= 0) {
+			pipe_unregister_writer(previous.resource_id);
+		}
+		process->io_state.stderr_desc.type = IO_SINK_SCREEN;
+		process->io_state.stderr_desc.resource_id = PROCESS_IO_RESOURCE_INVALID;
+		return 0;
+	}
+
+	if (type == PROCESS_IO_STDERR_PIPE) {
+		if (resource < 0) {
+			return -1;
+		}
+
+		if (previous.type == IO_SINK_PIPE && previous.resource_id == resource) {
+			return 0;
+		}
+
+		if (previous.type == IO_SINK_PIPE && previous.resource_id >= 0) {
+			pipe_unregister_writer(previous.resource_id);
+		}
+
+		if (pipe_register_writer(resource) != 0) {
+			if (previous.type == IO_SINK_PIPE && previous.resource_id >= 0) {
+				pipe_register_writer(previous.resource_id);
+			}
+			process->io_state.stderr_desc = previous;
+			return -1;
+		}
+
+		process->io_state.stderr_desc.type = IO_SINK_PIPE;
+		process->io_state.stderr_desc.resource_id = resource;
+		return 0;
+	}
+
+	return -1;
+}
+
+static int override_process_io(PCB *process, const process_io_config_t *config) {
+	if (process == NULL || config == NULL) {
+		return 0;
+	}
+
+	if (set_process_stdin_descriptor(process, config->stdin_type, config->stdin_resource) != 0) {
+		return -1;
+	}
+
+	if (set_process_stdout_descriptor(process, config->stdout_type, config->stdout_resource) != 0) {
+		return -1;
+	}
+
+	if (set_process_stderr_descriptor(process, config->stderr_type, config->stderr_resource) != 0) {
+		return -1;
+	}
+
+	return 0;
+}
+
 static uint8_t clamp_priority(uint8_t priority) {
 	if (priority > MAX_PRIORITY) {
 		return MAX_PRIORITY;
@@ -235,6 +490,7 @@ int init_processes() {
 		process_table[i].waiting_ticks = 0;
 		process_table[i].pending_cleanup = 0;
 		process_table[i].has_foreground = 0;
+		init_process_io_defaults(&process_table[i].io_state);
 		for (int j = 0; j < MAX_PROCESS_NAME; j++) {
 			process_table[i].name[j] = '\0';
 		}
@@ -250,6 +506,7 @@ int init_processes() {
 	idle_pcb->scheduler_counter = 0;
 	idle_pcb->in_scheduler = 1;
 	idle_pcb->has_foreground = 0;
+	init_process_io_defaults(&idle_pcb->io_state);
 	const char *idle_name = "idle";
 	int i = 0;
 	while (idle_name[i] != '\0' && i < MAX_PROCESS_NAME - 1) {
@@ -282,8 +539,9 @@ int processes_initialized() {
 	return initialized_flag;
 }
 
-process_id_t create_process(const char *name, void (*entry_point)(int, char **), int argc, char **argv,
-							uint8_t priority) {
+static process_id_t create_process_internal(const char *name, void (*entry_point)(int, char **), int argc, char **argv,
+											uint8_t priority, const process_io_config_t *io_config,
+											int assign_foreground) {
 	if (!initialized_flag || entry_point == NULL) {
 		return -1;
 	}
@@ -318,6 +576,7 @@ process_id_t create_process(const char *name, void (*entry_point)(int, char **),
 	new_process->pending_cleanup = 0;
 	new_process->parent_pid = get_current_pid();
 	new_process->has_foreground = 0;
+	init_process_io_defaults(&new_process->io_state);
 	if (name != NULL) {
 		int i = 0;
 		while (name[i] != '\0' && i < MAX_PROCESS_NAME - 1) {
@@ -332,7 +591,29 @@ process_id_t create_process(const char *name, void (*entry_point)(int, char **),
 	}
 	new_process->entry_point = entry_point;
 
+	PCB *parent_process = get_process_by_pid(new_process->parent_pid);
+	if (parent_process != NULL) {
+		new_process->io_state = parent_process->io_state;
+		if (retain_process_io_resources(new_process) != 0) {
+			init_process_io_defaults(&new_process->io_state);
+			new_process->state = TERMINATED;
+			return -1;
+		}
+	}
+	else {
+		init_process_io_defaults(&new_process->io_state);
+	}
+
+	if (io_config != NULL) {
+		if (override_process_io(new_process, io_config) != 0) {
+			release_process_io_resources(new_process);
+			new_process->state = TERMINATED;
+			return -1;
+		}
+	}
+
 	if (duplicate_arguments(new_process, argc, argv) < 0) {
+		release_process_io_resources(new_process);
 		new_process->state = TERMINATED;
 		return -1;
 	}
@@ -343,6 +624,7 @@ process_id_t create_process(const char *name, void (*entry_point)(int, char **),
 		new_process->stack_base = memory_alloc(memory_manager, STACK_SIZE);
 		if (new_process->stack_base == NULL) {
 			release_process_arguments(new_process);
+			release_process_io_resources(new_process);
 			new_process->state = TERMINATED;
 			return -1;
 		}
@@ -358,7 +640,29 @@ process_id_t create_process(const char *name, void (*entry_point)(int, char **),
 		return -1;
 	}
 
+	if (assign_foreground) {
+		if (set_foreground_process(new_process->pid) < 0) {
+			terminate_process(new_process, 1);
+			return -1;
+		}
+	}
+
 	return new_process->pid;
+}
+
+process_id_t create_process(const char *name, void (*entry_point)(int, char **), int argc, char **argv,
+							uint8_t priority) {
+	return create_process_internal(name, entry_point, argc, argv, priority, NULL, 0);
+}
+
+process_id_t create_process_with_io(const char *name, void (*entry_point)(int, char **), int argc, char **argv,
+									uint8_t priority, const process_io_config_t *io_config) {
+	return create_process_internal(name, entry_point, argc, argv, priority, io_config, 0);
+}
+
+process_id_t create_process_foreground_with_io(const char *name, void (*entry_point)(int, char **), int argc,
+											   char **argv, uint8_t priority, const process_io_config_t *io_config) {
+	return create_process_internal(name, entry_point, argc, argv, priority, io_config, 1);
 }
 
 process_id_t get_current_pid() {
@@ -440,6 +744,73 @@ process_id_t get_foreground_process(void) {
 	return foregroundProcessPid;
 }
 
+int process_read(process_id_t pid, int fd, char *buffer, size_t count) {
+	if (fd != STDIN || buffer == NULL) {
+		return -1;
+	}
+
+	if (count == 0) {
+		return 0;
+	}
+
+	PCB *process = get_process_by_pid(pid);
+	if (process == NULL) {
+		return -1;
+	}
+
+	int bytes_to_read = (int) count;
+	if (process->io_state.stdin_desc.type == IO_SOURCE_KEYBOARD) {
+		return read_keyboard(buffer, bytes_to_read);
+	}
+
+	if (process->io_state.stdin_desc.type == IO_SOURCE_PIPE && process->io_state.stdin_desc.resource_id >= 0) {
+		return pipe_read(process->io_state.stdin_desc.resource_id, buffer, count);
+	}
+
+	return -1;
+}
+
+int process_write(process_id_t pid, int fd, const char *buffer, size_t count, size_t color, size_t background) {
+	if ((buffer == NULL && count != 0)) {
+		return -1;
+	}
+
+	if (count == 0) {
+		return 0;
+	}
+
+	PCB *process = get_process_by_pid(pid);
+	if (process == NULL) {
+		return -1;
+	}
+
+	int bytes_to_write = (int) count;
+
+	if (fd == STDOUT) {
+		if (process->io_state.stdout_desc.type == IO_SINK_SCREEN) {
+			write(buffer, bytes_to_write, color, background);
+			return bytes_to_write;
+		}
+		if (process->io_state.stdout_desc.type == IO_SINK_PIPE && process->io_state.stdout_desc.resource_id >= 0) {
+			return pipe_write(process->io_state.stdout_desc.resource_id, buffer, count);
+		}
+		return -1;
+	}
+
+	if (fd == STDERR) {
+		if (process->io_state.stderr_desc.type == IO_SINK_SCREEN) {
+			write(buffer, bytes_to_write, 0x00ff0000, background);
+			return bytes_to_write;
+		}
+		if (process->io_state.stderr_desc.type == IO_SINK_PIPE && process->io_state.stderr_desc.resource_id >= 0) {
+			return pipe_write(process->io_state.stderr_desc.resource_id, buffer, count);
+		}
+		return -1;
+	}
+
+	return -1;
+}
+
 static PCB *get_process_by_pid(process_id_t pid) {
 	for (int i = 0; i < MAX_PROCESSES; i++) {
 		if (process_table[i].pid == pid) {
@@ -502,6 +873,8 @@ static int terminate_process(PCB *process, int kill_descendants) {
 		release_foreground_owner();
 	}
 
+	release_process_io_resources(process);
+
 	process->state = TERMINATED;
 	process->in_scheduler = 0;
 	process->pending_cleanup = (process == current_process) ? 1 : 0;
@@ -543,8 +916,8 @@ int waitpid(process_id_t pid) {
 
 	current->waiting_pid = pid;
 
-	// Verificar nuevamente si el hijo terminó después de establecer waiting_pid
-	// Esto evita race conditions donde el hijo termina entre la verificación y el bloqueo
+	// Verificar nuevamente si el hijo termino despues de establecer waiting_pid
+	// Esto evita race conditions donde el hijo termina entre la verificacion y el bloqueo
 	child_process = get_process_by_pid(pid);
 	if (child_process != NULL && child_process->state == TERMINATED) {
 		current->waiting_pid = -1;
@@ -690,7 +1063,7 @@ void *schedule(void *current_stack_pointer) {
 		return current_stack_pointer;
 	}
 
-	// Limpiar procesos terminados periódicamente
+	// Limpiar procesos terminados periodicamente
 	cleanup_counter++;
 	if (cleanup_counter >= CLEANUP_INTERVAL) {
 		free_terminated_processes();
