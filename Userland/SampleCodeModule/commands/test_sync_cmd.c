@@ -38,7 +38,7 @@ void test_sync_main(int argc, char **argv) {
 }
 
 void test_sync_cmd(int argc, char **argv) {
-	int pid_test = command_spawn_process("test_sync", test_sync_main, argc, argv, 1);
+	int pid_test = command_spawn_process("test_sync", test_sync_main, argc, argv, 1, NULL);
 
 	if (!validate_create_process_error("test_sync", pid_test)) {
 		return;

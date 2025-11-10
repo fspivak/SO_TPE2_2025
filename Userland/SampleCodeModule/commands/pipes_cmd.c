@@ -44,6 +44,8 @@ static int tokenize_command(const char *command, char storage[][MAX_PIPE_ARG_LEN
 	return count;
 }
 
+static void (*find_pipe_function(const char *cmd, int is_writer))(int, char **);
+
 void pipes_cmd(char *input) {
 	if (command_is_background_mode()) {
 		print_format("ERROR: pipes does not support background yet\n");
@@ -78,11 +80,15 @@ void pipes_cmd(char *input) {
 		return;
 	}
 
-	void *func1 = find_function(argv1_tokens[0]);
-	void *func2 = find_function(argv2_tokens[0]);
+	void (*writer_func)(int, char **) = find_pipe_function(argv1_tokens[0], 1);
+	void (*reader_func)(int, char **) = find_pipe_function(argv2_tokens[0], 0);
 
-	if (func1 == NULL || func2 == NULL) {
-		print_format("[Pipe Error] One of the commands is invalid.\n");
+	if (writer_func == NULL || reader_func == NULL) {
+		print_format("[Pipe Help] One of the pipe commands is not supported in this position.\n");
+		print_format("Supported pipe combinations:\n");
+		print_format("  - cat | wc\n");
+		print_format("  - cat | filter\n");
+		print_format("  - filter | wc\n");
 		my_pipe_close(pipe_id);
 		return;
 	}
@@ -100,42 +106,39 @@ void pipes_cmd(char *input) {
 	argv2_tokens[argc2_base + 1] = "read";
 	argv2_tokens[argc2_base + 2] = NULL;
 
-	int pid_writer = create_process(argv1_tokens[0], func1, argc1_base + 2, argv1_tokens, 128);
-	int pid_reader = create_process_foreground(argv2_tokens[0], func2, argc2_base + 2, argv2_tokens, 128);
+	int pid_reader = create_process_with_io(argv2_tokens[0], reader_func, argc2_base + 2, argv2_tokens, 128, NULL);
+	if (pid_reader < 0) {
+		print_format("Error creating reader process for pipe\n");
+		my_pipe_close(pipe_id);
+		return;
+	}
 
-	if (pid_writer < 0 || pid_reader < 0) {
-		print_format("Error creating processes for pipe\n");
+	int pid_writer =
+		create_process_foreground_with_io(argv1_tokens[0], writer_func, argc1_base + 2, argv1_tokens, 128, NULL);
+	if (pid_writer < 0) {
+		print_format("Error creating writer process for pipe\n");
+		waitpid(pid_reader);
 		my_pipe_close(pipe_id);
 		return;
 	}
 
 	waitpid(pid_writer);
 	waitpid(pid_reader);
+	clear_foreground(pid_writer);
+	set_foreground(getpid());
 
 	my_pipe_close(pipe_id);
 }
 
-void *find_function(char *cmd) {
+static void (*find_pipe_function(const char *cmd, int is_writer))(int, char **) {
 	if (!strcmp(cmd, "cat")) {
-		return cat_cmd;
+		return is_writer ? cat_pipe_main : NULL;
 	}
 	if (!strcmp(cmd, "wc")) {
-		return wc_cmd;
+		return (!is_writer) ? wc_pipe_main : NULL;
 	}
 	if (!strcmp(cmd, "filter")) {
-		return filter_cmd;
+		return is_writer ? filter_pipe_writer_main : filter_pipe_main;
 	}
-	if (!strcmp(cmd, "ps")) {
-		return ps_cmd;
-	}
-
-	// Si el comando no se reconoce o no es apto para pipe
-	print_format("\n[Pipe Help] Command '%s' not available for pipe.\n", cmd);
-	print_format("Supported pipe commands:\n");
-	print_format("  - cat : reads from stdin and writes to stdout\n");
-	print_format("  - wc  : counts lines and words from stdin\n");
-	print_format("  - ps  : prints process information\n\n");
-	print_format("  - filter : filters lines containing a word\n");
-
 	return NULL;
 }

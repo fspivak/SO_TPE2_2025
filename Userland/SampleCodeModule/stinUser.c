@@ -7,6 +7,7 @@ static char buffer[64] = {'0'};
 static char format_buffer[256] = {'0'};
 #define PRINT_SEM_NAME "print_sem"
 static int print_sem_initialized = 0;
+#define USERLAND_SECONDS_TO_TICKS 18
 
 static uint32_t uintToBase(uint64_t value, char *buffer, uint32_t base);
 
@@ -184,7 +185,13 @@ void printColor(char *string, int color, int bg) {
 
 char getchar() {
 	char caracter;
-	read(0, &caracter, 1);
+	int result = read_bytes(0, &caracter, 1);
+	if (result <= 0) {
+		return -1;
+	}
+	if (result <= 0) {
+		return -1;
+	}
 	return caracter;
 }
 
@@ -238,7 +245,14 @@ void imprimirRegistros() {
 }
 
 void sleepUser(int segs) {
-	sleep(segs);
+	if (segs <= 0) {
+		segs = 1;
+	}
+	int ticks = segs * USERLAND_SECONDS_TO_TICKS;
+	if (ticks <= 0) {
+		ticks = USERLAND_SECONDS_TO_TICKS;
+	}
+	sleep(ticks);
 }
 
 uint64_t getMS() {

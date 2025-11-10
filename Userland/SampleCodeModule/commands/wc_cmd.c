@@ -1,4 +1,5 @@
 #include "../include/commands.h"
+#include "../include/format_utils.h"
 #include "../include/libasmUser.h"
 #include "../include/stinUser.h"
 #include "../include/stringUser.h"
@@ -6,67 +7,74 @@
 #include "../tests/include/test_util.h"
 #include <stddef.h>
 
-void wc_cmd(int argc, char **argv) {
-	int pipe_mode = 0;
-	int pipe_id = -1;
+static void wc_print_result(int lines, int words, int chars) {
+	print_format("\nLines: %d Words: %d Chars: %d\n", lines, words, chars);
+}
 
-	// Si se ejecuta en modo pipe: argv[1] = id, argv[2] = "read"
-	if (argc >= 3 && strcmp(argv[2], "read") == 0) {
-		pipe_mode = 1;
-		pipe_id = satoi(argv[1]);
+void wc_cmd(int argc, char **argv) {
+	(void) argc;
+	(void) argv;
+
+	char c;
+	int lines = 0, words = 0, chars = 0;
+	int in_word = 0;
+	int bytes_read;
+
+	while ((bytes_read = read_bytes(0, &c, 1)) > 0) {
+		putchar(c);
+		chars += bytes_read;
+
+		if (c == '\n') {
+			lines++;
+			in_word = 0;
+		}
+		else if (c == ' ' || c == '\t') {
+			in_word = 0;
+		}
+		else if (!in_word) {
+			in_word = 1;
+			words++;
+		}
+	}
+
+	wc_print_result(lines, words, chars);
+}
+
+void wc_pipe_main(int argc, char **argv) {
+	if (argc < 3 || argv == NULL) {
+		print_format("wc pipe: invalid arguments\n");
+		return;
+	}
+
+	int pipe_id = (int) satoi(argv[argc - 2]);
+	const char *mode = argv[argc - 1];
+
+	if (pipe_id < 0 || mode == NULL || strcmp(mode, "read") != 0) {
+		print_format("wc pipe: invalid pipe mode\n");
+		return;
 	}
 
 	char c;
-	int lines = 1, words = 0, chars = 0;
+	int lines = 0, words = 0, chars = 0;
 	int in_word = 0;
+	int bytes_read;
 
-	if (pipe_mode) {
-		// Leemos del pipe hasta que se vacíe
-		while (my_pipe_read(pipe_id, &c, 1) > 0) {
-			chars++;
-			if (c == '\n')
-				lines++;
-			if (c == ' ' || c == '\n' || c == '\t')
-				in_word = 0;
-			else if (!in_word) {
-				in_word = 1;
-				words++;
-			}
+	while ((bytes_read = (int) my_pipe_read((uint64_t) pipe_id, &c, 1)) > 0) {
+		chars += bytes_read;
+
+		if (c == '\n') {
+			lines++;
+			in_word = 0;
 		}
-	}
-	// else {
-	// 	// Leemos desde stdin (usando getchar porque read es void)
-	// 	while ((c = getchar()) != -1) {
-	// 		putchar(c);
-	// 		chars++;
-	// 		if (c == ' ' || c == '\t')
-	// 			in_word = 0;
-	// 		else if (!in_word) {
-	// 			in_word = 1;
-	// 			words++;
-	// 		}
-	// 	}
-	// 	lines = 1; // una sola línea ingresada
-	// }
-	else {
-		// Leemos desde stdin (usando getchar porque read es void)
-		while ((c = getchar()) != -1) {
-			putchar(c);
-			chars++;
-
-			if (c == '\n') {
-				lines++;
-				in_word = 0;
-			}
-			else if (c == ' ' || c == '\t') {
-				in_word = 0;
-			}
-			else if (!in_word) {
-				in_word = 1;
-				words++;
-			}
+		else if (c == ' ' || c == '\t') {
+			in_word = 0;
+		}
+		else if (!in_word) {
+			in_word = 1;
+			words++;
 		}
 	}
 
-	print_format("\n Lines: %d Words: %d Chars: %d\n", lines, words, chars);
+	my_pipe_close((uint64_t) pipe_id);
+	wc_print_result(lines, words, chars);
 }

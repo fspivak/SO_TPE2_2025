@@ -37,11 +37,18 @@ int command_pop_background_notification(int *pid, const char **name) {
 	return 1;
 }
 
-int command_spawn_process(const char *name, void (*entry)(int, char **), int argc, char **argv, int priority) {
+int command_spawn_process(const char *name, void (*entry)(int, char **), int argc, char **argv, int priority,
+						  const process_io_config_t *io_config) {
 	if (command_is_background_mode()) {
+		if (io_config != NULL) {
+			return create_process_with_io(name, entry, argc, argv, priority, io_config);
+		}
 		return create_process(name, entry, argc, argv, priority);
 	}
 
+	if (io_config != NULL) {
+		return create_process_foreground_with_io(name, entry, argc, argv, priority, io_config);
+	}
 	return create_process_foreground(name, entry, argc, argv, priority);
 }
 

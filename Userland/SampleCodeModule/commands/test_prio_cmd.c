@@ -43,7 +43,7 @@ void test_prio_main(int argc, char **argv) {
 }
 
 void test_prio_cmd(int argc, char **argv) {
-	int pid_test = command_spawn_process("test_prio", test_prio_main, argc, argv, 1);
+	int pid_test = command_spawn_process("test_prio", test_prio_main, argc, argv, 1, NULL);
 
 	if (!validate_create_process_error("test_prio", pid_test)) {
 		return;

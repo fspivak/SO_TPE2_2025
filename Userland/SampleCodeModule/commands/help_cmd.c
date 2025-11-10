@@ -1,5 +1,4 @@
 #include "../include/commands.h"
-#include "../include/libasmUser.h"
 #include "../include/stinUser.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -30,7 +29,7 @@ static void help_main(int argc, char **argv) {
 	print_format("  test_prio <max_value>   - Run priority test (verifies priority scheduling)\n");
 	print_format("                          Example: test_prio 1000000\n");
 	print_format("  sh                - Create a new shell\n");
-	print_format("  loop              - Create a process that runs in infinite loop\n");
+	print_format("  loop [interval]   - Print loop greeting with PID every <interval> seconds (default 8)\n");
 	print_format("  kill <pid>        - Kill the process with pid <pid>\n");
 	print_format("  nice <pid> <prio> - Change priority of process <pid> to <prio> (0-255)\n");
 	print_format("  block <pid>       - Block the process with pid <pid>\n");
@@ -40,7 +39,7 @@ static void help_main(int argc, char **argv) {
 }
 
 void help_cmd(int argc, char **argv) {
-	int pid_help = command_spawn_process("help", help_main, 0, NULL, 1);
+	int pid_help = command_spawn_process("help", help_main, 0, NULL, 1, NULL);
 	if (pid_help < 0) {
 		print_format("ERROR: Failed to create process help\n");
 		return;

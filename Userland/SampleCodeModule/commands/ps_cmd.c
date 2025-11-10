@@ -52,7 +52,7 @@ static void ps_main(int argc, char **argv) {
 }
 
 void ps_cmd(int argc, char **argv) {
-	int pid_ps = command_spawn_process("ps", ps_main, argc, argv, 1);
+	int pid_ps = command_spawn_process("ps", ps_main, argc, argv, 1, NULL);
 	if (pid_ps < 0) {
 		print_format("ERROR: Failed to create process ps\n");
 		return;

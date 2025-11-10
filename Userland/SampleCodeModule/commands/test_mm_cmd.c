@@ -34,7 +34,7 @@ void test_mm_main(int argc, char **argv) {
 }
 
 void test_mm_cmd(int argc, char **argv) {
-	int pid_test = command_spawn_process("test_mm", test_mm_main, argc, argv, 128);
+	int pid_test = command_spawn_process("test_mm", test_mm_main, argc, argv, 128, NULL);
 	if (!validate_create_process_error("test_mm", pid_test)) {
 		return;
 	}

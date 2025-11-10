@@ -21,7 +21,7 @@ $(MODULE_ELF): $(OBJECTS) $(OBJECTS_TESTS) $(OBJECTS_COMMANDS) $(OBJECTS_ASM) $(
 	$(GCC) $(GCCFLAGS) -T sampleCodeModule.ld -Wl,--oformat=elf64-x86-64 _loader.c -o ../$(MODULE_ELF) $(OBJECTS) $(OBJECTS_TESTS) $(OBJECTS_COMMANDS) $(OBJECTS_ASM) $(STATICLIBS)
 
 %.o: %.c
-	$(GCC) $(GCCFLAGS) -I./include -c $< -o $@
+	$(GCC) $(GCCFLAGS) -I./include -I../Shared -c $< -o $@
 
 %.o : %.asm
 	$(ASM) $(ASMFLAGS) $< -o $@

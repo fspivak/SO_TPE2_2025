@@ -1,6 +1,8 @@
 #ifndef COMMANDS_H
 #define COMMANDS_H
 
+#include "../../../Shared/process_io_config.h"
+
 /**
  * @brief Configura si el comando actual se ejecuta en background
  * @param enabled 1 si se ejecuta en background, 0 en caso contrario
@@ -40,9 +42,11 @@ void command_handle_child_process(int pid, const char *name);
  * @param argc Cantidad de argumentos
  * @param argv Array de argumentos
  * @param priority Prioridad solicitada
+ * @param io_config Configuracion de IO (NULL para heredar)
  * @return PID del proceso creado o -1 si hay error
  */
-int command_spawn_process(const char *name, void (*entry)(int, char **), int argc, char **argv, int priority);
+int command_spawn_process(const char *name, void (*entry)(int, char **), int argc, char **argv, int priority,
+						  const process_io_config_t *io_config);
 
 /**
  * @brief Muestra la ayuda del terminal con comandos disponibles
@@ -136,7 +140,7 @@ void test_sync_cmd(int argc, char **argv);
 void test_prio_cmd(int argc, char **argv);
 
 /**
- * @brief Crea un proceso que ejecuta un loop infinito
+ * @brief Crea un proceso que imprime su PID periodicamente
  * @param argc Cantidad de argumentos
  * @param argv Array de argumentos
  */
@@ -213,18 +217,60 @@ int validate_create_process_error(const char *cmd_name, int pid);
 void cat_cmd(int argc, char **argv);
 
 /**
- * @brief cuante las lineas y caracteres
+ * @brief Entrada principal para ejecutar cat en un proceso interactivo
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void cat_main(int argc, char **argv);
+
+/**
+ * @brief Entrada principal de cat utilizada cuando el comando participa en un pipe
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void cat_pipe_main(int argc, char **argv);
+
+/**
+ * @brief Cuenta las lineas y caracteres del input recibido desde stdin
  * @param argc Cantidad de argumentos
  * @param argv Array de argumentos
  */
 void wc_cmd(int argc, char **argv);
 
 /**
- * @brief filtra lineas
+ * @brief Entrada principal de wc utilizada cuando el comando participa en un pipe
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void wc_pipe_main(int argc, char **argv);
+
+/**
+ * @brief Filtra las vocales del input recibido desde stdin
  * @param argc Cantidad de argumentos
  * @param argv Array de argumentos
  */
 void filter_cmd(int argc, char **argv);
+
+/**
+ * @brief Entrada principal para ejecutar filter en un proceso interactivo
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void filter_main(int argc, char **argv);
+
+/**
+ * @brief Entrada principal de filter utilizada cuando el comando participa en un pipe
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void filter_pipe_main(int argc, char **argv);
+
+/**
+ * @brief Entrada principal de filter utilizada como escritor dentro de un pipe
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void filter_pipe_writer_main(int argc, char **argv);
 
 /**
  * @brief implementa los comandos pipeados

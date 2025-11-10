@@ -1,3 +1,7 @@
+#ifndef LIBASMUSER_H
+#define LIBASMUSER_H
+
+#include "../../../Shared/process_io_config.h"
 #include <stdint.h>
 
 /**
@@ -11,12 +15,21 @@
 void write(int fd, char *str, int leng, int color, int bg);
 
 /**
- * @brief Lee caracteres desde el teclado
+ * @brief Lee caracteres desde el teclado (wrapper ASM historico)
  * @param fd File descriptor (0=stdin)
  * @param buffer Buffer donde guardar los caracteres
  * @param count Numero de caracteres a leer
  */
 void read(int fd, char *buffer, int count);
+
+/**
+ * @brief Invoca la syscall read devolviendo la cantidad de bytes leidos
+ * @param fd File descriptor (0=stdin)
+ * @param buffer Buffer donde guardar los caracteres
+ * @param count Numero de caracteres a leer
+ * @return Cantidad de bytes leidos, 0 si EOF, -1 si error
+ */
+int read_bytes(int fd, char *buffer, int count);
 
 /**
  * @brief Pausa la ejecucion por el numero de segundos especificado
@@ -157,6 +170,32 @@ int create_process(const char *name, void (*entry)(int, char **), int argc, char
 int create_process_foreground(const char *name, void (*entry)(int, char **), int argc, char **argv, int priority);
 
 /**
+ * @brief Crea un nuevo proceso con configuracion de IO personalizada
+ * @param name Nombre del proceso
+ * @param entry Funcion de entrada del proceso
+ * @param argc Numero de argumentos
+ * @param argv Array de argumentos
+ * @param priority Prioridad del proceso (0-255)
+ * @param io_config Configuracion de IO (NULL para heredar)
+ * @return PID del proceso creado o -1 si hay error
+ */
+int create_process_with_io(const char *name, void (*entry)(int, char **), int argc, char **argv, int priority,
+						   const process_io_config_t *io_config);
+
+/**
+ * @brief Crea un nuevo proceso con IO personalizado asegurando foreground
+ * @param name Nombre del proceso
+ * @param entry Funcion de entrada del proceso
+ * @param argc Numero de argumentos
+ * @param argv Array de argumentos
+ * @param priority Prioridad del proceso (0-255)
+ * @param io_config Configuracion de IO (NULL para heredar)
+ * @return PID del proceso creado o -1 si hay error
+ */
+int create_process_foreground_with_io(const char *name, void (*entry)(int, char **), int argc, char **argv,
+									  int priority, const process_io_config_t *io_config);
+
+/**
  * @brief Obtiene el PID del proceso actual
  * @return PID del proceso actual
  */
@@ -269,3 +308,5 @@ int sem_close(const char *name);
  * @brief Termina el proceso actual liberando sus recursos
  */
 void exit_process(void);
+
+#endif // LIBASMUSER_H

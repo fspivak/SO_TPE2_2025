@@ -2,6 +2,7 @@
 #include "../include/libasmUser.h"
 #include "../include/screen.h"
 #include "../include/stinUser.h"
+#include <stddef.h>
 #include <stdint.h>
 
 static void print_human_size(uint64_t bytes) {
@@ -53,7 +54,7 @@ static void mem_main(int argc, char **argv) {
 }
 
 void mem_cmd(int argc, char **argv) {
-	int pid_mem = command_spawn_process("mem", mem_main, argc, argv, 1);
+	int pid_mem = command_spawn_process("mem", mem_main, argc, argv, 1, NULL);
 	if (pid_mem < 0) {
 		print_format("ERROR: Failed to create process mem\n");
 		return;

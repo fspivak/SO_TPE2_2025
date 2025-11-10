@@ -1,3 +1,4 @@
+#include "../../Shared/process_io_config.h"
 #include "include/libasmUser.h"
 #include "include/syscall_ids.h"
 #include <stdint.h>
@@ -14,6 +15,22 @@ int create_process(const char *name, void (*entry)(int, char **), int argc, char
 int create_process_foreground(const char *name, void (*entry)(int, char **), int argc, char **argv, int priority) {
 	return (int) sys_call(SYS_CREATE_PROCESS_FOREGROUND, (uint64_t) name, (uint64_t) entry, (uint64_t) argc,
 						  (uint64_t) argv, (uint64_t) priority, 0);
+}
+
+int create_process_with_io(const char *name, void (*entry)(int, char **), int argc, char **argv, int priority,
+						   const process_io_config_t *io_config) {
+	return (int) sys_call(SYS_CREATE_PROCESS_WITH_IO, (uint64_t) name, (uint64_t) entry, (uint64_t) argc,
+						  (uint64_t) argv, (uint64_t) priority, (uint64_t) io_config);
+}
+
+int create_process_foreground_with_io(const char *name, void (*entry)(int, char **), int argc, char **argv,
+									  int priority, const process_io_config_t *io_config) {
+	return (int) sys_call(SYS_CREATE_PROCESS_FOREGROUND_WITH_IO, (uint64_t) name, (uint64_t) entry, (uint64_t) argc,
+						  (uint64_t) argv, (uint64_t) priority, (uint64_t) io_config);
+}
+
+int read_bytes(int fd, char *buffer, int count) {
+	return (int) sys_call(0, (uint64_t) fd, (uint64_t) buffer, (uint64_t) count, 0, 0, 0);
 }
 
 int getpid(void) {

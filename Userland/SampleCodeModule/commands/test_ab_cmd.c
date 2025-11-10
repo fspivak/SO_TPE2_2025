@@ -26,7 +26,7 @@ void test_ab_main(int argc, char **argv) {
 }
 
 void test_ab_cmd(int argc, char **argv) {
-	int pid_test = command_spawn_process("test_ab", test_ab_main, argc, argv, 128);
+	int pid_test = command_spawn_process("test_ab", test_ab_main, argc, argv, 128, NULL);
 	if (pid_test < 0) {
 		print_format("ERROR: Failed to create process test_ab\n");
 		return;

@@ -67,7 +67,9 @@ void terminal() {
 
 	/* Mensaje de bienvenida */
 	print_format("\nWelcome to x64 BareBones OS\n");
-	print_format("Type 'help' for available commands\n\n");
+	print_format("Type 'help' for available commands\n");
+	print_format("Pipes: use 'cmd1 | cmd2' with cat, wc, filter, ps\n");
+	print_format("Background: append '&' to run commands without blocking the terminal\n\n");
 	set_foreground(getpid());
 	print_format(">  "); /* Prompt inicial */
 
@@ -188,6 +190,9 @@ void terminal() {
 			else if (!strcmp(command, "loop")) {
 				loop_cmd(0, NULL);
 			}
+			else if (startsWith(command, "loop ")) {
+				execute_command_with_args(command, "loop ", 5, loop_cmd);
+			}
 			else if (!strcmp(command, "nice")) {
 				nice_cmd(0, NULL);
 			}
@@ -254,7 +259,7 @@ void create_new_shell() {
 	char *argv[] = {NULL};
 
 	print_format("Creating new shell...\n");
-	int pid = command_spawn_process("shellCreated", (void *) terminal, 0, argv, 128);
+	int pid = command_spawn_process("shellCreated", (void *) terminal, 0, argv, 128, NULL);
 	if (pid < 0) {
 		print_format("ERROR: Failed to create shell\n");
 		return;
@@ -268,7 +273,7 @@ void exit_shell() {
 
 void callClock() {
 	char *argv[] = {NULL};
-	int pid = command_spawn_process("clock", (void *) clock_entry, 0, argv, 1);
+	int pid = command_spawn_process("clock", (void *) clock_entry, 0, argv, 1, NULL);
 	if (pid < 0) {
 		print_format("ERROR: Failed to create clock process\n");
 		return;
