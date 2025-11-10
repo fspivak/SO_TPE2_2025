@@ -32,6 +32,7 @@ set_process_stack:
     
     ; Cambiar al nuevo stack
     mov rsp, rdx
+    and rsp, -16
     
     ; Construir stack frame como si fuera una interrupcion
     ; Orden: SS, RSP, RFLAGS, CS, RIP, registros

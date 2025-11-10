@@ -1,6 +1,6 @@
-#include <defs.h>
-#include <idtLoader.h>
-#include <interrupts.h>
+#include "include/idtLoader.h"
+#include "include/defs.h"
+#include "include/interrupts.h"
 #include <stdint.h>
 
 #pragma pack(push) /* Push de la alineación actual */
