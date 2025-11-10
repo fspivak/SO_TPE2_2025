@@ -28,7 +28,9 @@ uint64_t syscallDispatcher(uint64_t rax, ...) {
 		FDS fd = va_arg(args, FDS);
 		char *buffer = va_arg(args, char *);
 		size_t count = va_arg(args, size_t);
-		sys_read(fd, buffer, count);
+		int result = sys_read(fd, buffer, count);
+		va_end(args);
+		return (uint64_t) result;
 	}
 	else if (rax == 35) {
 		int secs = va_arg(args, int);
@@ -117,6 +119,32 @@ uint64_t syscallDispatcher(uint64_t rax, ...) {
 		int priority_int = va_arg(args, int);
 		uint8_t priority = (uint8_t) priority_int;
 		process_id_t pid = sys_create_process_foreground(name, entry_point, argc, argv, priority);
+		va_end(args);
+		return (uint64_t) pid;
+	}
+	else if (rax == 77) {
+		/* sys_create_process_with_io */
+		const char *name = va_arg(args, const char *);
+		void (*entry_point)(int, char **) = va_arg(args, void (*)(int, char **));
+		int argc = va_arg(args, int);
+		char **argv = va_arg(args, char **);
+		int priority_int = va_arg(args, int);
+		const process_io_config_t *config = va_arg(args, const process_io_config_t *);
+		uint8_t priority = (uint8_t) priority_int;
+		process_id_t pid = sys_create_process_with_io(name, entry_point, argc, argv, priority, config);
+		va_end(args);
+		return (uint64_t) pid;
+	}
+	else if (rax == 78) {
+		/* sys_create_process_foreground_with_io */
+		const char *name = va_arg(args, const char *);
+		void (*entry_point)(int, char **) = va_arg(args, void (*)(int, char **));
+		int argc = va_arg(args, int);
+		char **argv = va_arg(args, char **);
+		int priority_int = va_arg(args, int);
+		const process_io_config_t *config = va_arg(args, const process_io_config_t *);
+		uint8_t priority = (uint8_t) priority_int;
+		process_id_t pid = sys_create_process_foreground_with_io(name, entry_point, argc, argv, priority, config);
 		va_end(args);
 		return (uint64_t) pid;
 	}
@@ -267,15 +295,11 @@ uint64_t syscallDispatcher(uint64_t rax, ...) {
 void sys_sleep(int secs) {
 	sleep(secs);
 }
-void sys_read(FDS fd, char *buffer, size_t count) {
-	if (fd == STDIN)
-		read(buffer, count);
+int sys_read(FDS fd, char *buffer, size_t count) {
+	return process_read(get_current_pid(), fd, buffer, count);
 }
 void sys_write(FDS fd, const char *buffer, size_t count, size_t color, size_t background) {
-	if (fd == STDOUT)
-		write(buffer, count, color, background);
-	else if (fd == STDERR)
-		write(buffer, count, 0x00ff0000, 0);
+	process_write(get_current_pid(), fd, buffer, count, color, background);
 }
 /* Syscall zoom - No soportado en modo texto VGA */
 void sys_zoom(int zoom) {
@@ -372,17 +396,23 @@ process_id_t sys_create_process_foreground(const char *name, void (*entry_point)
 		return -1;
 	}
 
-	process_id_t pid = create_process(name, entry_point, argc, argv, priority);
-	if (pid < 0) {
-		return pid;
-	}
+	return create_process_foreground_with_io(name, entry_point, argc, argv, priority, NULL);
+}
 
-	if (set_foreground_process(pid) < 0) {
-		kill_process(pid);
+process_id_t sys_create_process_with_io(const char *name, void (*entry_point)(int, char **), int argc, char **argv,
+										uint8_t priority, const process_io_config_t *config) {
+	if (entry_point == NULL) {
 		return -1;
 	}
+	return create_process_with_io(name, entry_point, argc, argv, priority, config);
+}
 
-	return pid;
+process_id_t sys_create_process_foreground_with_io(const char *name, void (*entry_point)(int, char **), int argc,
+												   char **argv, uint8_t priority, const process_io_config_t *config) {
+	if (entry_point == NULL) {
+		return -1;
+	}
+	return create_process_foreground_with_io(name, entry_point, argc, argv, priority, config);
 }
 
 process_id_t sys_getpid() {

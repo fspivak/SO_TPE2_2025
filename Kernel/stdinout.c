@@ -2,9 +2,10 @@
 #include "include/interrupts.h"
 #include "include/keyboard.h"
 #include "include/videoDriver.h"
+#include <stddef.h>
 
 char conversionArray[] = {
-	[0x01] = -1, // escape no tiene carácter imprimible
+	[0x01] = -1, // escape no tiene caracter imprimible
 	[0x02] = '1',  [0x03] = '2', [0x04] = '3', [0x05] = '4', [0x06] = '5',	[0x07] = '6',
 	[0x08] = '7',  [0x09] = '8', [0x0A] = '9', [0x0B] = '0', [0x0C] = '\'', [0x0D] = '=',
 	[0x0E] = 8,	   // backspace no es imprimible
@@ -100,10 +101,21 @@ void putChar(char character, int color, int background) {
 
 /* Toma un string de hasta longitud len de la entrada estandar */
 /* Terminara siendo la syscall read */
-void read(char *buffer, int len) {
-	for (int i = 0; i < len; i++) {
-		buffer[i] = getChar();
+int read_keyboard(char *buffer, int len) {
+	if (buffer == NULL || len <= 0) {
+		return 0;
 	}
+
+	int read_count = 0;
+	for (int i = 0; i < len; i++) {
+		char value = getChar();
+		if (value == -1) {
+			return 0;
+		}
+		buffer[i] = value;
+		read_count++;
+	}
+	return read_count;
 }
 
 /* Imprime un string en la salida estandar */

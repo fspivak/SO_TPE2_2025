@@ -36,7 +36,7 @@ $(KERNEL_ELF): $(LOADEROBJECT) $(OBJECTS) $(MM_OBJECT) $(SCHEDULER_OBJECTS) $(ST
 
 %.o: %.c
 	@echo "[Compiling] $<"
-	$(GCC) $(GCCFLAGS) -I./include -c $< -o $@
+	$(GCC) $(GCCFLAGS) -I./include -I../Shared -c $< -o $@
 
 %.o : %.asm
 	@echo "[Assembling] $<"

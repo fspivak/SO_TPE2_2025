@@ -1,6 +1,8 @@
 #ifndef _PROCESS_H_
 #define _PROCESS_H_
 
+#include "../../../Shared/process_io_config.h"
+#include <stddef.h>
 #include <stdint.h>
 
 #define MAX_PROCESSES 64
@@ -19,6 +21,26 @@ typedef enum {
 	BLOCKED,   // Bloqueado (esperando algo)
 	TERMINATED // Terminado (liberar recursos)
 } ProcessState;
+
+typedef enum { IO_SOURCE_KEYBOARD, IO_SOURCE_PIPE } IOInputSourceType;
+
+typedef enum { IO_SINK_SCREEN, IO_SINK_PIPE } IOOutputSinkType;
+
+typedef struct {
+	IOInputSourceType type;
+	int resource_id;
+} ProcessInputDescriptor;
+
+typedef struct {
+	IOOutputSinkType type;
+	int resource_id;
+} ProcessOutputDescriptor;
+
+typedef struct {
+	ProcessInputDescriptor stdin_desc;
+	ProcessOutputDescriptor stdout_desc;
+	ProcessOutputDescriptor stderr_desc;
+} ProcessIOState;
 
 // Process Control Block
 typedef struct PCB {
@@ -41,6 +63,7 @@ typedef struct PCB {
 	uint16_t waiting_ticks;			   // Contador para aging
 	uint8_t pending_cleanup;		   // 1 si falta liberar recursos luego del context switch
 	uint8_t has_foreground;			   // 1 si el proceso es foreground actual
+	ProcessIOState io_state;		   // Estado de IO del proceso
 } PCB;
 
 // Informacion de proceso para userland
@@ -77,6 +100,32 @@ int processes_initialized();
  */
 process_id_t create_process(const char *name, void (*entry_point)(int, char **), int argc, char **argv,
 							uint8_t priority);
+
+/**
+ * @brief Crea un nuevo proceso con configuracion de IO personalizada
+ * @param name Nombre del proceso
+ * @param entry_point Funcion de entrada
+ * @param argc Cantidad de argumentos
+ * @param argv Argumentos
+ * @param priority Prioridad solicitada
+ * @param io_config Configuracion de IO (puede ser NULL para heredar del padre)
+ * @return PID del proceso creado o -1 si hay error
+ */
+process_id_t create_process_with_io(const char *name, void (*entry_point)(int, char **), int argc, char **argv,
+									uint8_t priority, const process_io_config_t *io_config);
+
+/**
+ * @brief Crea un proceso en foreground con configuracion de IO
+ * @param name Nombre del proceso
+ * @param entry_point Funcion de entrada
+ * @param argc Cantidad de argumentos
+ * @param argv Argumentos
+ * @param priority Prioridad solicitada
+ * @param io_config Configuracion de IO (puede ser NULL)
+ * @return PID del proceso creado o -1 si hay error
+ */
+process_id_t create_process_foreground_with_io(const char *name, void (*entry_point)(int, char **), int argc,
+											   char **argv, uint8_t priority, const process_io_config_t *io_config);
 
 /**
  * @brief Obtiene el PID del proceso actualmente ejecutandose
@@ -142,7 +191,7 @@ int unblock_process(process_id_t pid);
 /**
  * @brief Cambia la prioridad de un proceso
  * @param pid PID del proceso
- * @param new_priority Nueva prioridad (0-4)
+ * @param new_priority Nueva prioridad (0-255)
  * @return 0 si exitoso, -1 si hay error
  */
 int change_priority(process_id_t pid, uint8_t new_priority);
@@ -208,5 +257,27 @@ void process_entry_wrapper(int argc, char **argv, void *rsp, PCB *proc);
  * @brief Sale del proceso actual y pasa a userland
  */
 int exit_current_process(void);
+
+/**
+ * @brief Realiza lectura desde un descriptor del proceso
+ * @param pid PID del proceso
+ * @param fd Descriptor solicitado
+ * @param buffer Buffer de destino
+ * @param count Cantidad de bytes
+ * @return Cantidad leida o -1 si hay error
+ */
+int process_read(process_id_t pid, int fd, char *buffer, size_t count);
+
+/**
+ * @brief Realiza escritura hacia un descriptor del proceso
+ * @param pid PID del proceso
+ * @param fd Descriptor solicitado
+ * @param buffer Buffer origen
+ * @param count Cantidad de bytes
+ * @param color Color utilizado para stdout/errores
+ * @param background Color de fondo
+ * @return Cantidad escrita o -1 si hay error
+ */
+int process_write(process_id_t pid, int fd, const char *buffer, size_t count, size_t color, size_t background);
 
 #endif /* _PROCESS_H_ */
