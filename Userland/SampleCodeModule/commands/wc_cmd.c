@@ -18,7 +18,7 @@ void wc_cmd(int argc, char **argv) {
 	}
 
 	char c;
-	int lines = 0, words = 0, chars = 0;
+	int lines = 1, words = 0, chars = 0;
 	int in_word = 0;
 
 	if (pipe_mode) {
@@ -35,19 +35,38 @@ void wc_cmd(int argc, char **argv) {
 			}
 		}
 	}
+	// else {
+	// 	// Leemos desde stdin (usando getchar porque read es void)
+	// 	while ((c = getchar()) != -1) {
+	// 		putchar(c);
+	// 		chars++;
+	// 		if (c == ' ' || c == '\t')
+	// 			in_word = 0;
+	// 		else if (!in_word) {
+	// 			in_word = 1;
+	// 			words++;
+	// 		}
+	// 	}
+	// 	lines = 1; // una sola línea ingresada
+	// }
 	else {
 		// Leemos desde stdin (usando getchar porque read es void)
-		while ((c = getchar()) != -1 && c != '\n') {
+		while ((c = getchar()) != -1) {
 			putchar(c);
 			chars++;
-			if (c == ' ' || c == '\t')
+
+			if (c == '\n') {
+				lines++;
 				in_word = 0;
+			}
+			else if (c == ' ' || c == '\t') {
+				in_word = 0;
+			}
 			else if (!in_word) {
 				in_word = 1;
 				words++;
 			}
 		}
-		lines = 1; // una sola línea ingresada
 	}
 
 	print("\n");
