@@ -4,7 +4,6 @@
 #include "../include/stinUser.h"
 #include "../include/stringUser.h"
 #include "../tests/include/syscall.h"
-#include "../tests/include/test_util.h"
 #include <stddef.h>
 
 #define MAX_PIPE_ARGS 8

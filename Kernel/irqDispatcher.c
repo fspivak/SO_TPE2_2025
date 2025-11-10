@@ -1,9 +1,8 @@
+#include "include/keyboard.h"
+#include "include/lib.h"
+#include "include/time.h"
 #include "scheduler/include/process.h"
-#include <keyboard.h>
-#include <lib.h>
 #include <stdint.h>
-#include <time.h>
-#include <videoDriver.h>
 
 static void int_20();
 static void int_21();
