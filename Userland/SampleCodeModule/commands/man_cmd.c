@@ -33,7 +33,9 @@ static ManualEntry manual_entries[] = {
 				  "Usage:\n"
 				  "  test_prio <max_value>\n"
 				  "Example:\n"
-				  "  test_prio 1000000\n"},
+				  "  test_prio 1000000\n"
+				  "Or:\n"
+				  "  test_prio           for use default value (100000)\n"},
 	{NULL, NULL}};
 
 void man_cmd(int argc, char **argv) {

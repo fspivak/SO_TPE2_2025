@@ -6,6 +6,14 @@
 
 #define MIN_LEVEL 5 // Tamaño minimo de bloque: 2^5 = 32 bytes
 #define MAX_ORDER 25
+#define MANAGED_HEAP_SIZE (1024 * 1024) // 1 MiB
+
+#ifndef FREE
+#define FREE 0
+#endif
+#ifndef OCCUPIED
+#define OCCUPIED 1
+#endif
 
 MemoryManagerADT memory_manager;
 
@@ -37,47 +45,49 @@ static void remove_block(MemoryManagerADT self, block_t *block) {
 	}
 
 	uint8_t order = block->order;
-	block_t *curr_block = self->free_blocks[order];
+	block_t *curr = self->free_blocks[order];
+	block_t *prev = NULL;
 
-	if (curr_block == NULL) {
-		return;
+	while (curr) {
+		if (curr == block) {
+			if (prev)
+				prev->next = curr->next;
+			else
+				self->free_blocks[order] = curr->next;
+			block->next = NULL;
+			block->status = OCCUPIED;
+			return;
+		}
+		prev = curr;
+		curr = curr->next;
 	}
-
-	// Si es el primero de la lista
-	if (curr_block == block) {
-		self->free_blocks[order]->status = OCCUPIED;
-		self->free_blocks[order] = self->free_blocks[order]->next;
-		return;
-	}
-	while (curr_block->next != NULL && curr_block->next != block) {
-		curr_block = curr_block->next;
-	}
-
-	if (curr_block->next == NULL) {
-		return;
-	}
-
-	block_t *to_remove = curr_block->next;
-	curr_block->next = to_remove->next;
-	to_remove->status = OCCUPIED;
 }
 
 static void split_block(MemoryManagerADT self, int8_t order) {
 	block_t *block = self->free_blocks[order];
+	if (!block)
+		return;
+
 	remove_block(self, block);
 
-	block_t *buddy_block = (block_t *) ((void *) block + (1L << (order - 1)));
-	create_block(self, (void *) buddy_block, order - 1);
-	create_block(self, (void *) block, order - 1);
+	int8_t new_order = order - 1;
+	size_t half_size = (1UL << new_order);
+
+	block_t *buddy_block = (block_t *) ((uint8_t *) block + half_size);
+
+	create_block(self, (void *) block, new_order);
+	create_block(self, (void *) buddy_block, new_order);
 }
 
-static block_t *merge(MemoryManagerADT self, block_t *block, block_t *buddy_block) {
-	if (block == NULL || buddy_block == NULL) {
+static block_t *merge(MemoryManagerADT self, block_t *a, block_t *b) {
+	if (!a || !b) {
 		return NULL;
 	}
 
-	block_t *left = block < buddy_block ? block : buddy_block;
-	block_t *right = block < buddy_block ? buddy_block : block;
+	block_t *left = (a < b) ? a : b;
+	block_t *right = (a < b) ? b : a;
+
+	/* Intentamos quitarlos si están en la lista (si no están, remove no hace nada) */
 	remove_block(self, left);
 	remove_block(self, right);
 
@@ -88,128 +98,128 @@ static block_t *merge(MemoryManagerADT self, block_t *block, block_t *buddy_bloc
 
 MemoryManagerADT memory_manager_init(void *manager_memory, void *managed_memory) {
 	MemoryManagerADT mm = (MemoryManagerADT) manager_memory;
-
 	mm->managed_memory_start = (uint64_t) managed_memory;
-	uint64_t managed_size = MEMORY_END - (uint64_t) managed_memory;
-	int current_size = 2;
-	int level = 1;
-	while (current_size < managed_size) {
-		level++;
-		current_size *= 2;
-	}
 
+	/* calcular potencia de 2 máxima <= MANAGED_HEAP_SIZE */
+	int level = 0;
+	uint64_t heap_size = 1;
+	while ((heap_size << 1) <= MANAGED_HEAP_SIZE && level + 1 < MAX_ORDER) {
+		heap_size <<= 1;
+		level++;
+	}
 	mm->max_order = level;
-	mm->info.total_memory = managed_size;
+
+	/* alinear inicio del heap a 2^max_order */
+	uint64_t aligned_start = (mm->managed_memory_start + (heap_size - 1)) & ~(heap_size - 1);
+	mm->managed_memory_start = aligned_start;
+
+	for (int i = 0; i < MAX_ORDER; i++)
+		mm->free_blocks[i] = NULL;
+
+	create_block(mm, (void *) aligned_start, mm->max_order);
+
+	mm->info.total_memory = heap_size;
 	mm->info.used_memory = 0;
-	mm->info.free_memory = managed_size;
+	mm->info.free_memory = heap_size;
 
 	const char *type = "buddy";
-	for (int i = 0; i < 6; i++) {
+	for (int i = 0; i < 6; i++)
 		mm->info.mm_type[i] = (i < 5) ? type[i] : '\0';
-	}
-
-	for (int i = 0; i < MAX_ORDER; i++) {
-		mm->free_blocks[i] = NULL;
-	}
-	create_block(mm, managed_memory, level);
 
 	return mm;
 }
 
 void *memory_alloc(MemoryManagerADT self, const uint64_t size) {
-	if (size == 0 || size > self->info.total_memory) {
+	if (size == 0 || size > self->info.total_memory)
 		return NULL;
-	}
 
-	int8_t order = 1;
-	int64_t block_size = 2;
-	while (block_size < size + sizeof(block_t)) {
+	uint64_t total_size = size + sizeof(block_t);
+	int8_t order = MIN_LEVEL;
+	uint64_t block_size = (1UL << order);
+
+	while (block_size < total_size && order < self->max_order) {
 		order++;
-		block_size *= 2;
+		block_size = (1UL << order);
 	}
+	if (order > self->max_order)
+		return NULL;
 
-	order = (MIN_LEVEL > order) ? MIN_LEVEL : order;
-	if (self->free_blocks[order] == NULL) {
-		uint8_t order_approx = 0;
+	int8_t o = order;
+	while (o <= self->max_order && self->free_blocks[o] == NULL)
+		o++;
+	if (o > self->max_order)
+		return NULL;
 
-		for (uint8_t i = order + 1; i <= self->max_order && order_approx == 0; i++) {
-			if (self->free_blocks[i] != NULL) {
-				order_approx = i;
-			}
-		}
-
-		if (order_approx == 0) {
-			// No hay bloques disponibles
-			return NULL;
-		}
-		while (order_approx > order) {
-			split_block(self, order_approx);
-			order_approx--;
-		}
+	while (o > order) {
+		split_block(self, o);
+		o--;
 	}
 
 	block_t *block = self->free_blocks[order];
-	if (block == NULL) {
+	if (!block)
 		return NULL;
-	}
 
 	remove_block(self, block);
 	block->status = OCCUPIED;
 
-	uint64_t allocated_size = (1UL << order);
-	self->info.used_memory += allocated_size;
-	self->info.free_memory -= allocated_size;
+	self->info.used_memory += (1UL << order);
+	self->info.free_memory -= (1UL << order);
 
 	return (void *) ((uint8_t *) block + sizeof(block_t));
 }
 
 int memory_free(MemoryManagerADT self, void *ptr) {
-	if (ptr == NULL || ptr < (void *) self->managed_memory_start) {
+	if (!ptr)
+		return -1;
+
+	uint64_t start = self->managed_memory_start;
+	uint64_t end = start + self->info.total_memory;
+
+	if ((uint64_t) ptr <= start || (uint64_t) ptr > end)
+		return -1;
+
+	block_t *block = (block_t *) ((uint8_t *) ptr - sizeof(block_t));
+	if (!block || block->status == FREE) {
 		return -1;
 	}
 
-	block_t *block = (block_t *) (ptr - sizeof(block_t));
-	if (block == NULL || block->status == FREE || (uint64_t) block >= MEMORY_END) {
-		return -1;
-	}
-
+	int8_t original_order = block->order;
 	block->status = FREE;
 
-	uint64_t block_pos = (uint64_t) ((void *) block - self->managed_memory_start);
-	block_t *buddy_block = (block_t *) (self->managed_memory_start + (((uint64_t) block_pos) ^ ((1L << block->order))));
+	// Intentamos fusionar todo lo posible (merge global)
+	uint64_t offset = (uint64_t) ((uint8_t *) block - start);
+	block_t *buddy = (block_t *) (start + (offset ^ (1UL << block->order)));
 
-	if (buddy_block == NULL || (uint64_t) buddy_block < self->managed_memory_start ||
-		(uint64_t) buddy_block >= MEMORY_END) {
-		create_block(self, (void *) block, block->order);
-		return 0;
+	while ((uint64_t) buddy >= start && (uint64_t) buddy < end && buddy->status == FREE &&
+		   buddy->order == block->order) {
+		block = merge(self, block, buddy);
+		offset = (uint64_t) ((uint8_t *) block - start);
+		buddy = (block_t *) (start + (offset ^ (1UL << block->order)));
 	}
 
-	while (block && buddy_block && block->order < self->max_order && buddy_block->status == FREE &&
-		   buddy_block->order == block->order) {
-		block = merge(self, block, buddy_block);
-		if (block == NULL) {
-			return -1;
-		}
-		block->status = FREE;
-
-		block_pos = (uint64_t) ((void *) block - self->managed_memory_start);
-		buddy_block =
-			(block_t *) (block_t *) (self->managed_memory_start + (((uint64_t) block_pos) ^ ((1L << block->order))));
-
-		if ((uint64_t) buddy_block < self->managed_memory_start || (uint64_t) buddy_block >= MEMORY_END) {
-			break;
-		}
-	}
-
-	if (block == NULL) {
-		return -1;
-	}
-
+	// Reinsertamos el bloque fusionado
 	create_block(self, (void *) block, block->order);
 
-	uint64_t freed_size = (1UL << block->order);
-	self->info.used_memory -= freed_size;
-	self->info.free_memory += freed_size;
+	// Ajustamos correctamente la contabilidad
+	uint64_t freed_size = (1UL << original_order);
+	if (self->info.used_memory >= freed_size)
+		self->info.used_memory -= freed_size;
+	if (self->info.free_memory + freed_size <= self->info.total_memory)
+		self->info.free_memory += freed_size;
+
+	// 🔹 Nuevo: intentar un merge adicional de toda la lista libre (compactación global)
+	for (int o = 0; o < self->max_order - 1; o++) {
+		block_t *curr = self->free_blocks[o];
+		while (curr) {
+			uint64_t off = (uint64_t) ((uint8_t *) curr - start);
+			block_t *bud = (block_t *) (start + (off ^ (1UL << o)));
+			if ((uint64_t) bud >= start && (uint64_t) bud < end && bud->status == FREE && bud->order == curr->order) {
+				curr = merge(self, curr, bud);
+				create_block(self, curr, curr->order);
+			}
+			curr = curr->next;
+		}
+	}
 
 	return 0;
 }

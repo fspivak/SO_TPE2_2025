@@ -9,26 +9,30 @@
 extern uint64_t test_prio(uint64_t argc, char *argv[]);
 
 void test_prio_main(int argc, char **argv) {
-	if (argc < 2 || argv == NULL || argv[1] == NULL) {
-		print_format("test_prio: Usage: test_prio <max_value>\n");
-		print_format("  max_value: Maximum value for the loop (must be positive)\n");
-		print_format("  Example: test_prio 1000000\n");
-		return;
+	char default_value[] = "1000000";
+	char *arg_value = default_value;
+
+	// Si el usuario pasó un argumento, usarlo
+	if (argc >= 2 && argv != NULL && argv[1] != NULL) {
+		arg_value = argv[1];
+	}
+	else {
+		print_format("test_prio: no max_value provided, using default = %s\n", "1000000");
 	}
 
-	int max_value = validate_non_negative_int("test_prio", "max_value", argc, argv, 1);
+	int max_value = validate_non_negative_int("test_prio", "max_value", 2, &arg_value, 0);
 	if (max_value < 0) {
 		return;
 	}
-	if (max_value == 0) {
-		print_format("ERROR: max_value must be greater than 0\n");
+	if (max_value < 10000) {
+		print_format("ERROR: max_value must be greater than 10000\n");
 		return;
 	}
 
 	print_format("=== Running Priority Test ===\n");
-	print_format("Starting test_prio with max_value: %s\n\n", argv[1]);
+	print_format("Starting test_prio with max_value: %s\n\n", arg_value);
 
-	char *args[] = {argv[1], NULL};
+	char *args[] = {arg_value, NULL};
 
 	int64_t result = test_prio(1, args);
 

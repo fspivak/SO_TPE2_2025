@@ -7,7 +7,7 @@
 extern uint64_t test_mm(uint64_t argc, char *argv[]);
 
 void test_mm_main(int argc, char **argv) {
-	char *size_arg = "1048576"; // 1MB por defecto
+	char *size_arg = "102400";
 	if (argc > 1 && argv != NULL && argv[1] != NULL) {
 		int size = validate_non_negative_int("test_mm", "size", argc, argv, 1);
 		if (size < 0) {

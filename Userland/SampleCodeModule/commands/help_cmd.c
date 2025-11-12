@@ -50,7 +50,7 @@ static void help_main(int argc, char **argv) {
 	print_format("  sh                - Create a new shell\n");
 	print_format("  cat               - Display input (stdin) to output or write to a pipe\n");
 	print_format("  wc                - Count lines, words and characters from input or pipe\n");
-	print_format("  filter <word>     - Show only lines containing <word> from input or pipe\n");
+	print_format("  filter            - It filters out the vowels from input or pipe\n");
 	print_format("  test_mm           - See 'man test_mm' for details\n");
 	print_format("  test_process      - See 'man test_process' for details\n");
 	print_format("  test_sync         - See 'man test_sync' for details\n");
