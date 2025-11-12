@@ -233,17 +233,6 @@ static uint32_t uintToBase(uint64_t value, char *buffer, uint32_t base) {
 	return digits;
 }
 
-void zoomIn() {
-	zoom(1);
-}
-void zoomOut() {
-	zoom(-1);
-}
-
-void imprimirRegistros() {
-	impRegs();
-}
-
 void sleepUser(int segs) {
 	if (segs <= 0) {
 		segs = 1;

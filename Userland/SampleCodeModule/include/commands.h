@@ -56,6 +56,13 @@ int command_spawn_process(const char *name, void (*entry)(int, char **), int arg
 void help_cmd(int argc, char **argv);
 
 /**
+ * @brief Muestra un manual de ayuda para ciertos comandos disponibles
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void man_cmd(int argc, char **argv);
+
+/**
  * @brief Limpia la pantalla
  * @param argc Cantidad de argumentos
  * @param argv Array de argumentos
@@ -91,13 +98,6 @@ void test_mm_cmd(int argc, char **argv);
 void test_process_cmd(int argc, char **argv);
 
 /**
- * @brief Ejecuta el test AB (dos procesos alternando A y B)
- * @param argc Cantidad de argumentos
- * @param argv Array de argumentos
- */
-void test_ab_cmd(int argc, char **argv);
-
-/**
  * @brief Funcion principal del test del memory manager
  * @param argc Cantidad de argumentos
  * @param argv Array de argumentos
@@ -110,13 +110,6 @@ void test_mm_main(int argc, char **argv);
  * @param argv Array de argumentos
  */
 void test_process_main(int argc, char **argv);
-
-/**
- * @brief Funcion principal del test AB
- * @param argc Cantidad de argumentos
- * @param argv Array de argumentos
- */
-void test_ab_main(int argc, char **argv);
 
 /**
  * @brief Muestra el PID del proceso actual
@@ -166,9 +159,6 @@ void nice_cmd(int argc, char **argv);
  * @param argv Array de argumentos
  */
 void block_cmd(int argc, char **argv);
-
-/////////////TODO: fletar este test////////////////
-void test_pipe_cmd(int argc, char **argv);
 
 /**
  * @brief Valida un argumento de PID y verifica que existe

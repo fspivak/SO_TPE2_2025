@@ -1,6 +1,3 @@
-//////////////TODO: Ver si es totalmente necesario, creo que si xq los pipes tienen nombre para que se pueda compartir
-/// entre procesos
-
 #ifndef STRING_KERNEL_H
 #define STRING_KERNEL_H
 

@@ -38,12 +38,6 @@ int read_bytes(int fd, char *buffer, int count);
 void sleep(int seg);
 
 /**
- * @brief Cambia el zoom de la pantalla
- * @param specifier Nivel de zoom (1-3)
- */
-void zoom(int specifier);
-
-/**
  * @brief Dibuja un pixel en las coordenadas especificadas
  * @param color Color del pixel
  * @param x Coordenada X

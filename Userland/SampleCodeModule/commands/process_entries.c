@@ -8,25 +8,7 @@
 
 extern int64_t test_processes(uint64_t argc, char *argv[]);
 
-extern int64_t test_ab(uint64_t argc, char *argv[]);
-
 extern uint64_t test_mm(uint64_t argc, char *argv[]);
-
-void test_ab_entry(uint64_t argc, char *argv[]) {
-	print_format("\n=== Running AB Test ===\n");
-
-	uint64_t result = test_ab(argc, argv);
-
-	if (result != 0) {
-		print_format("test_ab: ERROR occurred during test\n");
-	}
-	else {
-		print_format("test_ab: Test completed successfully\n");
-	}
-
-	print_format("\n=== AB Test Completed ===\n\n");
-	return;
-}
 
 void test_process_entry(uint64_t argc, char *argv[]) {
 	print_format("\n=== Running Process Test ===\n");

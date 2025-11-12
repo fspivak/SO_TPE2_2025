@@ -13,18 +13,6 @@
 uint64_t test_mm(uint64_t argc, char *argv[]);
 
 /* Tests de Procesos */
-/**
- * @brief Test AB - Crea dos procesos que imprimen 'A' y 'B' alternadamente
- * @param argc Numero de argumentos (ignorado)
- * @param argv Array de argumentos (ignorado)
- * @return 0 si el test termina correctamente, -1 si hay error
- */
-int64_t test_ab(uint64_t argc, char *argv[]); // TODO: eliminar
-
-/**
- * @brief Wrapper para ejecutar test_ab desde terminal
- */
-void run_test_ab(); // TODO: eliminar
 
 /**
  * @brief Test de prioridades - Verifica que las prioridades funcionen correctamente

@@ -10,14 +10,6 @@ void printColor(char *string, int color, int bg);
 
 void putCharColor(char carac, int color, int bg);
 
-void zoomIn();
-
-void zoomOut();
-
-void imprimirRegistros();
-
-void printRegistros(uint64_t *registros);
-
 void sleepUser(int segs);
 
 void clock();

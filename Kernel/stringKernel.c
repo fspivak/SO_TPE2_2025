@@ -1,6 +1,3 @@
-//////////////TODO: Ver si es totalmente necesario, creo que si xq los pipes tienen nombre para que se pueda compartir
-/// entre procesos
-
 #include "include/stringKernel.h"
 
 int kstrcmp(const char *s1, const char *s2) {

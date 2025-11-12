@@ -4,7 +4,6 @@
 #include "include/libasmUser.h"
 #include "include/process_entries.h"
 #include "include/screen.h"
-#include "include/snake.h"
 #include "include/stinUser.h"
 #include "include/stringUser.h"
 #include <stddef.h>
@@ -12,9 +11,6 @@
 
 #define STARTING_POSITION_X 0
 #define STARTING_POSITION_Y 0
-
-#define MAX_ZOOM 3
-#define MIN_ZOOM 1
 
 /* Configuracion de pantalla por zoom level */
 int charsPerLine[] = {128, 64, 42};
@@ -119,15 +115,13 @@ void terminal() {
 			if (!strcmp(command, "help")) {
 				help_cmd(0, NULL);
 			}
-			else if (!strcmp(command, "zoom in")) {
-				print_format("Zoom not available in VGA text mode\n");
+			else if (!strcmp(command, "man")) {
+				man_cmd(0, NULL);
 			}
-			else if (!strcmp(command, "zoom out")) {
-				print_format("Zoom not available in VGA text mode\n");
+			else if (startsWith(command, "man ")) {
+				execute_command_with_args(command, "man ", 4, man_cmd);
 			}
-			else if (!strcmp(command, "showRegisters")) {
-				imprimirRegistros();
-			}
+
 			else if (!strcmp(command, "ps")) {
 				ps_cmd(0, NULL);
 			}
@@ -137,9 +131,7 @@ void terminal() {
 			else if (!strcmp(command, "exit")) {
 				exit_shell();
 			}
-			else if (!strcmp(command, "snake")) {
-				print_format("Snake not available in VGA text mode\n");
-			}
+
 			else if (!strcmp(command, "clock")) {
 				callClock();
 			}
@@ -149,9 +141,7 @@ void terminal() {
 			else if (!strcmp(command, "mem")) {
 				mem_cmd(0, NULL);
 			}
-			else if (!strcmp(command, "test_ab")) {
-				test_ab_cmd(0, NULL);
-			}
+
 			else if (!strcmp(command, "test_mm")) {
 				test_mm_cmd(0, NULL);
 			}
@@ -213,7 +203,7 @@ void terminal() {
 			}
 			else if (c == 4) { // Ctrl+D
 				print_format("\n[EOF]\n");
-				// close_fd(0); // 🔹 (tu syscall que cierre el descriptor 0, STDIN)
+				// close_fd(0); // (tu syscall que cierre el descriptor 0, STDIN)
 				break; // termina la lectura actual
 			}
 			// Detectar comando con pipe
@@ -227,12 +217,6 @@ void terminal() {
 				filter_cmd(0, NULL);
 			}
 
-			//////////////////TODO: borrar estos tests/////////////////////////////
-
-			else if (!strcmp(command, "test_pipe")) {
-				test_pipe_cmd(0, NULL);
-			}
-			///////////////////////////////////////////////////////////////////////////////
 			else if (command[0] != '\0') {
 				print_format("Command '%s' not found\n", command);
 			}
