@@ -60,6 +60,7 @@ make clean        # Limpia binarios
 
 ---
 
+
 ## Comandos Disponibles
 
 ### Sistema
@@ -67,14 +68,34 @@ make clean        # Limpia binarios
 - `clear` - Limpia pantalla
 - `clock` - Hora actual
 - `exit` - Finaliza el sistema
-
+- `sh` - Crea una nueva shell anidada.
+  
 ### Memoria
 - `test_mm <bytes>` - Test de memory manager
+- `mem`             - Muestra el estado actual del memory manager.
 
 ### Procesos
 - `ps` - Lista procesos activos
 - `getpid` - PID del proceso actual
-- `test_processes <n>` - Test de creacion/destruccion de procesos
+- `test_process <n>` - Test de creacion/destruccion de procesos
+- `kill <pid>` - Termina un proceso.
+- `block <pid>` / `nice <pid> <prio>` - Cambia el estado o prioridad de un proceso.
+- `test_sync <n> <use_sem>` - Test de sincronización con semáforos (use_sem = 1 usa semáforos, 0 no).
+- `test_prio <max_value>` - Evalúa la planificación por prioridad.
+
+
+---
+
+
+### Ejemplos de Uso
+
+```bash
+cat | wc
+filter <palabra> | wc
+test_process 5
+test_sync 1000 1
+test_prio 500000
+```
 
 ---
 
@@ -112,5 +133,6 @@ docker pull agodio/itba-so-multi-platform:3.0
 - **Video Driver**: Modo texto VGA 80x25
 - **Memory Manager**: Implementaciones Simple (bitmap) y Buddy (binary tree)
 - **Scheduler**: Round Robin con prioridades
+
 
 ---
