@@ -36,6 +36,13 @@ static ManualEntry manual_entries[] = {
 				  "  test_prio 1000000\n"
 				  "Or:\n"
 				  "  test_prio           for use default value (100000)\n"},
+	{"mvar", "\nmvar - MVar Writers and Readers synchronization.\n"
+			 "Usage:\n"
+			 "  mvar <writers> <readers>\n"
+			 "    writers: number of writers to spawn\n"
+			 "    readers: number of readers to spawn\n"
+			 "Example:\n"
+			 "  mvar 2 2\n"},
 	{NULL, NULL}};
 
 void man_cmd(int argc, char **argv) {

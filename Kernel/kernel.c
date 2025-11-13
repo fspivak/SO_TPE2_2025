@@ -1,6 +1,5 @@
 #include "include/idtLoader.h"
 #include "include/moduleLoader.h"
-#include "include/stdinout.h"
 #include "include/time.h"
 #include "include/videoDriver.h"
 #include "memory-manager/include/memory_manager.h"

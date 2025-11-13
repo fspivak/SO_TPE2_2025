@@ -118,11 +118,20 @@ int read_keyboard(char *buffer, int len) {
 	return read_count;
 }
 
-/* Imprime un string en la salida estandar */
-/* Terminara siendo la syscall write */
 void write(const char *string, int len, int color, int background) {
-	/* En modo texto VGA, color y fondo se ignoran */
+	if (string == NULL || len <= 0) {
+		return;
+	}
+
+	uint8_t previous_color = vd_get_color();
+	uint8_t fg = (uint8_t) (color & 0x0F);
+	uint8_t bg = (uint8_t) (background & 0x0F);
+	uint8_t attribute = (uint8_t) ((bg << 4) | fg);
+	vd_set_color(attribute);
+
 	for (int i = 0; i < len; i++) {
 		vd_draw_char(string[i]);
 	}
+
+	vd_set_color(previous_color);
 }

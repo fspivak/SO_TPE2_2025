@@ -163,6 +163,12 @@ void terminal() {
 			else if (startsWith(command, "test_prio ")) {
 				execute_command_with_args(command, "test_prio ", 10, test_prio_cmd);
 			}
+			else if (!strcmp(command, "mvar")) {
+				mvar_cmd(0, NULL);
+			}
+			else if (startsWith(command, "mvar ")) {
+				execute_command_with_args(command, "mvar ", 5, mvar_cmd);
+			}
 			else if (!strcmp(command, "sh")) {
 				if (run_in_background) {
 					print_format("ERROR: sh cannot be run in background\n");

@@ -275,4 +275,11 @@ void pipes_cmd(char *input);
  */
 void *find_function(char *cmd);
 
+/**
+ * @brief Crea un proceso que imprime su PID periodicamente
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void mvar_cmd(int argc, char **argv);
+
 #endif // COMMANDS_H
