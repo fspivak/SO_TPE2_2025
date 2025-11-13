@@ -69,6 +69,9 @@ make clean        # Limpia binarios
 - `clock` - Hora actual
 - `exit` - Finaliza el sistema
 - `sh` - Crea una nueva shell anidada.
+- `cat` - Permite imprimir en pantalla el contenido recibido por entrada estándar (stdin).
+- `wc` - Cuenta las lineas, palabras y caracteres de un texto ingresado
+- `filter` - Filtra las vocales de un texto ingresado
   
 ### Memoria
 - `test_mm <bytes>` - Test de memory manager
@@ -91,11 +94,59 @@ make clean        # Limpia binarios
 
 ```bash
 cat | wc
-filter <palabra> | wc
+filter | wc
 test_process 5
 test_sync 1000 1
 test_prio 500000
 ```
+
+---
+
+### Análisis Estático con PVS-Studio
+
+Para complementar las pruebas dinámicas del proyecto, se integró PVS-Studio como herramienta de análisis estático.
+El objetivo es detectar errores comunes en C como:
+
+  - uso de punteros sin verificar
+
+  - desbordes de memoria potenciales
+
+  - conversiones peligrosas de tipos
+
+  - alineación incorrecta de estructuras
+
+  - operaciones UB (Undefined Behavior)
+
+  - código muerto o no alcanzable
+
+  - condiciones lógicas incorrectas
+    
+
+El análisis se ejecuta automáticamente mediante el script:
+
+```bash
+./Valgrid_PVS/run_quality.sh 
+```
+
+Este script:
+
+  - Recompila el proyecto utilizando: 
+`pvs-studio-analyzer trace -- make`  para capturar todas las invocaciones reales de compilación.
+
+  - Ejecuta el analizador con: 
+`pvs-studio-analyzer analyze -f strace_out -o logs/pvs.log`
+
+  - Genera un informe HTML completo mediante:
+`plog-converter -t fullhtml logs/pvs.log -o logs/pvs/pvs_report.html`
+
+Warnings externos: 
+
+El bootloader entregado por la catedra de "Arquitectura de Computadoras" provoca los siguientes warnings al correr el pvs:
+  - " `The 'disk' pointer was utilized before it was verified against nullptr. Check lines: 554, 577` "
+    
+  - " `The pointer 'dir_copy' is cast to a more strictly aligned pointer type.`"
+    
+  - " `The pointer 'Directory' is cast to a more strictly aligned pointer type.`" 
 
 ---
 
@@ -136,3 +187,4 @@ docker pull agodio/itba-so-multi-platform:3.0
 
 
 ---
+
