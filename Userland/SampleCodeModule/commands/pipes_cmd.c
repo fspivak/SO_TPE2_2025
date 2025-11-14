@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
 #include "../include/commands.h"
 #include "../include/libasmUser.h"
 #include "../include/stinUser.h"
@@ -132,7 +135,7 @@ void pipes_cmd(char *input) {
 	build_reader_config(&reader_config, (int) pipe_id);
 	build_writer_config(&writer_config, (int) pipe_id);
 
-	// CRITICO: Crear el LECTOR PRIMERO (como en Nahue)
+	// Crear el LECTOR PRIMERO (como en Nahue)
 	// El lector se bloquea inmediatamente esperando datos en sem_read_name (inicializado en 0)
 	// Cuando el escritor escribe, hace sem_post en sem_read_name y despierta al lector
 	// Esto evita race conditions de forma natural sin necesidad de yields o verificaciones complejas
@@ -179,7 +182,6 @@ static void (*resolve_command_function(const char *cmd))(int, char **) {
 
 	// Resolver comandos de la misma forma que el terminal
 	// Esto permite que cualquier comando soportado por el terminal funcione en pipes
-	// Los comandos de test (test_mm, test_process, test_sync, test_prio) NO pueden usarse en pipes
 	if (!strcmp(cmd, "cat")) {
 		return cat_main;
 	}
@@ -218,7 +220,7 @@ static void build_writer_config(process_io_config_t *config, int pipe_id) {
 	config->stdin_resource = PROCESS_IO_RESOURCE_INVALID;
 	config->stdout_type = PROCESS_IO_STDOUT_PIPE;
 	config->stdout_resource = pipe_id;
-	// CRITICO: stderr debe ser SCREEN para que el echo de cat funcione
+	// stderr debe ser SCREEN para que el echo de cat funcione
 	// Si es INHERIT, puede que no herede correctamente la configuracion del padre
 	config->stderr_type = PROCESS_IO_STDERR_SCREEN;
 	config->stderr_resource = PROCESS_IO_RESOURCE_INVALID;

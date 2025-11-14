@@ -1,3 +1,5 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
 #include "include/pipe.h"
 #include "include/stringKernel.h"
@@ -5,9 +7,6 @@
 #include "scheduler/include/process.h"
 #include "scheduler/include/semaphore.h"
 // #include "include/memoryManager.h"
-
-// Flag para habilitar logs de debug de pipes
-#define PIPE_DEBUG 0 // Deshabilitado - cambiar a 1 para habilitar logs
 
 static Pipe pipes[MAX_PIPES];
 
@@ -140,18 +139,7 @@ int pipe_open(char *name) {
 				pipe_destroy_if_unused(p);
 				return -1;
 			}
-#if PIPE_DEBUG
-			vd_print("[PIPE] Created pipe id=");
-			vd_print_dec(i);
-			vd_print(" name=");
-			if (name != NULL) {
-				vd_print(name);
-			}
-			else {
-				vd_print("(null)");
-			}
-			vd_print(" readers=0 writers=0\n");
-#endif
+
 			return i;
 		}
 	}
@@ -169,11 +157,6 @@ int pipe_close(int id) {
 
 int pipe_write(int id, const char *data, uint64_t size) {
 	if (id < 0 || id >= MAX_PIPES || !pipes[id].active || data == NULL) {
-#if PIPE_DEBUG
-		vd_print("[PIPE] ERROR: write failed - invalid pipe id=");
-		vd_print_dec(id);
-		vd_print("\n");
-#endif
 		return -1;
 	}
 
@@ -182,19 +165,6 @@ int pipe_write(int id, const char *data, uint64_t size) {
 
 	Pipe *p = &pipes[id];
 	uint64_t written = 0;
-#if PIPE_DEBUG
-	vd_print("[PIPE] WRITE attempt pipe id=");
-	vd_print_dec(id);
-	vd_print(" size=");
-	vd_print_dec(size);
-	vd_print(" readers=");
-	vd_print_dec(p->readers);
-	vd_print(" writers=");
-	vd_print_dec(p->writers);
-	vd_print(" count=");
-	vd_print_dec(p->count);
-	vd_print("\n");
-#endif
 
 	// Logica simplificada como en Nahue: sem_wait -> escribir -> sem_post
 	// Escribir caracter por caracter para permitir escritura en tiempo real
@@ -238,39 +208,12 @@ int pipe_write(int id, const char *data, uint64_t size) {
 		// (como en Nahue: sem_post(read_sem))
 		// El lector se despertara y leera del buffer circular
 		sem_post(p->sem_read_name);
-#if PIPE_DEBUG
-		vd_print("[PIPE] WRITE wrote char='");
-		if (data[i] >= 32 && data[i] <= 126) {
-			char c = data[i];
-			vd_print(&c);
-		}
-		else {
-			vd_print("?");
-		}
-		vd_print("' pipe id=");
-		vd_print_dec(id);
-		vd_print(" count=");
-		vd_print_dec(p->count);
-		vd_print("\n");
-#endif
 	}
-#if PIPE_DEBUG
-	vd_print("[PIPE] WRITE completed pipe id=");
-	vd_print_dec(id);
-	vd_print(" bytes_written=");
-	vd_print_dec(written);
-	vd_print("\n");
-#endif
 	return (int) written;
 }
 
 int pipe_read(int id, char *buffer, uint64_t size) {
 	if (id < 0 || id >= MAX_PIPES || !pipes[id].active || buffer == NULL) {
-#if PIPE_DEBUG
-		vd_print("[PIPE] ERROR: read failed - invalid pipe id=");
-		vd_print_dec(id);
-		vd_print("\n");
-#endif
 		return -1;
 	}
 
@@ -279,19 +222,6 @@ int pipe_read(int id, char *buffer, uint64_t size) {
 
 	Pipe *p = &pipes[id];
 	uint64_t read_count = 0;
-#if PIPE_DEBUG
-	vd_print("[PIPE] READ attempt pipe id=");
-	vd_print_dec(id);
-	vd_print(" size=");
-	vd_print_dec(size);
-	vd_print(" readers=");
-	vd_print_dec(p->readers);
-	vd_print(" writers=");
-	vd_print_dec(p->writers);
-	vd_print(" count=");
-	vd_print_dec(p->count);
-	vd_print("\n");
-#endif
 
 	// Logica simplificada como en Nahue: sem_wait -> leer -> sem_post
 	// El lector se bloquea automaticamente si no hay datos (sem_read_name == 0)
@@ -303,25 +233,12 @@ int pipe_read(int id, char *buffer, uint64_t size) {
 
 		// Esperar datos disponibles - se bloquea si no hay datos
 		// Cuando el escritor escribe, hace sem_post y despierta al lector
-		// CRITICO: sem_wait deberia bloquearse si no hay datos (value == 0)
+		// sem_wait deberia bloquearse si no hay datos (value == 0)
 		// Si retorna -1, es un error critico (semaforo no existe, cola llena, etc.)
 		// NO debemos retornar EOF aqui - sem_wait debe bloquearse hasta que haya datos
-#if PIPE_DEBUG
-		vd_print("[PIPE] READ blocking on sem_wait pipe id=");
-		vd_print_dec(id);
-		vd_print("\n");
-#endif
 		int wait_result = sem_wait(p->sem_read_name);
-#if PIPE_DEBUG
-		vd_print("[PIPE] READ woke up from sem_wait pipe id=");
-		vd_print_dec(id);
-		vd_print(" result=");
-		vd_print_dec(wait_result);
-		vd_print("\n");
-#endif
+
 		if (wait_result != 0) {
-			// Error critico: semaforo no existe o cola llena
-			// Si ya leimos algo, retornar lo leido
 			if (read_count > 0) {
 				return (int) read_count;
 			}
@@ -329,8 +246,6 @@ int pipe_read(int id, char *buffer, uint64_t size) {
 			if (!p->active) {
 				return 0; // EOF
 			}
-			// Error critico - el semaforo deberia existir y bloquearse
-			// Esto indica un problema de configuracion
 			return -1; // Error
 		}
 
@@ -359,17 +274,10 @@ int pipe_read(int id, char *buffer, uint64_t size) {
 			if (p->writers == 0) {
 				// No hay escritores y no hay datos - EOF
 				// El escritor terminó y nos despertó para indicar EOF
-				// CRITICO: Liberar ambos semaforos antes de retornar EOF
-				// sem_read_name fue adquirido con sem_wait, debe liberarse
+				// Liberar ambos semaforos antes de retornar EOF
 				sem_post(p->sem_mutex_name);
 				sem_post(p->sem_read_name);
-#if PIPE_DEBUG
-				vd_print("[PIPE] READ EOF detected pipe id=");
-				vd_print_dec(id);
-				vd_print(" bytes_read=");
-				vd_print_dec(read_count);
-				vd_print("\n");
-#endif
+
 				// Retornar lo que hayamos leido hasta ahora (puede ser 0 si no leimos nada)
 				return (int) read_count;
 			}
@@ -396,35 +304,15 @@ int pipe_read(int id, char *buffer, uint64_t size) {
 		// Esto permite que el escritor continue escribiendo si estaba bloqueado
 		sem_post(p->sem_write_name);
 	}
-#if PIPE_DEBUG
-	vd_print("[PIPE] READ completed pipe id=");
-	vd_print_dec(id);
-	vd_print(" bytes_read=");
-	vd_print_dec(read_count);
-	vd_print("\n");
-#endif
 	return (int) read_count;
 }
 
 int pipe_register_reader(int id) {
 	if (id < 0 || id >= MAX_PIPES || !pipes[id].active) {
-#if PIPE_DEBUG
-		vd_print("[PIPE] ERROR: register_reader failed - invalid pipe id=");
-		vd_print_dec(id);
-		vd_print("\n");
-#endif
 		return -1;
 	}
 	pipes[id].readers++;
-#if PIPE_DEBUG
-	vd_print("[PIPE] Registered READER on pipe id=");
-	vd_print_dec(id);
-	vd_print(" readers=");
-	vd_print_dec(pipes[id].readers);
-	vd_print(" writers=");
-	vd_print_dec(pipes[id].writers);
-	vd_print("\n");
-#endif
+
 	return 0;
 }
 
@@ -441,23 +329,9 @@ int pipe_unregister_reader(int id) {
 
 int pipe_register_writer(int id) {
 	if (id < 0 || id >= MAX_PIPES || !pipes[id].active) {
-#if PIPE_DEBUG
-		vd_print("[PIPE] ERROR: register_writer failed - invalid pipe id=");
-		vd_print_dec(id);
-		vd_print("\n");
-#endif
 		return -1;
 	}
 	pipes[id].writers++;
-#if PIPE_DEBUG
-	vd_print("[PIPE] Registered WRITER on pipe id=");
-	vd_print_dec(id);
-	vd_print(" readers=");
-	vd_print_dec(pipes[id].readers);
-	vd_print(" writers=");
-	vd_print_dec(pipes[id].writers);
-	vd_print("\n");
-#endif
 	return 0;
 }
 
@@ -473,40 +347,7 @@ int pipe_unregister_writer(int id) {
 		pipes[id].writers--;
 	}
 
-#if PIPE_DEBUG
-	vd_print("[PIPE] Unregister WRITER pipe id=");
-	vd_print_dec(id);
-	vd_print(" had_writers=");
-	vd_print_dec(had_writers);
-	vd_print(" writers=");
-	vd_print_dec(pipes[id].writers);
-	vd_print(" readers=");
-	vd_print_dec(pipes[id].readers);
-	vd_print(" count=");
-	vd_print_dec(pipes[id].count);
-	vd_print("\n");
-#endif
-
-	// CRITICO: Despertar lectores cuando no hay mas writers
-	// Si habia writers y ahora no hay, o si nunca hubo writers pero hay lectores esperando,
-	// despertar a los lectores para que puedan detectar EOF
-	// Esto maneja el caso donde wc termina sin escribir (debe retornar EOF inmediatamente)
 	if (pipes[id].writers == 0 && pipes[id].readers > 0) {
-		// No hay mas writers - despertar a todos los lectores bloqueados para que puedan detectar EOF
-		// Hacer sem_post en sem_read_name para cada lector bloqueado
-		// Nota: esto puede despertar mas lectores de los necesarios, pero es seguro
-		// porque cada lector verificara si hay datos o si debe retornar EOF
-#if PIPE_DEBUG
-		vd_print("[PIPE] Waking up readers (EOF) pipe id=");
-		vd_print_dec(id);
-		vd_print(" readers=");
-		vd_print_dec(pipes[id].readers);
-		vd_print(" had_writers=");
-		vd_print_dec(had_writers);
-		vd_print(" count=");
-		vd_print_dec(pipes[id].count);
-		vd_print("\n");
-#endif
 		for (int i = 0; i < pipes[id].readers; i++) {
 			sem_post(pipes[id].sem_read_name);
 		}

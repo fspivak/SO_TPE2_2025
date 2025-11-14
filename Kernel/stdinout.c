@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
 #include "include/stdinout.h"
 #include "include/interrupts.h"
 #include "include/keyboard.h"
@@ -38,26 +41,6 @@ char shiftConversionArray[] = {
 	[0x09] = '(', [0x0A] = ')', [0x0B] = '=', [0x0C] = '?', [0x0D] = '"', [0x1A] = '^', [0x1B] = '*',
 	[0x27] = '|', [0x28] = '>', [0x29] = '~', [0x2B] = '|', [0x33] = ';', [0x34] = ':', [0x35] = '_',
 };
-
-// /* Obtiene el ultimo caracter del buffer de entrada, devuelve -1 si no hay */
-// char getChar() {
-// 	_sti();
-// 	char letter;
-// 	do {
-// 		letter = getKey();
-// 	} while (letter == -1 || conversionArray[letter] == -1);
-
-// 	/* Si shift esta presionado y hay mapeo especial, usarlo */
-// 	if (isShiftPressed() && shiftConversionArray[letter] != 0) {
-// 		return shiftConversionArray[letter];
-// 	}
-
-// 	/* Sino, usar conversion normal (mayusculas para letras) */
-// 	return (isUpperCase() && letter != -1 && conversionArray[letter] <= 'z' && conversionArray[letter] >= 'a') ?
-// 			   conversionArray[letter] - ('a' - 'A') :
-// 		   (letter != -1) ? conversionArray[letter] :
-// 							letter;
-// }
 
 char getChar() {
 	_sti();
@@ -134,11 +117,9 @@ int read_keyboard(char *buffer, int len) {
 			buffer[i] = value;
 			read_count++;
 
-			// CRITICO: El terminal NO debe hacer echo automatico
+			// El terminal NO debe hacer echo automatico
 			// El terminal solo lee del teclado para pasarlo al proceso foreground
 			// El echo es responsabilidad del proceso foreground, no del terminal
-			// Si el proceso foreground necesita echo, lo hara manualmente o usara echo automatico
-			// en la rama de procesos no-terminal (mas abajo)
 		}
 		return read_count;
 	}
@@ -228,12 +209,6 @@ int read_keyboard(char *buffer, int len) {
 		// Guardar el caracter leido
 		buffer[read_count++] = value;
 
-		// CRITICO: Hacer echo automatico si el proceso tiene stdin_echo activado
-		// EXCEPTO para comandos que escriben manualmente (cat cuando stdout == SCREEN)
-		// filter ya no escribe manualmente mientras lee, almacena y filtra al final
-		// Esto evita doble echo en comandos como cat que escriben manualmente
-		// pero permite echo automatico en comandos como wc y filter que no escriben manualmente
-		// Cuando filter esta en un pipe, stdin_echo ya esta desactivado, asi que no hara echo automatico
 		if (proc != NULL && proc->io_state.stdin_echo) {
 			// Verificar si el proceso es cat (que escribe manualmente cuando stdout == SCREEN)
 			// filter ya no escribe manualmente, almacena y filtra al final
@@ -268,11 +243,6 @@ int read_keyboard(char *buffer, int len) {
 				vd_set_color(previous_color);
 			}
 		}
-
-		// CRITICO: Retornar inmediatamente cuando leemos un caracter para permitir echo en tiempo real
-		// Esto es especialmente importante para cat y filter que leen carácter por carácter
-		// y necesitan escribir inmediatamente para dar feedback visual
-		// Retornar inmediatamente para que el proceso pueda hacer echo antes de leer mas caracteres
 		return read_count;
 	}
 

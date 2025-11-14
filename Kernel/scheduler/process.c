@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
 #include "include/process.h"
 #include "../include/interrupts.h"
 #include "../include/pipe.h"
@@ -534,7 +537,7 @@ int init_processes() {
 
 	init_pipes();
 
-	// CRITICO: Forzar limpieza inicial y resetear contadores para estabilizar el sistema
+	// Forzar limpieza inicial y resetear contadores para estabilizar el sistema
 	// Esto asegura que el primer comando tenga un estado limpio
 	cleanup_counter = CLEANUP_INTERVAL - 1;
 	free_terminated_processes();
@@ -863,7 +866,6 @@ static int terminate_process(PCB *process, int kill_descendants) {
 
 	process_id_t pid = process->pid;
 
-	// CRITICO: Buscar procesos esperando por este proceso
 	// Buscar tanto procesos bloqueados como procesos que tienen waiting_pid establecido
 	// Esto maneja race conditions donde el padre se esta bloqueando cuando el hijo termina
 	for (int i = 0; i < MAX_PROCESSES; i++) {
@@ -878,7 +880,7 @@ static int terminate_process(PCB *process, int kill_descendants) {
 			}
 			else if (p->state == READY || p->state == RUNNING) {
 				// Proceso tiene waiting_pid establecido pero aun no se bloqueo
-				// NO limpiar waiting_pid aqui - dejarlo para que waitpid lo detecte
+				// NO hay que limpiar waiting_pid aqui - dejarlo para que waitpid lo detecte
 				// waitpid verificara el estado del hijo antes de bloquearse
 				// Si el hijo ya termino, waitpid retornara inmediatamente
 			}
@@ -955,8 +957,7 @@ int waitpid(process_id_t pid) {
 	}
 	//////////////////////////////////////
 
-	// CRITICO: Verificar ANTES de bloquearse si el hijo termino
-	// El proceso hijo puede haber terminado mientras estableciamos waiting_pid
+	// Verificar ANTES de bloquearse si el hijo termino porque puede haber terminado mientras estableciamos waiting_pid.
 	// Si el hijo ya termino, no bloquearse y retornar inmediatamente
 	child_process = get_process_by_pid(pid);
 	if (child_process != NULL && child_process->state == TERMINATED) {
@@ -967,9 +968,7 @@ int waitpid(process_id_t pid) {
 	current->state = BLOCKED;
 	removeFromScheduler(current);
 
-	// CRITICO: Verificar UNA VEZ MAS despues de bloquearse
-	// El proceso hijo puede haber terminado entre la verificacion anterior y el bloqueo
-	// Si el hijo ya termino, desbloquearse inmediatamente para evitar deadlock
+	// Verificamos UNA VEZ MAS despues de bloquearse
 	child_process = get_process_by_pid(pid);
 	if (child_process != NULL && child_process->state == TERMINATED) {
 		current->waiting_pid = -1;
@@ -1119,8 +1118,6 @@ void *schedule(void *current_stack_pointer) {
 		cleanup_counter = 0;
 	}
 	else if (cleanup_counter == 1) {
-		// CRITICO: Limpiar procesos terminados en el primer schedule() despues de init
-		// Esto asegura que el sistema este limpio desde el inicio
 		free_terminated_processes();
 	}
 

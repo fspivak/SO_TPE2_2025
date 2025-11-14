@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
 #include "../include/commands.h"
 #include "../include/libasmUser.h"
 #include "../include/stinUser.h"
@@ -8,9 +11,7 @@
 
 #define CAT_BUFFER_SIZE 1024
 
-// Funcion unificada que funciona tanto en modo directo como en pipes
-// Segun el enunciado: "Todo proceso debera ser capaz de escribir/leer tanto de un pipe
-// como de la pantalla sin necesidad de que su codigo sea modificado"
+// Funcion cat unificada	(profes, esto nos costó la entrega tarde jajajaj)
 // La transparencia se logra usando read_input() y write_output() que ocultan los file descriptors
 // y automaticamente redirigen a pipe o pantalla segun la configuracion del proceso
 // Los comandos NO deben verificar el tipo de IO ni conocer los file descriptors, solo leer y escribir
@@ -31,16 +32,10 @@ void cat_main(int argc, char **argv) {
 		if (c == '\0') {
 			continue;
 		}
-		// Escribir inmediatamente sin conocer el destino
-		// Las syscalls write se encargan de la redireccion automatica
 		write_output(&c, 1, 0x00ffffff, 0);
 	}
 }
 
-// cat_cmd crea un proceso separado para permitir transparencia de I/O
-// Esto permite que cat funcione tanto en modo directo (heredando FDs del terminal)
-// como en pipes (con configuracion de I/O personalizada)
-// El mismo codigo cat_main funciona sin modificacion en ambos casos
 void cat_cmd(int argc, char **argv) {
 	int pid_cat = command_spawn_process("cat", cat_main, argc, argv, 100, NULL);
 	if (pid_cat < 0) {

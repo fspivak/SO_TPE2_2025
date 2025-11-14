@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
 #include "../include/commands.h"
 #include "../include/libasmUser.h"
 #include "../include/stinUser.h"
@@ -64,16 +67,11 @@ void wc_main(int argc, char **argv) {
 	// Esto funciona tanto en modo directo (muestra resultados al final) como en pipes
 	wc_print_result(lines, words, chars);
 
-	// CRITICO: Dar tiempo a que la escritura al pipe se complete antes de terminar
-	// Esto asegura que filter reciba los datos antes de que wc se desregistre del pipe
-	// yield() permite que el scheduler ejecute otros procesos y complete la escritura
+	// Dar tiempo a que la escritura al pipe se complete antes de terminar. Esto asegura que filter reciba los datos
+	// antes de que wc se desregistre del pipe
 	yield();
 }
 
-// wc_cmd crea un proceso separado para permitir transparencia de I/O
-// Esto permite que wc funcione tanto en modo directo (heredando FDs del terminal)
-// como en pipes (con configuracion de I/O personalizada)
-// El mismo codigo wc_main funciona sin modificacion en ambos casos
 void wc_cmd(int argc, char **argv) {
 	int pid_wc = command_spawn_process("wc", wc_main, argc, argv, 128, NULL);
 	if (pid_wc < 0) {

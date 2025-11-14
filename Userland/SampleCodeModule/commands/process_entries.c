@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
 #include "../include/format_utils.h"
 #include "../include/libasmUser.h"
 #include "../include/stinUser.h"
@@ -13,7 +16,7 @@ extern uint64_t test_mm(uint64_t argc, char *argv[]);
 void test_process_entry(uint64_t argc, char *argv[]) {
 	print_format("\n=== Running Process Test ===\n");
 
-	int process_count = 3; // TODO:revisar
+	int process_count = 3;
 	if (argc > 0 && argv != NULL && argv[0] != NULL && argv[0][0] != '\0') {
 		process_count = satoi(argv[0]);
 		if (process_count <= 0 || process_count > 64) {

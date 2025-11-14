@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
 #include "include/terminal.h"
 #include "include/commands.h"
 #include "include/format_utils.h"
@@ -76,8 +79,7 @@ void terminal() {
 		int has_foreground = (fg_pid > 0 && fg_pid != getpid());
 
 		if (has_foreground) {
-			// Hay un proceso foreground, esperar a que termine o sea matado
-			// CRITICO: Verificar periodicamente si el proceso todavia es foreground
+			// Verificar periodicamente si el proceso todavia es foreground
 			// Esto permite detectar cuando Ctrl+C mata el proceso foreground
 			while (1) {
 				// Hacer yield para permitir que otros procesos (incluyendo el foreground) ejecuten

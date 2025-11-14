@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
 #include "include/keyboard.h"
 // extern de ASM para forzar scheduler inmediatamente
 extern void _force_scheduler_interrupt(void);
@@ -49,12 +52,6 @@ void bufferLoader(char input) {
 		handle_ctrl_c();
 		return; // no cargar 'c' al buffer
 	}
-
-	// //quiero deterctar Ctrl + D
-	// if (key ==0x20  && !release && ctrlPressed) {
-	// 	handle_ctrl_d();
-	// 	return; // no cargar 'd' al buffer
-	// }
 
 	// Detectar Ctrl + D (make)
 	if (isCtrlPressed() && (key == 'd' || key == 'D')) {

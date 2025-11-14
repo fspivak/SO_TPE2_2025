@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
 #include "../include/commands.h"
 #include "../include/libasmUser.h"
 #include "../include/stinUser.h"
@@ -54,7 +57,7 @@ void filter_main(int argc, char **argv) {
 	}
 
 	// Cuando termina la lectura (Ctrl+D o EOF), filtrar y mostrar solo las vocales
-	// Esto funciona tanto en modo directo (muestra vocales al final) como en pipes
+	print_format("\n");
 	for (int i = 0; i < buffer_pos; i++) {
 		char c = buffer[i];
 		if (is_vowel(c)) {
@@ -63,10 +66,6 @@ void filter_main(int argc, char **argv) {
 	}
 }
 
-// filter_cmd crea un proceso separado para permitir transparencia de I/O
-// Esto permite que filter funcione tanto en modo directo (heredando FDs del terminal)
-// como en pipes (con configuracion de I/O personalizada)
-// El mismo codigo filter_main funciona sin modificacion en ambos casos
 void filter_cmd(int argc, char **argv) {
 	int pid_filter = command_spawn_process("filter", filter_main, argc, argv, 128, NULL);
 	if (pid_filter < 0) {
