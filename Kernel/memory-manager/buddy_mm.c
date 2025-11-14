@@ -210,20 +210,6 @@ int memory_free(MemoryManagerADT self, void *ptr) {
 	if (self->info.free_memory + freed_size <= self->info.total_memory)
 		self->info.free_memory += freed_size;
 
-	// 🔹 Nuevo: intentar un merge adicional de toda la lista libre (compactación global)
-	for (int o = 0; o < self->max_order - 1; o++) {
-		block_t *curr = self->free_blocks[o];
-		while (curr) {
-			uint64_t off = (uint64_t) ((uint8_t *) curr - start);
-			block_t *bud = (block_t *) (start + (off ^ (1UL << o)));
-			if ((uint64_t) bud >= start && (uint64_t) bud < end && bud->status == FREE && bud->order == curr->order) {
-				curr = merge(self, curr, bud);
-				create_block(self, curr, curr->order);
-			}
-			curr = curr->next;
-		}
-	}
-
 	return 0;
 }
 
