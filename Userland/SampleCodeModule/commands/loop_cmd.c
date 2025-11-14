@@ -4,8 +4,8 @@
 #include "../tests/include/test_util.h"
 #include <stddef.h>
 
-#define LOOP_DEFAULT_INTERVAL_SECONDS 8
-static char loop_default_interval_str[] = "8";
+#define LOOP_DEFAULT_INTERVAL_SECONDS 4
+static char loop_default_interval_str[] = "4";
 
 static int resolve_interval(int argc, char **argv) {
 	if (argc <= 0 || argv == NULL || argv[0] == NULL) {

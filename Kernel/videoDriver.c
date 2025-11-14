@@ -3,7 +3,7 @@
 /* Buffer de modo texto VGA en 0xB8000 */
 static uint8_t *const video = (uint8_t *) 0xB8000;
 static uint8_t *current_video = (uint8_t *) 0xB8000;
-static uint8_t current_color = 0x07; /* Blanco sobre negro (por defecto) */
+static uint8_t current_color = 0x0F; /* Blanco sobre negro (por defecto) - corresponde a 0x00ffffff */
 
 /* Buffer interno para conversion de numeros a string */
 static char buffer[64] = {'0'};

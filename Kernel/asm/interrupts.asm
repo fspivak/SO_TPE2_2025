@@ -274,14 +274,27 @@ _irq60Handler:
 	mov rbp, rsp
 	
 	pushStateNoRax    ; No guardar RAX para preservar valor de retorno
+	; CRITICO: r9 contiene arg6 (desde el stack en sys_call)
+	; En x86-64 calling convention, va_list lee:
+	; - Primeros 6 argumentos: de registros (rdi, rsi, rdx, rcx, r8, r9)
+	; - 7mo argumento en adelante: del stack (despues del return address)
+	; Necesitamos preservar arg6 (r9) y ponerlo en el stack para que va_list lo lea
+	push r9            ; Guardar arg6 en el stack (sera el 7mo argumento para va_list)
 	
-	mov r9, r8
-	mov r8, rcx
-	mov rcx, rdx
-	mov rdx, rsi
-	mov rsi, rdi
-	mov rdi, rax
+	mov r9, r8         ; r9 = arg5 (6to argumento)
+	mov r8, rcx        ; r8 = arg4 (5to argumento)
+	mov rcx, rdx       ; rcx = arg3 (4to argumento)
+	mov rdx, rsi       ; rdx = arg2 (3er argumento)
+	mov rsi, rdi       ; rsi = arg1 (2do argumento)
+	mov rdi, rax       ; rdi = syscall id (1er argumento)
+	
+	; Ahora el stack tiene: [arg6] [return address] [otros...]
+	; va_list leerá arg6 desde el stack correctamente
+	
 	call syscallDispatcher
+	
+	; Limpiar arg6 del stack (va_list ya lo leyó)
+	add rsp, 8          ; Remover arg6 del stack
 	
 	popStateNoRax     ; No restaurar RAX, preserva el retorno de syscallDispatcher
 	

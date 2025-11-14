@@ -1,7 +1,7 @@
 #ifndef _PROCESS_H_
 #define _PROCESS_H_
 
-#include "../../../Shared/process_io_config.h"
+#include "../../include/process_io_config.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -40,6 +40,8 @@ typedef struct {
 	ProcessInputDescriptor stdin_desc;
 	ProcessOutputDescriptor stdout_desc;
 	ProcessOutputDescriptor stderr_desc;
+	uint8_t stdin_eof;
+	uint8_t stdin_echo; // 1 = hacer echo automatico cuando se lee del teclado, 0 = no hacer echo
 } ProcessIOState;
 
 // Process Control Block
@@ -257,6 +259,13 @@ void process_entry_wrapper(int argc, char **argv, void *rsp, PCB *proc);
  * @brief Sale del proceso actual y pasa a userland
  */
 int exit_current_process(void);
+
+/**
+ * @brief Obtiene el PCB de un proceso por su PID
+ * @param pid PID del proceso
+ * @return Puntero al PCB o NULL si no existe
+ */
+PCB *get_process_by_pid(process_id_t pid);
 
 /**
  * @brief Realiza lectura desde un descriptor del proceso

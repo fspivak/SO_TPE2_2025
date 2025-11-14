@@ -1,4 +1,4 @@
-#include "../../Shared/process_io_config.h"
+#include "../../Kernel/include/process_io_config.h"
 #include "include/libasmUser.h"
 #include "include/syscall_ids.h"
 #include <stdint.h>
@@ -31,6 +31,18 @@ int create_process_foreground_with_io(const char *name, void (*entry)(int, char 
 
 int read_bytes(int fd, char *buffer, int count) {
 	return (int) sys_call(0, (uint64_t) fd, (uint64_t) buffer, (uint64_t) count, 0, 0, 0);
+}
+
+// Wrapper que oculta el file descriptor - los comandos no necesitan conocer que leen de stdin
+// Usa syscall especifica que determina automaticamente el file descriptor correcto
+int read_input(char *buffer, int count) {
+	return (int) sys_call(SYS_READ_INPUT, (uint64_t) buffer, (uint64_t) count, 0, 0, 0, 0);
+}
+
+// Wrapper que oculta el file descriptor - los comandos no necesitan conocer que escriben a stdout
+// Usa syscall especifica que determina automaticamente el file descriptor correcto
+void write_output(char *str, int len, int color, int bg) {
+	sys_call(SYS_WRITE_OUTPUT, (uint64_t) str, (uint64_t) len, (uint64_t) color, (uint64_t) bg, 0, 0);
 }
 
 int getpid(void) {
@@ -91,4 +103,24 @@ int clear_foreground(int pid) {
 
 void exit_process(void) {
 	sys_call(SYS_EXIT, 0, 0, 0, 0, 0, 0);
+}
+
+uint32_t get_stdin_type(void) {
+	return (uint32_t) sys_call(SYS_GET_STDIN_TYPE, 0, 0, 0, 0, 0, 0);
+}
+
+uint32_t get_stdout_type(void) {
+	return (uint32_t) sys_call(SYS_GET_STDOUT_TYPE, 0, 0, 0, 0, 0, 0);
+}
+
+int close_stdin(void) {
+	return (int) sys_call(SYS_CLOSE_STDIN, 0, 0, 0, 0, 0, 0);
+}
+
+int close_stdin_pid(int pid) {
+	return (int) sys_call(SYS_CLOSE_STDIN_PID, pid, 0, 0, 0, 0, 0);
+}
+
+int get_foreground_process(void) {
+	return (int) sys_call(SYS_GET_FOREGROUND_PROCESS, 0, 0, 0, 0, 0, 0);
 }

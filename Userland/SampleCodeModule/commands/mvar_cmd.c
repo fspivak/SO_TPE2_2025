@@ -2,6 +2,7 @@
 #include "../include/libasmUser.h"
 #include "../include/stinUser.h"
 #include "../include/stringUser.h"
+#include "../tests/include/syscall.h"
 #include "../tests/include/test_util.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -12,8 +13,7 @@
 #define MVAR_DELAY_RANGE 8000U
 
 typedef struct {
-	volatile char value;
-	volatile int has_value;
+	int pipe_id;
 	char sem_empty[MVAR_MAX_NAME];
 	char sem_full[MVAR_MAX_NAME];
 	int total_writers;
@@ -34,7 +34,6 @@ static const int reader_colors[] = {
 };
 
 static uint64_t string_to_u64(const char *str);
-static void mvar_guard_loop(int argc, char **argv);
 
 static void u64_to_string(uint64_t value, char *buffer, int buffer_size) {
 	if (buffer == NULL || buffer_size <= 0) {
@@ -108,6 +107,26 @@ static void uint_to_string(unsigned value, char *buffer, int buffer_size) {
 	buffer[out_pos] = '\0';
 }
 
+static void build_pipe_name(char *buffer, int buffer_size, int base_pid) {
+	if (buffer == NULL || buffer_size <= 0) {
+		return;
+	}
+
+	int pos = 0;
+	const char prefix[] = "mvar_";
+	for (int i = 0; prefix[i] != '\0' && pos < buffer_size - 1; i++) {
+		buffer[pos++] = prefix[i];
+	}
+
+	char pid_buffer[16];
+	uint_to_string((unsigned) base_pid, pid_buffer, (int) sizeof(pid_buffer));
+	for (int i = 0; pid_buffer[i] != '\0' && pos < buffer_size - 1; i++) {
+		buffer[pos++] = pid_buffer[i];
+	}
+
+	buffer[pos] = '\0';
+}
+
 static void build_sem_name(char *buffer, int buffer_size, int base_pid, const char *suffix) {
 	if (buffer == NULL || buffer_size <= 0 || suffix == NULL) {
 		return;
@@ -138,12 +157,30 @@ static void random_delay(void) {
 }
 
 static void mvar_writer_worker(int argc, char **argv) {
-	if (argc < 2 || argv == NULL || argv[0] == NULL || argv[1] == NULL) {
+	if (argc < 3 || argv == NULL || argv[0] == NULL || argv[1] == NULL || argv[2] == NULL) {
 		return;
 	}
 
 	MVarShared *shared = (MVarShared *) (uintptr_t) string_to_u64(argv[0]);
 	if (shared == NULL) {
+		return;
+	}
+
+	// Abrir el pipe por nombre para obtener el pipe_id
+	// Esto asegura que el proceso tenga acceso al pipe incluso si el proceso principal termino
+	char pipe_name[MVAR_MAX_NAME];
+	int pos = 0;
+	const char prefix[] = "mvar_";
+	for (int i = 0; prefix[i] != '\0' && pos < MVAR_MAX_NAME - 1; i++) {
+		pipe_name[pos++] = prefix[i];
+	}
+	for (int i = 0; argv[2][i] != '\0' && pos < MVAR_MAX_NAME - 1; i++) {
+		pipe_name[pos++] = argv[2][i];
+	}
+	pipe_name[pos] = '\0';
+
+	int64_t pipe_id = my_pipe_open(pipe_name);
+	if (pipe_id < 0) {
 		return;
 	}
 
@@ -161,31 +198,56 @@ static void mvar_writer_worker(int argc, char **argv) {
 	while (1) {
 		random_delay();
 
+		// Esperar a que la MVar este vacia (sem_empty inicializado en 1)
 		if (sem_wait(shared->sem_empty) != 0) {
 			continue;
 		}
 
 		shared->writer_slot_state[index] = 1;
-		shared->value = letter;
 
+		// Escribir el valor al pipe
+		if (my_pipe_write((uint64_t) pipe_id, &letter, 1) < 0) {
+			shared->writer_slot_state[index] = 0;
+			sem_post(shared->sem_empty);
+			continue;
+		}
+
+		// Notificar que la MVar tiene un valor (sem_full inicializado en 0)
 		if (sem_post(shared->sem_full) != 0) {
 			shared->writer_slot_state[index] = 0;
 			sem_post(shared->sem_empty);
 			continue;
 		}
 
-		shared->has_value = 1;
 		shared->writer_slot_state[index] = 0;
 	}
 }
 
 static void mvar_reader_worker(int argc, char **argv) {
-	if (argc < 2 || argv == NULL || argv[0] == NULL || argv[1] == NULL) {
+	if (argc < 3 || argv == NULL || argv[0] == NULL || argv[1] == NULL || argv[2] == NULL) {
 		return;
 	}
 
 	MVarShared *shared = (MVarShared *) (uintptr_t) string_to_u64(argv[0]);
 	if (shared == NULL) {
+		return;
+	}
+
+	// Abrir el pipe por nombre para obtener el pipe_id
+	// Esto asegura que el proceso tenga acceso al pipe incluso si el proceso principal termino
+	char pipe_name[MVAR_MAX_NAME];
+	int pos = 0;
+	const char prefix[] = "mvar_";
+	for (int i = 0; prefix[i] != '\0' && pos < MVAR_MAX_NAME - 1; i++) {
+		pipe_name[pos++] = prefix[i];
+	}
+	for (int i = 0; argv[2][i] != '\0' && pos < MVAR_MAX_NAME - 1; i++) {
+		pipe_name[pos++] = argv[2][i];
+	}
+	pipe_name[pos] = '\0';
+
+	int64_t pipe_id = my_pipe_open(pipe_name);
+	if (pipe_id < 0) {
 		return;
 	}
 
@@ -204,230 +266,32 @@ static void mvar_reader_worker(int argc, char **argv) {
 	while (1) {
 		random_delay();
 
+		// Esperar a que la MVar tenga un valor (sem_full inicializado en 0)
 		if (sem_wait(shared->sem_full) != 0) {
 			continue;
 		}
 
 		shared->reader_slot_state[index] = 1;
-		char value = shared->value;
+
+		// Leer el valor del pipe
+		char value;
+		if (my_pipe_read((uint64_t) pipe_id, &value, 1) <= 0) {
+			shared->reader_slot_state[index] = 0;
+			sem_post(shared->sem_full);
+			continue;
+		}
+
 		shared->reader_slot_state[index] = 2;
-		shared->has_value = 0;
 
+		// Notificar que la MVar esta vacia (sem_empty inicializado en 1)
 		if (sem_post(shared->sem_empty) != 0) {
+			shared->reader_slot_state[index] = 0;
 			continue;
 		}
 
-		shared->reader_slot_state[index] = 0;
 		putCharColor(value, color, 0);
+		shared->reader_slot_state[index] = 0;
 	}
-}
-
-static int pid_is_alive(int pid, ProcessInfo *processes, int count) {
-	if (pid <= 0 || processes == NULL) {
-		return 0;
-	}
-
-	for (int i = 0; i < count; i++) {
-		if (processes[i].pid == pid) {
-			if (strcmp(processes[i].state_name, "TERMINATED") == 0) {
-				return 0;
-			}
-			return 1;
-		}
-	}
-	return 0;
-}
-
-static void release_writer_slot(MVarShared *shared, int index) {
-	int posted = 0;
-	if (shared->writer_slot_state[index] != 0) {
-		sem_post(shared->sem_empty);
-		posted = 1;
-	}
-
-	shared->writer_slot_state[index] = 0;
-
-	int other_holding = 0;
-	for (int i = 0; i < shared->total_writers; i++) {
-		if (i == index) {
-			continue;
-		}
-		if (shared->writer_slot_state[i] != 0) {
-			other_holding = 1;
-			break;
-		}
-	}
-
-	if (!other_holding && shared->has_value == 0 && !posted) {
-		sem_post(shared->sem_empty);
-	}
-}
-
-static void release_reader_slot(MVarShared *shared, int index) {
-	if (shared->reader_slot_state[index] == 1) {
-		sem_post(shared->sem_full);
-	}
-	else if (shared->reader_slot_state[index] == 2) {
-		sem_post(shared->sem_empty);
-	}
-	shared->reader_slot_state[index] = 0;
-}
-
-static void release_pending_value_if_needed(MVarShared *shared, int alive_writer_count) {
-	if (shared->has_value != 0) {
-		if (alive_writer_count > 0) {
-			sem_post(shared->sem_empty);
-		}
-		shared->has_value = 0;
-	}
-}
-
-static void mvar_guard_loop(int argc, char **argv) {
-	if (argc < 3 || argv == NULL || argv[0] == NULL || argv[1] == NULL || argv[2] == NULL) {
-		exit_process();
-		return;
-	}
-
-	MVarShared *shared = (MVarShared *) (uintptr_t) string_to_u64(argv[0]);
-	if (shared == NULL) {
-		exit_process();
-		return;
-	}
-
-	int total_writers = satoi(argv[1]);
-	int total_readers = satoi(argv[2]);
-	if (total_writers < 0) {
-		total_writers = 0;
-	}
-	if (total_readers < 0) {
-		total_readers = 0;
-	}
-
-	ProcessInfo processes[64];
-
-	int active_writers = 0;
-	int active_readers = 0;
-
-	for (int i = 0; i < total_writers; i++) {
-		char index_arg[12];
-		uint_to_string((unsigned) i, index_arg, (int) sizeof(index_arg));
-
-		char context_arg[32];
-		u64_to_string((uint64_t) (uintptr_t) shared, context_arg, (int) sizeof(context_arg));
-
-		char *worker_args[] = {context_arg, index_arg, NULL};
-
-		char worker_name[32];
-		int name_pos = 0;
-		const char worker_prefix[] = "mvar_w";
-		while (worker_prefix[name_pos] != '\0' && name_pos < (int) sizeof(worker_name) - 1) {
-			worker_name[name_pos] = worker_prefix[name_pos];
-			name_pos++;
-		}
-		for (int j = 0; index_arg[j] != '\0' && name_pos < (int) sizeof(worker_name) - 1; j++) {
-			worker_name[name_pos++] = index_arg[j];
-		}
-		worker_name[name_pos] = '\0';
-
-		int pid = create_process(worker_name, mvar_writer_worker, 2, worker_args, 128);
-		if (pid < 0) {
-			print_format("ERROR: failed to create writer %d\n", i);
-			shared->writer_pids[i] = -1;
-			continue;
-		}
-
-		shared->writer_pids[i] = pid;
-		active_writers++;
-	}
-
-	for (int i = 0; i < total_readers; i++) {
-		char index_arg[12];
-		uint_to_string((unsigned) i, index_arg, (int) sizeof(index_arg));
-
-		char context_arg[32];
-		u64_to_string((uint64_t) (uintptr_t) shared, context_arg, (int) sizeof(context_arg));
-
-		char *worker_args[] = {context_arg, index_arg, NULL};
-
-		char worker_name[32];
-		int name_pos = 0;
-		const char worker_prefix[] = "mvar_r";
-		while (worker_prefix[name_pos] != '\0' && name_pos < (int) sizeof(worker_name) - 1) {
-			worker_name[name_pos] = worker_prefix[name_pos];
-			name_pos++;
-		}
-		for (int j = 0; index_arg[j] != '\0' && name_pos < (int) sizeof(worker_name) - 1; j++) {
-			worker_name[name_pos++] = index_arg[j];
-		}
-		worker_name[name_pos] = '\0';
-
-		int pid = create_process(worker_name, mvar_reader_worker, 2, worker_args, 128);
-		if (pid < 0) {
-			print_format("ERROR: failed to create reader %d\n", i);
-			shared->reader_pids[i] = -1;
-			continue;
-		}
-
-		shared->reader_pids[i] = pid;
-		active_readers++;
-	}
-
-	while (active_writers > 0 || active_readers > 0) {
-		int count = ps(processes, 64);
-		if (count < 0) {
-			yield();
-			continue;
-		}
-
-		int alive_writers_count = 0;
-
-		for (int i = 0; i < total_writers; i++) {
-			int pid = shared->writer_pids[i];
-			if (pid <= 0) {
-				continue;
-			}
-
-			if (!pid_is_alive(pid, processes, count)) {
-				waitpid(pid);
-				release_writer_slot(shared, i);
-				shared->writer_pids[i] = -1;
-				if (active_writers > 0) {
-					active_writers--;
-				}
-			}
-			else {
-				alive_writers_count++;
-			}
-		}
-
-		for (int i = 0; i < total_readers; i++) {
-			int pid = shared->reader_pids[i];
-			if (pid <= 0) {
-				continue;
-			}
-
-			if (!pid_is_alive(pid, processes, count)) {
-				waitpid(pid);
-				release_reader_slot(shared, i);
-				shared->reader_pids[i] = -1;
-				if (active_readers > 0) {
-					active_readers--;
-				}
-				release_pending_value_if_needed(shared, alive_writers_count);
-			}
-		}
-
-		if (active_writers == 0 && active_readers == 0) {
-			break;
-		}
-
-		yield();
-	}
-
-	sem_close(shared->sem_full);
-	sem_close(shared->sem_empty);
-	free(shared);
-	exit_process();
 }
 
 static void mvar_main(int argc, char **argv) {
@@ -462,8 +326,6 @@ static void mvar_main(int argc, char **argv) {
 		return;
 	}
 
-	shared->value = 0;
-	shared->has_value = 0;
 	shared->total_writers = writers;
 	shared->total_readers = readers;
 	for (int i = 0; i < MVAR_MAX_PARTICIPANTS; i++) {
@@ -474,11 +336,27 @@ static void mvar_main(int argc, char **argv) {
 	}
 
 	int base_pid = getpid();
+	char pipe_name[MVAR_MAX_NAME];
+	build_pipe_name(pipe_name, MVAR_MAX_NAME, base_pid);
+
+	int64_t pipe_id = my_pipe_open(pipe_name);
+	if (pipe_id < 0) {
+		print_format("ERROR: pipe_open failed for mvar pipe\n");
+		free(shared);
+		return;
+	}
+
+	shared->pipe_id = (int) pipe_id;
+
+	// Crear semaforos para sincronizacion MVar
+	// sem_empty: inicializado en 1 (MVar esta vacia, escritores pueden escribir)
+	// sem_full: inicializado en 0 (MVar no tiene valor, lectores esperan)
 	build_sem_name(shared->sem_empty, MVAR_MAX_NAME, base_pid, "_empty");
 	build_sem_name(shared->sem_full, MVAR_MAX_NAME, base_pid, "_full");
 
 	if (sem_open(shared->sem_empty, 1) < 0) {
 		print_format("ERROR: sem_open failed for mvar empty semaphore\n");
+		my_pipe_close((uint64_t) pipe_id);
 		free(shared);
 		return;
 	}
@@ -486,6 +364,7 @@ static void mvar_main(int argc, char **argv) {
 	if (sem_open(shared->sem_full, 0) < 0) {
 		print_format("ERROR: sem_open failed for mvar full semaphore\n");
 		sem_close(shared->sem_empty);
+		my_pipe_close((uint64_t) pipe_id);
 		free(shared);
 		return;
 	}
@@ -493,20 +372,64 @@ static void mvar_main(int argc, char **argv) {
 	char context_arg[32];
 	u64_to_string((uint64_t) (uintptr_t) shared, context_arg, (int) sizeof(context_arg));
 
-	char writers_arg[12];
-	uint_to_string((unsigned) writers, writers_arg, (int) sizeof(writers_arg));
+	char pid_arg[16];
+	uint_to_string((unsigned) base_pid, pid_arg, (int) sizeof(pid_arg));
 
-	char readers_arg[12];
-	uint_to_string((unsigned) readers, readers_arg, (int) sizeof(readers_arg));
+	// Pre-allocar arrays para los argumentos de cada worker para evitar problemas de memoria
+	char writer_index_args[MVAR_MAX_PARTICIPANTS][12];
+	char reader_index_args[MVAR_MAX_PARTICIPANTS][12];
+	// Los nombres deben estar en el stack (rango 0x400000-0x600000) para que el kernel los valide
+	char writer_names[MVAR_MAX_PARTICIPANTS][32];
+	char reader_names[MVAR_MAX_PARTICIPANTS][32];
 
-	char *guard_args[] = {context_arg, writers_arg, readers_arg, NULL};
+	for (int i = 0; i < writers; i++) {
+		uint_to_string((unsigned) i, writer_index_args[i], (int) sizeof(writer_index_args[i]));
 
-	if (create_process("mvar_guard", mvar_guard_loop, 3, guard_args, 1) < 0) {
-		print_format("ERROR: failed to create mvar guard\n");
-		sem_close(shared->sem_full);
-		sem_close(shared->sem_empty);
-		free(shared);
-		return;
+		// Construir nombre del writer en el stack
+		int name_pos = 0;
+		const char worker_prefix[] = "mvar_w";
+		while (worker_prefix[name_pos] != '\0' && name_pos < 31) {
+			writer_names[i][name_pos] = worker_prefix[name_pos];
+			name_pos++;
+		}
+		for (int j = 0; writer_index_args[i][j] != '\0' && name_pos < 31; j++) {
+			writer_names[i][name_pos++] = writer_index_args[i][j];
+		}
+		writer_names[i][name_pos] = '\0';
+	}
+
+	for (int i = 0; i < readers; i++) {
+		uint_to_string((unsigned) i, reader_index_args[i], (int) sizeof(reader_index_args[i]));
+
+		// Construir nombre del reader en el stack
+		int name_pos = 0;
+		const char worker_prefix[] = "mvar_r";
+		while (worker_prefix[name_pos] != '\0' && name_pos < 31) {
+			reader_names[i][name_pos] = worker_prefix[name_pos];
+			name_pos++;
+		}
+		for (int j = 0; reader_index_args[i][j] != '\0' && name_pos < 31; j++) {
+			reader_names[i][name_pos++] = reader_index_args[i][j];
+		}
+		reader_names[i][name_pos] = '\0';
+	}
+
+	for (int i = 0; i < writers; i++) {
+		char *worker_args[] = {context_arg, writer_index_args[i], pid_arg, NULL};
+
+		int pid = create_process(writer_names[i], mvar_writer_worker, 3, worker_args, 128);
+		if (pid < 0) {
+			print_format("ERROR: failed to create writer %d\n", i);
+		}
+	}
+
+	for (int i = 0; i < readers; i++) {
+		char *worker_args[] = {context_arg, reader_index_args[i], pid_arg, NULL};
+
+		int pid = create_process(reader_names[i], mvar_reader_worker, 3, worker_args, 128);
+		if (pid < 0) {
+			print_format("ERROR: failed to create reader %d\n", i);
+		}
 	}
 
 	print_format("mvar: started %d writers and %d readers\n", writers, readers);

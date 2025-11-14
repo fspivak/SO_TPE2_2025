@@ -35,3 +35,13 @@ void handle_ctrl_c(void) {
 		kill_process(pid);
 	}
 }
+
+void handle_ctrl_d(void) {
+	process_id_t pid = get_foreground_process();
+	if (pid > 0) {
+		PCB *process = get_process_by_pid(pid);
+		if (process != NULL) {
+			process->io_state.stdin_eof = 1;
+		}
+	}
+}

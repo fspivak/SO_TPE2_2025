@@ -1,8 +1,4 @@
 #include "include/keyboard.h"
-
-#include "scheduler/include/process.h"
-#include "scheduler/include/scheduler.h"
-
 // extern de ASM para forzar scheduler inmediatamente
 extern void _force_scheduler_interrupt(void);
 

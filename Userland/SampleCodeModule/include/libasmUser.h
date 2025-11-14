@@ -1,7 +1,7 @@
 #ifndef LIBASMUSER_H
 #define LIBASMUSER_H
 
-#include "../../../Shared/process_io_config.h"
+#include "../../../Kernel/include/process_io_config.h"
 #include <stdint.h>
 
 /**
@@ -30,6 +30,29 @@ void read(int fd, char *buffer, int count);
  * @return Cantidad de bytes leidos, 0 si EOF, -1 si error
  */
 int read_bytes(int fd, char *buffer, int count);
+
+/**
+ * @brief Lee desde la entrada estandar del proceso (stdin)
+ * @details Esta funcion oculta el file descriptor - los comandos no necesitan
+ * conocer que estan leyendo de stdin. La syscall determina automaticamente
+ * si debe leer del teclado o de un pipe segun la configuracion del proceso.
+ * @param buffer Buffer donde guardar los caracteres
+ * @param count Numero de caracteres a leer
+ * @return Cantidad de bytes leidos, 0 si EOF, -1 si error
+ */
+int read_input(char *buffer, int count);
+
+/**
+ * @brief Escribe a la salida estandar del proceso (stdout)
+ * @details Esta funcion oculta el file descriptor - los comandos no necesitan
+ * conocer que estan escribiendo a stdout. La syscall determina automaticamente
+ * si debe escribir a la pantalla o a un pipe segun la configuracion del proceso.
+ * @param str String a escribir
+ * @param len Longitud del string
+ * @param color Color del texto
+ * @param bg Color de fondo
+ */
+void write_output(char *str, int len, int color, int bg);
 
 /**
  * @brief Pausa la ejecucion por el numero de segundos especificado
@@ -194,6 +217,37 @@ int create_process_foreground_with_io(const char *name, void (*entry)(int, char 
  * @return PID del proceso actual
  */
 int getpid(void);
+
+/**
+ * @brief Obtiene el tipo de stdin del proceso actual
+ * @return PROCESS_IO_STDIN_KEYBOARD o PROCESS_IO_STDIN_PIPE
+ */
+uint32_t get_stdin_type(void);
+
+/**
+ * @brief Obtiene el tipo de stdout del proceso actual
+ * @return PROCESS_IO_STDOUT_SCREEN o PROCESS_IO_STDOUT_PIPE
+ */
+uint32_t get_stdout_type(void);
+
+/**
+ * @brief Cierra el stdin del proceso actual (marca EOF)
+ * @return 0 si exito, -1 si error
+ */
+int close_stdin(void);
+
+/**
+ * @brief Cierra el stdin de un proceso especifico (marca EOF)
+ * @param pid PID del proceso cuyo stdin se desea cerrar
+ * @return 0 si exito, -1 si error
+ */
+int close_stdin_pid(int pid);
+
+/**
+ * @brief Obtiene el PID del proceso foreground
+ * @return PID del proceso foreground o -1 si no hay
+ */
+int get_foreground_process(void);
 
 /**
  * @brief Termina un proceso y libera sus recursos

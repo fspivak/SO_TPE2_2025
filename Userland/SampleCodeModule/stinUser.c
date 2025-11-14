@@ -166,11 +166,11 @@ void print_format(const char *format, ...) {
 	}
 
 	if (print_sem_initialized) {
-		write(1, output, len, 0x00ffffff, 0);
+		write_output(output, len, 0x00ffffff, 0);
 		sem_post(PRINT_SEM_NAME);
 	}
 	else {
-		write(1, output, len, 0x00ffffff, 0);
+		write_output(output, len, 0x00ffffff, 0);
 	}
 
 	va_end(args);
@@ -185,10 +185,9 @@ void printColor(char *string, int color, int bg) {
 
 char getchar() {
 	char caracter;
-	int result = read_bytes(0, &caracter, 1);
-	if (result <= 0) {
-		return -1;
-	}
+	// Usar read_input() en lugar de read_bytes() para transparencia de I/O
+	// read_input() determina automaticamente si leer del teclado o de un pipe
+	int result = read_input(&caracter, 1);
 	if (result <= 0) {
 		return -1;
 	}
@@ -200,7 +199,7 @@ void putchar(char carac) {
 }
 
 void putCharColor(char carac, int color, int bg) {
-	write(1, &carac, 1, color, bg);
+	write_output(&carac, 1, color, bg);
 }
 
 /* Convierte un entero sin signo a string en la base especificada */

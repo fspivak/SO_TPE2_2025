@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-static void ps_main(int argc, char **argv) {
+void ps_main(int argc, char **argv) {
 	(void) argc; // No usamos (convencion)
 	(void) argv; // No usamos (convencion)
 

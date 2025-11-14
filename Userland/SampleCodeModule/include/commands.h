@@ -1,7 +1,7 @@
 #ifndef COMMANDS_H
 #define COMMANDS_H
 
-#include "../../../Shared/process_io_config.h"
+#include "../../../Kernel/include/process_io_config.h"
 
 /**
  * @brief Configura si el comando actual se ejecuta en background
@@ -56,11 +56,25 @@ int command_spawn_process(const char *name, void (*entry)(int, char **), int arg
 void help_cmd(int argc, char **argv);
 
 /**
+ * @brief Entrada principal para ejecutar help en un proceso interactivo
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void help_main(int argc, char **argv);
+
+/**
  * @brief Muestra un manual de ayuda para ciertos comandos disponibles
  * @param argc Cantidad de argumentos
  * @param argv Array de argumentos
  */
 void man_cmd(int argc, char **argv);
+
+/**
+ * @brief Entrada principal para ejecutar man en un proceso interactivo
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void man_main(int argc, char **argv);
 
 /**
  * @brief Limpia la pantalla
@@ -77,11 +91,25 @@ void clear_cmd(int argc, char **argv);
 void ps_cmd(int argc, char **argv);
 
 /**
+ * @brief Entrada principal para ejecutar ps en un proceso
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void ps_main(int argc, char **argv);
+
+/**
  * @brief Muestra el estado de la memoria
  * @param argc Cantidad de argumentos
  * @param argv Array de argumentos
  */
 void mem_cmd(int argc, char **argv);
+
+/**
+ * @brief Entrada principal para ejecutar mem en un proceso interactivo
+ * @param argc Cantidad de argumentos
+ * @param argv Array de argumentos
+ */
+void mem_main(int argc, char **argv);
 
 /**
  * @brief Ejecuta el test del memory manager
@@ -214,13 +242,6 @@ void cat_cmd(int argc, char **argv);
 void cat_main(int argc, char **argv);
 
 /**
- * @brief Entrada principal de cat utilizada cuando el comando participa en un pipe
- * @param argc Cantidad de argumentos
- * @param argv Array de argumentos
- */
-void cat_pipe_main(int argc, char **argv);
-
-/**
  * @brief Cuenta las lineas y caracteres del input recibido desde stdin
  * @param argc Cantidad de argumentos
  * @param argv Array de argumentos
@@ -228,11 +249,11 @@ void cat_pipe_main(int argc, char **argv);
 void wc_cmd(int argc, char **argv);
 
 /**
- * @brief Entrada principal de wc utilizada cuando el comando participa en un pipe
+ * @brief Entrada principal para ejecutar wc en un proceso interactivo
  * @param argc Cantidad de argumentos
  * @param argv Array de argumentos
  */
-void wc_pipe_main(int argc, char **argv);
+void wc_main(int argc, char **argv);
 
 /**
  * @brief Filtra las vocales del input recibido desde stdin
@@ -249,31 +270,10 @@ void filter_cmd(int argc, char **argv);
 void filter_main(int argc, char **argv);
 
 /**
- * @brief Entrada principal de filter utilizada cuando el comando participa en un pipe
- * @param argc Cantidad de argumentos
- * @param argv Array de argumentos
- */
-void filter_pipe_main(int argc, char **argv);
-
-/**
- * @brief Entrada principal de filter utilizada como escritor dentro de un pipe
- * @param argc Cantidad de argumentos
- * @param argv Array de argumentos
- */
-void filter_pipe_writer_main(int argc, char **argv);
-
-/**
  * @brief implementa los comandos pipeados
  * @param input Input de la pipe
  */
 void pipes_cmd(char *input);
-
-/**
- * @brief encuentra la funcion de un comando
- * @param cmd Nombre del comando
- * @return Puntero a la funcion del comando
- */
-void *find_function(char *cmd);
 
 /**
  * @brief Crea un proceso que imprime su PID periodicamente

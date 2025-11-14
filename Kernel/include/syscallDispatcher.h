@@ -1,10 +1,10 @@
 #ifndef SYSCALL_DISPATCHER_H
 #define SYSCALL_DISPATCHER_H
 
-#include "../../Shared/process_io_config.h"
 #include "../memory-manager/include/memory_manager.h"
 #include "../scheduler/include/process.h"
 #include "../scheduler/include/semaphore.h"
+#include "process_io_config.h"
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -20,7 +20,10 @@ uint64_t syscallDispatcher(uint64_t rax, ...);
 
 /**
  * @brief Escribe datos en un descriptor de salida
- * @param fd Descriptor de salida
+ * @details Esta syscall determina automaticamente si debe escribir a la pantalla o a un pipe
+ * basandose en la configuracion de IO del proceso actual. Los procesos no necesitan conocer
+ * el destino real de sus escrituras, haciendo la redireccion completamente transparente.
+ * @param fd Descriptor de salida (STDOUT o STDERR)
  * @param buf Buffer con los datos a escribir
  * @param count Cantidad de bytes a escribir
  * @param color Color de primer plano
@@ -30,12 +33,39 @@ void sys_write(FDS fd, const char *buf, size_t count, size_t color, size_t backg
 
 /**
  * @brief Lee datos desde un descriptor de entrada
- * @param fd Descriptor de entrada
+ * @details Esta syscall determina automaticamente si debe leer del teclado o de un pipe
+ * basandose en la configuracion de IO del proceso actual. Los procesos no necesitan conocer
+ * el origen real de sus lecturas, haciendo la redireccion completamente transparente.
+ * La lectura desde pipes es bloqueante si no hay datos disponibles.
+ * @param fd Descriptor de entrada (STDIN)
  * @param buffer Buffer de destino
  * @param count Cantidad de bytes solicitados
- * @return Cantidad de bytes leidos o -1 en error
+ * @return Cantidad de bytes leidos, 0 si EOF, -1 en error
  */
 int sys_read(FDS fd, char *buffer, size_t count);
+
+/**
+ * @brief Lee datos desde la entrada estandar del proceso (stdin)
+ * @details Esta syscall lee automaticamente desde stdin sin requerir file descriptor.
+ * Determina automaticamente si debe leer del teclado o de un pipe basandose en la
+ * configuracion de IO del proceso actual. Los comandos no necesitan conocer file descriptors.
+ * @param buffer Buffer de destino
+ * @param count Cantidad de bytes solicitados
+ * @return Cantidad de bytes leidos, 0 si EOF, -1 en error
+ */
+int sys_read_input(char *buffer, size_t count);
+
+/**
+ * @brief Escribe datos a la salida estandar del proceso (stdout)
+ * @details Esta syscall escribe automaticamente a stdout sin requerir file descriptor.
+ * Determina automaticamente si debe escribir a la pantalla o a un pipe basandose en la
+ * configuracion de IO del proceso actual. Los comandos no necesitan conocer file descriptors.
+ * @param buf Buffer con los datos a escribir
+ * @param count Cantidad de bytes a escribir
+ * @param color Color de primer plano
+ * @param background Color de fondo
+ */
+void sys_write_output(const char *buf, size_t count, size_t color, size_t background);
 
 /**
  * @brief Suspende el proceso actual por una cantidad de segundos
@@ -182,6 +212,37 @@ process_id_t sys_create_process_foreground_with_io(const char *name, void (*entr
  * @return PID del proceso en ejecucion
  */
 process_id_t sys_getpid();
+
+/**
+ * @brief Obtiene el tipo de stdin del proceso actual
+ * @return PROCESS_IO_STDIN_KEYBOARD o PROCESS_IO_STDIN_PIPE
+ */
+uint32_t sys_get_stdin_type();
+
+/**
+ * @brief Obtiene el tipo de stdout del proceso actual
+ * @return PROCESS_IO_STDOUT_SCREEN o PROCESS_IO_STDOUT_PIPE
+ */
+uint32_t sys_get_stdout_type();
+
+/**
+ * @brief Cierra el stdin del proceso actual (marca EOF)
+ * @return 0 si exito, -1 si error
+ */
+int sys_close_stdin(void);
+
+/**
+ * @brief Cierra el stdin de un proceso especifico (marca EOF)
+ * @param pid PID del proceso cuyo stdin se desea cerrar
+ * @return 0 si exito, -1 si error
+ */
+int sys_close_stdin_pid(process_id_t pid);
+
+/**
+ * @brief Obtiene el PID del proceso foreground
+ * @return PID del proceso foreground o -1 si no hay
+ */
+process_id_t sys_get_foreground_process(void);
 
 /**
  * @brief Finaliza un proceso

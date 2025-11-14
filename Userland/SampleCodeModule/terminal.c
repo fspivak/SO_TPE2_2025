@@ -70,7 +70,72 @@ void terminal() {
 	print_format(">  "); /* Prompt inicial */
 
 	while (1) {
-		if ((c = getchar()) != '\n') {
+		// Si hay un proceso foreground diferente del terminal, no leer del teclado
+		// Esperar a que el proceso termine antes de volver a leer
+		int fg_pid = get_foreground_process();
+		int has_foreground = (fg_pid > 0 && fg_pid != getpid());
+
+		if (has_foreground) {
+			// Hay un proceso foreground, pero debemos detectar Ctrl+D
+			// Leer del teclado para detectar Ctrl+D (aunque sea bloqueante)
+			// El proceso foreground lee directamente del teclado, pero el terminal
+			// necesita detectar Ctrl+D para cerrar el stdin del proceso foreground
+			c = getchar();
+
+			if (c == -1) {
+				// EOF (Ctrl+D) detectado - cerrar stdin del proceso foreground
+				print_format("\n[EOF]\n");
+				int current_fg = get_foreground_process();
+				if (current_fg > 0 && current_fg != getpid()) {
+					close_stdin_pid(current_fg);
+				}
+				// Limpiar buffer
+				i = 0;
+				tabs = 0;
+				buffer[0] = '\0';
+				// Continuar esperando a que el proceso termine
+				yield();
+				// Verificar si el proceso sigue siendo foreground
+				current_fg = get_foreground_process();
+				if (current_fg == getpid() || current_fg != fg_pid) {
+					// El proceso terminó o ya no es foreground, mostrar prompt y continuar
+					print_format(">  ");
+					continue;
+				}
+				// El proceso sigue activo, seguir esperando
+				continue;
+			}
+
+			// Si no es EOF, el carácter debe ir al proceso foreground
+			// Pero como el proceso foreground lee directamente del teclado,
+			// no necesitamos hacer nada aquí
+			// Solo hacer yield y esperar a que el proceso termine
+			yield();
+			// Verificar si el proceso sigue siendo foreground
+			int current_fg = get_foreground_process();
+			if (current_fg == getpid() || current_fg != fg_pid) {
+				// El proceso terminó o ya no es foreground, continuar normalmente
+				continue;
+			}
+			// El proceso sigue activo, seguir esperando
+			continue;
+		}
+
+		// No hay proceso foreground, leer del teclado normalmente
+		c = getchar();
+
+		if (c == -1) {
+			// EOF (Ctrl+D) detectado
+			print_format("\n[EOF]\n");
+			// Limpiar buffer
+			i = 0;
+			tabs = 0;
+			buffer[0] = '\0';
+			print_format(">  ");
+			continue;
+		}
+
+		if (c != '\n') {
 			if (c == 8) {
 				if (i > 0) {
 					if (buffer[i - 1] == '\t') {
@@ -206,11 +271,6 @@ void terminal() {
 			}
 			else if (!strcmp(command, "wc")) {
 				wc_cmd(0, NULL);
-			}
-			else if (c == 4) { // Ctrl+D
-				print_format("\n[EOF]\n");
-				// close_fd(0); // (tu syscall que cierre el descriptor 0, STDIN)
-				break; // termina la lectura actual
 			}
 			// Detectar comando con pipe
 			else if (strchr(command, '|') != NULL) {

@@ -13,6 +13,9 @@
 
 #include "include/pipe.h"
 
+// Flag para habilitar logs de debug de pipes
+#define PIPE_DEBUG 0 // Deshabilitado - cambiar a 1 para habilitar logs
+
 uint64_t syscallDispatcher(uint64_t rax, ...) {
 	va_list args;
 	va_start(args, rax);
@@ -31,6 +34,27 @@ uint64_t syscallDispatcher(uint64_t rax, ...) {
 		int result = sys_read(fd, buffer, count);
 		va_end(args);
 		return (uint64_t) result;
+	}
+	else if (rax == 84) {
+		// sys_read_input - lee automaticamente de stdin sin requerir file descriptor
+		char *buffer = va_arg(args, char *);
+		size_t count = va_arg(args, size_t);
+		int result = sys_read_input(buffer, count);
+		va_end(args);
+		return (uint64_t) result;
+	}
+	else if (rax == 85) {
+		// sys_write_output - escribe automaticamente a stdout sin requerir file descriptor
+		const char *buffer = va_arg(args, const char *);
+		size_t count = va_arg(args, size_t);
+		size_t color = va_arg(args, size_t);
+		size_t background = va_arg(args, size_t);
+#if PIPE_DEBUG
+		vd_print("[SYSCALL] write_output count=");
+		vd_print_dec(count);
+		vd_print("\n");
+#endif
+		sys_write_output(buffer, count, color, background);
 	}
 	else if (rax == 35) {
 		int secs = va_arg(args, int);
@@ -129,10 +153,74 @@ uint64_t syscallDispatcher(uint64_t rax, ...) {
 		int argc = va_arg(args, int);
 		char **argv = va_arg(args, char **);
 		int priority_int = va_arg(args, int);
-		const process_io_config_t *config = va_arg(args, const process_io_config_t *);
+		// CRITICO: Leer como uint64_t primero para ver el valor del puntero
+		uint64_t user_config_ptr = va_arg(args, uint64_t);
+		const process_io_config_t *user_config = (const process_io_config_t *) user_config_ptr;
 		uint8_t priority = (uint8_t) priority_int;
+
+#if PIPE_DEBUG
+		vd_print("[SYSCALL] create_process_with_io name=");
+		if (name != NULL) {
+			vd_print(name);
+		}
+		else {
+			vd_print("(null)");
+		}
+		vd_print(" user_config_ptr=0x");
+		vd_print_hex(user_config_ptr);
+		vd_print("\n");
+#endif
+
+		// CRITICO: Copiar config desde userland al kernel
+		// Los punteros de userland no son validos en el kernel
+		process_io_config_t kernel_config;
+		const process_io_config_t *config = NULL;
+		if (user_config != NULL && user_config_ptr != 0) {
+			// Copiar la estructura desde userland
+			// En un OS real, esto requeriria validacion de punteros y copia segura
+			// Aqui asumimos que el puntero es valido y copiamos directamente
+			kernel_config = *user_config;
+			config = &kernel_config;
+#if PIPE_DEBUG
+			vd_print("[SYSCALL] create_process_with_io name=");
+			if (name != NULL) {
+				vd_print(name);
+			}
+			else {
+				vd_print("(null)");
+			}
+			vd_print(" config copied stdin_type=");
+			vd_print_dec(config->stdin_type);
+			vd_print(" stdin_resource=");
+			vd_print_dec(config->stdin_resource);
+			vd_print(" stdout_type=");
+			vd_print_dec(config->stdout_type);
+			vd_print(" stdout_resource=");
+			vd_print_dec(config->stdout_resource);
+			vd_print("\n");
+#endif
+		}
+		else {
+#if PIPE_DEBUG
+			vd_print("[SYSCALL] create_process_with_io name=");
+			if (name != NULL) {
+				vd_print(name);
+			}
+			else {
+				vd_print("(null)");
+			}
+			vd_print(" config=(null) user_config_ptr=0x");
+			vd_print_hex(user_config_ptr);
+			vd_print("\n");
+#endif
+		}
 		process_id_t pid = sys_create_process_with_io(name, entry_point, argc, argv, priority, config);
 		va_end(args);
+#if PIPE_DEBUG
+		vd_print("[SYSCALL] create_process_with_io returned pid=");
+		vd_print_dec(pid);
+		vd_print("\n");
+#endif
 		return (uint64_t) pid;
 	}
 	else if (rax == 78) {
@@ -142,8 +230,32 @@ uint64_t syscallDispatcher(uint64_t rax, ...) {
 		int argc = va_arg(args, int);
 		char **argv = va_arg(args, char **);
 		int priority_int = va_arg(args, int);
-		const process_io_config_t *config = va_arg(args, const process_io_config_t *);
+		const process_io_config_t *user_config = va_arg(args, const process_io_config_t *);
 		uint8_t priority = (uint8_t) priority_int;
+
+		// CRITICO: Copiar config desde userland al kernel
+		// Los punteros de userland no son validos en el kernel
+		process_io_config_t kernel_config;
+		const process_io_config_t *config = NULL;
+		if (user_config != NULL) {
+			// Copiar la estructura desde userland
+			kernel_config = *user_config;
+			config = &kernel_config;
+#if PIPE_DEBUG
+			vd_print("[SYSCALL] create_process_foreground_with_io name=");
+			if (name != NULL) {
+				vd_print(name);
+			}
+			else {
+				vd_print("(null)");
+			}
+			vd_print(" config copied stdin_type=");
+			vd_print_dec(config->stdin_type);
+			vd_print(" stdout_type=");
+			vd_print_dec(config->stdout_type);
+			vd_print("\n");
+#endif
+		}
 		process_id_t pid = sys_create_process_foreground_with_io(name, entry_point, argc, argv, priority, config);
 		va_end(args);
 		return (uint64_t) pid;
@@ -287,6 +399,38 @@ uint64_t syscallDispatcher(uint64_t rax, ...) {
 		va_end(args);
 		return (uint64_t) result;
 	}
+	else if (rax == 79) {
+		// sys_get_stdin_type
+		uint32_t result = sys_get_stdin_type();
+		va_end(args);
+		return (uint64_t) result;
+	}
+	else if (rax == 83) {
+		// sys_get_stdout_type
+		uint32_t result = sys_get_stdout_type();
+		va_end(args);
+		return (uint64_t) result;
+	}
+	else if (rax == 80) {
+		// sys_close_stdin
+		int result = sys_close_stdin();
+		va_end(args);
+		return (uint64_t) result;
+	}
+	else if (rax == 81) {
+		// sys_close_stdin_pid
+		int pid_int = va_arg(args, int);
+		process_id_t pid = (process_id_t) pid_int;
+		int result = sys_close_stdin_pid(pid);
+		va_end(args);
+		return (uint64_t) result;
+	}
+	else if (rax == 82) {
+		// sys_get_foreground_process
+		process_id_t result = sys_get_foreground_process();
+		va_end(args);
+		return (uint64_t) result;
+	}
 
 	va_end(args);
 	return 0; /* Retorno por defecto */
@@ -298,8 +442,27 @@ void sys_sleep(int secs) {
 int sys_read(FDS fd, char *buffer, size_t count) {
 	return process_read(get_current_pid(), fd, buffer, count);
 }
+
+int sys_read_input(char *buffer, size_t count) {
+	// Lee automaticamente de stdin - los comandos no necesitan conocer el file descriptor
+	return process_read(get_current_pid(), STDIN, buffer, count);
+}
+
 void sys_write(FDS fd, const char *buffer, size_t count, size_t color, size_t background) {
 	process_write(get_current_pid(), fd, buffer, count, color, background);
+}
+
+void sys_write_output(const char *buffer, size_t count, size_t color, size_t background) {
+	// Escribe automaticamente a stdout - los comandos no necesitan conocer el file descriptor
+#if PIPE_DEBUG
+	process_id_t current_pid = get_current_pid();
+	vd_print("[SYS] sys_write_output pid=");
+	vd_print_dec(current_pid);
+	vd_print(" count=");
+	vd_print_dec(count);
+	vd_print("\n");
+#endif
+	process_write(get_current_pid(), STDOUT, buffer, count, color, background);
 }
 /* Syscall zoom - No soportado en modo texto VGA */
 void sys_zoom(int zoom) {
@@ -404,7 +567,23 @@ process_id_t sys_create_process_with_io(const char *name, void (*entry_point)(in
 	if (entry_point == NULL) {
 		return -1;
 	}
-	return create_process_with_io(name, entry_point, argc, argv, priority, config);
+#if PIPE_DEBUG
+	vd_print("[SYS] sys_create_process_with_io called name=");
+	if (name != NULL) {
+		vd_print(name);
+	}
+	else {
+		vd_print("(null)");
+	}
+	vd_print("\n");
+#endif
+	process_id_t pid = create_process_with_io(name, entry_point, argc, argv, priority, config);
+#if PIPE_DEBUG
+	vd_print("[SYS] sys_create_process_with_io returned pid=");
+	vd_print_dec(pid);
+	vd_print("\n");
+#endif
+	return pid;
 }
 
 process_id_t sys_create_process_foreground_with_io(const char *name, void (*entry_point)(int, char **), int argc,
@@ -417,6 +596,50 @@ process_id_t sys_create_process_foreground_with_io(const char *name, void (*entr
 
 process_id_t sys_getpid() {
 	return get_current_pid();
+}
+
+uint32_t sys_get_stdin_type() {
+	PCB *process = get_process_by_pid(get_current_pid());
+	if (process == NULL) {
+		return PROCESS_IO_STDIN_KEYBOARD;
+	}
+	if (process->io_state.stdin_desc.type == IO_SOURCE_PIPE) {
+		return PROCESS_IO_STDIN_PIPE;
+	}
+	return PROCESS_IO_STDIN_KEYBOARD;
+}
+
+uint32_t sys_get_stdout_type() {
+	PCB *process = get_process_by_pid(get_current_pid());
+	if (process == NULL) {
+		return PROCESS_IO_STDOUT_SCREEN;
+	}
+	if (process->io_state.stdout_desc.type == IO_SINK_PIPE) {
+		return PROCESS_IO_STDOUT_PIPE;
+	}
+	return PROCESS_IO_STDOUT_SCREEN;
+}
+
+int sys_close_stdin(void) {
+	PCB *process = get_process_by_pid(get_current_pid());
+	if (process == NULL) {
+		return -1;
+	}
+	process->io_state.stdin_eof = 1;
+	return 0;
+}
+
+int sys_close_stdin_pid(process_id_t pid) {
+	PCB *process = get_process_by_pid(pid);
+	if (process == NULL) {
+		return -1;
+	}
+	process->io_state.stdin_eof = 1;
+	return 0;
+}
+
+process_id_t sys_get_foreground_process(void) {
+	return get_foreground_process();
 }
 
 int sys_kill(process_id_t pid) {

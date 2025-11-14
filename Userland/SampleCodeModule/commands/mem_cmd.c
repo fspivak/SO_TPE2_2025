@@ -19,7 +19,7 @@ static void print_human_size(uint64_t bytes) {
 	}
 }
 
-static void mem_main(int argc, char **argv) {
+void mem_main(int argc, char **argv) {
 	(void) argc;
 	(void) argv;
 	typedef struct {

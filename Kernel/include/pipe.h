@@ -20,9 +20,11 @@ typedef struct Pipe {
 	char sem_mutex_name[MAX_SEM_NAME];
 	char sem_read_name[MAX_SEM_NAME];
 	char sem_write_name[MAX_SEM_NAME];
+	char sem_writer_ready_name[MAX_SEM_NAME];
 	int sem_mutex_id;
 	int sem_read_id;
 	int sem_write_id;
+	int sem_writer_ready_id;
 
 	uint8_t active;
 } Pipe;
@@ -91,6 +93,13 @@ int pipe_register_writer(int id);
  * @return 0 si es exitoso, -1 si hay error
  */
 int pipe_unregister_writer(int id);
+
+/**
+ * @brief Verifica si el pipe tiene escritores activos
+ * @param id Identificador del pipe
+ * @return 1 si hay escritores activos, 0 si no hay o hay error
+ */
+int pipe_has_writers(int id);
 
 #define PIPE_RESOURCE_INVALID -1
 

@@ -43,15 +43,95 @@ static ManualEntry manual_entries[] = {
 			 "    readers: number of readers to spawn\n"
 			 "Example:\n"
 			 "  mvar 2 2\n"},
+	{"pipe", "\npipe - Pipes allow connecting two commands.\n"
+			 "Usage:\n"
+			 "  <command1> | <command2>\n"
+			 "    command1: writer command (outputs to pipe)\n"
+			 "    command2: reader command (reads from pipe)\n"
+			 "\n"
+			 "Available commands for pipes:\n"
+			 "  cat, wc, filter, ps, help, man, mem\n"
+			 "\n"
+			 "Examples:\n"
+			 "  ps | cat        - List processes and display them\n"
+			 "  cat | wc        - Count lines, words and characters from input\n"
+			 "  ps | filter     - List processes and filter vowels\n"
+			 "  help | wc       - Count help message lines\n"},
 	{NULL, NULL}};
 
-void man_cmd(int argc, char **argv) {
+// Funcion principal de man que funciona tanto en modo directo como en pipes
+void man_main(int argc, char **argv) {
 	if (argc < 2) {
-		print_format("Uso: man <comando>\nComandos disponibles: test_mm, test_process, test_sync, test_prio\n");
+		print_format(
+			"Uso: man <comando>\nComandos disponibles: test_mm, test_process, test_sync, test_prio, mvar, pipe\n");
 		return;
 	}
 
 	const char *cmd = argv[1];
+
+	// Caso especial para pipe: imprimir en partes para evitar cortes
+	if (strcmp(cmd, "pipe") == 0) {
+		print_format("\npipe - Pipes allow connecting two commands.\n");
+		print_format("Usage:\n");
+		print_format("  <command1> | <command2>\n");
+		print_format("    command1: writer command (outputs to pipe)\n");
+		print_format("    command2: reader command (reads from pipe)\n");
+		print_format("\n");
+		print_format("Available commands for pipes:\n");
+		print_format("  cat, wc, filter, ps, help, man, mem\n");
+		print_format("\n");
+		print_format("Examples:\n");
+		print_format("  ps | cat        - List processes and display them\n");
+		print_format("  cat | wc        - Count lines, words and characters from input\n");
+		print_format("  ps | filter     - List processes and filter vowels\n");
+		print_format("  help | wc       - Count help message lines\n");
+		print_format("\n");
+		print_format("Note: Test commands (test_mm, test_process, test_sync, test_prio)\n");
+		print_format("      cannot be used in pipes.\n");
+		return;
+	}
+
+	for (int i = 0; manual_entries[i].name != NULL; i++) {
+		if (strcmp(manual_entries[i].name, cmd) == 0) {
+			print_format("%s\n", manual_entries[i].description);
+			return;
+		}
+	}
+
+	print_format("No hay manual disponible para '%s'\n", cmd);
+}
+
+void man_cmd(int argc, char **argv) {
+	if (argc < 2) {
+		print_format(
+			"Uso: man <comando>\nComandos disponibles: test_mm, test_process, test_sync, test_prio, mvar, pipe\n");
+		return;
+	}
+
+	const char *cmd = argv[1];
+
+	// Caso especial para pipe: imprimir en partes para evitar cortes
+	if (strcmp(cmd, "pipe") == 0) {
+		print_format("\npipe - Pipes allow connecting two commands.\n");
+		print_format("Usage:\n");
+		print_format("  <command1> | <command2>\n");
+		print_format("    command1: writer command (outputs to pipe)\n");
+		print_format("    command2: reader command (reads from pipe)\n");
+		print_format("\n");
+		print_format("Available commands for pipes:\n");
+		print_format("  cat, wc, filter, ps, help, man, mem\n");
+		print_format("\n");
+		print_format("Examples:\n");
+		print_format("  ps | cat        - List processes and display them\n");
+		print_format("  cat | wc        - Count lines, words and characters from input\n");
+		print_format("  ps | filter     - List processes and filter vowels\n");
+		print_format("  help | wc       - Count help message lines\n");
+		print_format("\n");
+		print_format("Note: Test commands (test_mm, test_process, test_sync, test_prio)\n");
+		print_format("      cannot be used in pipes.\n");
+		return;
+	}
+
 	for (int i = 0; manual_entries[i].name != NULL; i++) {
 		if (strcmp(manual_entries[i].name, cmd) == 0) {
 			print_format("%s\n", manual_entries[i].description);
