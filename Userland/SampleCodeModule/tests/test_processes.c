@@ -22,8 +22,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
 	uint8_t alive = 0;
 	uint8_t action;
 	uint64_t max_processes;
-	char *argvAux[] = {0};
-
+	char *argvAux[] = {"endless_loop", NULL};
 	if (argc != 1)
 		return -1;
 
@@ -35,8 +34,8 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
 	while (1) {
 		// Create max_processes processes
 		for (rq = 0; rq < max_processes; rq++) {
-			p_rqs[rq].pid = my_create_process("endless_loop", endless_loop_wrapper, 0, argvAux);
-
+			print_format("\n entro");
+			p_rqs[rq].pid = my_create_process("endless_loop", endless_loop_wrapper, 1, argvAux);
 			if (p_rqs[rq].pid == -1) {
 				print_format("test_process: ERROR creating process\n");
 				return -1;
@@ -55,6 +54,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
 				switch (action) {
 					case 0:
 						if (p_rqs[rq].state == RUNNING || p_rqs[rq].state == BLOCKED) {
+							print_format("\n mato");
 							if (my_kill(p_rqs[rq].pid) == -1) {
 								print_format("test_process: ERROR killing process\n");
 								return -1;
@@ -66,6 +66,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
 
 					case 1:
 						if (p_rqs[rq].state == RUNNING) {
+							print_format("\nbloqueo");
 							if (my_block(p_rqs[rq].pid) == -1) {
 								print_format("test_process: ERROR blocking process\n");
 								return -1;
@@ -79,6 +80,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
 			// Randomly unblocks processes
 			for (rq = 0; rq < max_processes; rq++)
 				if (p_rqs[rq].state == BLOCKED && GetUniform(100) % 2) {
+					// print_format("\ndesbloqueo");
 					if (my_unblock(p_rqs[rq].pid) == -1) {
 						print_format("test_process: ERROR unblocking process\n");
 						return -1;
@@ -86,5 +88,8 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
 					p_rqs[rq].state = RUNNING;
 				}
 		}
+		// my_yield();
 	}
+	print_format("salgo");
+	return 1;
 }

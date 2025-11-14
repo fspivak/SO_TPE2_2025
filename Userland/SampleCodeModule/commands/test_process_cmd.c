@@ -40,6 +40,7 @@ void test_process_main(int argc, char **argv) {
 	}
 
 	print_format("\n=== Process Test Completed ===\n\n");
+	return;
 }
 
 void test_process_cmd(int argc, char **argv) {
@@ -50,4 +51,5 @@ void test_process_cmd(int argc, char **argv) {
 	}
 
 	command_handle_child_process(pid_test, "test_process");
+	return;
 }

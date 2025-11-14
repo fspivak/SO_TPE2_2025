@@ -7,7 +7,7 @@
 // #include "include/memoryManager.h"
 
 // Flag para habilitar logs de debug de pipes
-#define PIPE_DEBUG 0 // Deshabilitado - cambiar a 1 para habilitar logs
+#define PIPE_DEBUG 1 // Deshabilitado - cambiar a 1 para habilitar logs
 
 static Pipe pipes[MAX_PIPES];
 

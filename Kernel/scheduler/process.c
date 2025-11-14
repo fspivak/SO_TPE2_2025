@@ -119,51 +119,152 @@ static void release_process_arguments(PCB *process) {
 	process->argv = NULL;
 	process->argc = 0;
 }
+// static void release_process_resources(PCB *process) {
+// 	if (process == NULL) {
+// 		return;
+// 	}
+
+// 	// Sacarlo del scheduler si estuviera
+// 	removeFromScheduler(process);
+
+// 	// Liberar argv/argc
+// 	release_process_arguments(process);
+
+// 	// Liberar stack si existe
+// 	if (process->stack_base != NULL && memory_manager != NULL) {
+// 		uint64_t stack_base_addr = (uint64_t) process->stack_base;
+
+// 		// Ubicación donde guardamos el puntero original de memory_alloc:
+// 		// [ stack_base - sizeof(void*) ]  == raw
+// 		uint64_t ptr_location = stack_base_addr - sizeof(void *);
+
+// 		// Chequeos defensivos: que esté en rango razonable y alineado
+// 		if (ptr_location >= 0x600000 &&
+// 			ptr_location <  0x800000 &&
+// 			ptr_location <  stack_base_addr &&
+// 			(ptr_location % sizeof(void *)) == 0) {
+
+// 			void *original_ptr = *((void **) ptr_location);
+
+// 			// Solo liberamos si parece un puntero de heap razonable
+// 			if (original_ptr != NULL &&
+// 				(uint64_t) original_ptr >= 0x600000 &&
+// 				(uint64_t) original_ptr <  0x800000 &&
+// 				(uint64_t) original_ptr <= stack_base_addr) {
+
+// 				memory_free(memory_manager, original_ptr);
+// 			}
+// 		}
+
+// 		process->stack_base = NULL;
+// 		process->stack_pointer = NULL;
+// 	}
+
+// 	// Resetear resto de campos
+// 	process->entry_point = NULL;
+// 	process->scheduler_counter = 0;
+// 	process->in_scheduler = 0;
+// 	process->waiting_pid = -1;
+// 	process->parent_pid = -1;
+// 	process->pid = -1;
+// 	process->priority = 0;
+// 	process->base_priority = 0;
+// 	process->saved_priority = 0;
+// 	process->foreground_priority_boost = 0;
+// 	process->waiting_ticks = 0;
+// 	process->pending_cleanup = 0;
+// 	process->has_foreground = 0;
+
+// 	if (pending_cleanup_process == process) {
+// 		pending_cleanup_process = NULL;
+// 	}
+
+// 	reset_process_name(process);
+// }
+
+//////////////////////////////////////////////////////////////////////////////////////
+// static void release_process_resources(PCB *process) {
+// 	if (process == NULL) {
+// 		return;
+// 	}
+
+// 	// Sacarlo del scheduler si está
+// 	removeFromScheduler(process);
+
+// 	// Libero argv / argc
+// 	release_process_arguments(process);
+
+// 	// Libero recursos de IO (pipes, etc.)
+// 	release_process_io_resources(process);
+
+// 	// Libero stack si existe
+// 	if (process->stack_base != NULL && memory_manager != NULL) {
+// 		uint64_t aligned = (uint64_t) process->stack_base;
+
+// 		// El puntero "real" devuelto por memory_alloc está guardado
+// 		// inmediatamente antes del stack alineado
+// 		void **slot = (void **) (aligned - sizeof(void *));
+// 		void *raw  = *slot;
+
+// 		if (raw != NULL) {
+// 			memory_free(memory_manager, raw);
+// 		}
+
+// 		process->stack_base = NULL;
+// 		process->stack_pointer = NULL;
+// 	}
+
+// 	// Resetear campos del PCB
+// 	process->entry_point = NULL;
+// 	process->in_scheduler = 0;
+// 	process->waiting_pid = -1;
+// 	process->parent_pid = -1;
+// 	process->pid = -1;
+// 	process->priority = 0;
+// 	process->base_priority = 0;
+// 	process->saved_priority = 0;
+// 	process->foreground_priority_boost = 0;
+// 	process->scheduler_counter = 0;
+// 	process->waiting_ticks = 0;
+// 	process->pending_cleanup = 0;
+// 	process->has_foreground = 0;
+
+// 	if (pending_cleanup_process == process) {
+// 		pending_cleanup_process = NULL;
+// 	}
+
+// 	reset_process_name(process);
+// 	process->state = TERMINATED;
+// }
 
 static void release_process_resources(PCB *process) {
 	if (process == NULL) {
 		return;
 	}
 
+	// Sacarlo del scheduler
 	removeFromScheduler(process);
 
+	// Libero argv / argc
 	release_process_arguments(process);
 
-	if (process->stack_base != NULL) {
-		// Verificar que memory_manager sea valido antes de usarlo
-		if (memory_manager != NULL) {
-			// CRITICO: memory_free requiere el puntero original de memory_alloc
-			// No el puntero alineado. El puntero original se guarda justo antes
-			// del stack_base alineado cuando se crea el proceso
-			uint64_t stack_base_addr = (uint64_t) process->stack_base;
-			uint64_t ptr_location = stack_base_addr - sizeof(void *);
+	// Libero recursos de IO (pipes, etc.)
+	release_process_io_resources(process);
 
-			// Validar que la ubicacion del puntero sea segura
-			// Debe estar alineada, dentro del rango de memoria valida, y antes del stack_base
-			if (ptr_location >= 0x600000 && ptr_location < 0x800000 && ptr_location < stack_base_addr &&
-				(ptr_location % sizeof(void *)) == 0) {
-				// Leer el puntero original de forma segura
-				void *original_ptr = *((void **) ptr_location);
+	// *** NO liberar stack por ahora ***
+	// if (process->stack_base != NULL && memory_manager != NULL) {
+	//     uint64_t aligned = (uint64_t) process->stack_base;
+	//     void **slot = (void **) (aligned - sizeof(void *));
+	//     void *raw  = *slot;
+	//     if (raw != NULL) {
+	//         memory_free(memory_manager, raw);
+	//     }
+	// }
+	process->stack_base = NULL;
+	process->stack_pointer = NULL;
 
-				// Validar que el puntero original sea valido
-				// Debe estar dentro del rango de memoria y antes o igual al stack_base
-				if (original_ptr != NULL && (uint64_t) original_ptr >= 0x600000 && (uint64_t) original_ptr < 0x800000 &&
-					(uint64_t) original_ptr <= stack_base_addr) {
-					// Liberar usando el puntero original (el unico valido para memory_free)
-					memory_free(memory_manager, original_ptr);
-				}
-				// Si el puntero original no es valido, no liberar para evitar corrupcion
-				// Esto puede indicar corrupcion del stack o proceso antiguo sin el puntero guardado
-			}
-			// Si no se puede leer el puntero original de forma segura, no liberar
-			// para evitar corrupcion de memoria o double free
-		}
-		process->stack_base = NULL;
-		process->stack_pointer = NULL;
-	}
-
+	// Resetear campos del PCB
 	process->entry_point = NULL;
-	process->scheduler_counter = 0;
 	process->in_scheduler = 0;
 	process->waiting_pid = -1;
 	process->parent_pid = -1;
@@ -172,6 +273,7 @@ static void release_process_resources(PCB *process) {
 	process->base_priority = 0;
 	process->saved_priority = 0;
 	process->foreground_priority_boost = 0;
+	process->scheduler_counter = 0;
 	process->waiting_ticks = 0;
 	process->pending_cleanup = 0;
 	process->has_foreground = 0;
@@ -181,55 +283,106 @@ static void release_process_resources(PCB *process) {
 	}
 
 	reset_process_name(process);
+	process->state = TERMINATED;
 }
 
-static int duplicate_arguments(PCB *process, int argc, char **argv) {
-	if (process == NULL) {
-		return -1;
-	}
+///////////////////////////////////////////////////
 
-	process->argc = 0;
-	process->argv = NULL;
+// static int duplicate_arguments(PCB *process, int argc, char **argv) {
+// 	if (process == NULL) {
+// 		return -1;
+// 	}
+
+// 	process->argc = 0;
+// 	process->argv = NULL;
+
+// 	if (argc <= 0 || argv == NULL) {
+// 		return 0;
+// 	}
+
+// 	process->argv = (char **) memory_alloc(memory_manager, (argc + 1) * sizeof(char *));
+// 	if (process->argv == NULL) {
+// 		return -1;
+// 	}
+
+// 	for (int i = 0; i < argc; i++) {
+// 		process->argv[i] = NULL;
+// 	}
+
+// 	for (int i = 0; i < argc; i++) {
+// 		if (argv[i] == NULL) {
+// 			continue;
+// 		}
+
+// 		int len = 0;
+// 		while (argv[i][len] != '\0') {
+// 			len++;
+// 		}
+
+// 		process->argv[i] = (char *) memory_alloc(memory_manager, len + 1);
+// 		if (process->argv[i] == NULL) {
+// 			release_process_arguments(process);
+// 			return -1;
+// 		}
+
+// 		for (int j = 0; j <= len; j++) {
+// 			process->argv[i][j] = argv[i][j];
+// 		}
+// 	}
+
+// 	process->argv[argc] = NULL;
+// 	process->argc = argc;
+
+// 	return 0;
+// }
+
+//////////////////////////////////////////////////////////////////////////
+int duplicate_arguments(PCB *p, int argc, char **argv) {
+	p->argc = 0;
+	p->argv = NULL;
 
 	if (argc <= 0 || argv == NULL) {
 		return 0;
 	}
 
-	process->argv = (char **) memory_alloc(memory_manager, (argc + 1) * sizeof(char *));
-	if (process->argv == NULL) {
+	char **copy = memory_alloc(memory_manager, sizeof(char *) * (argc + 1));
+	if (copy == NULL) {
 		return -1;
 	}
 
 	for (int i = 0; i < argc; i++) {
-		process->argv[i] = NULL;
-	}
-
-	for (int i = 0; i < argc; i++) {
 		if (argv[i] == NULL) {
+			copy[i] = NULL;
 			continue;
 		}
 
 		int len = 0;
-		while (argv[i][len] != '\0') {
+		while (argv[i][len] != '\0')
 			len++;
-		}
 
-		process->argv[i] = (char *) memory_alloc(memory_manager, len + 1);
-		if (process->argv[i] == NULL) {
-			release_process_arguments(process);
+		copy[i] = memory_alloc(memory_manager, len + 1);
+		if (copy[i] == NULL) {
+			for (int j = 0; j < i; j++) {
+				if (copy[j] != NULL)
+					memory_free(memory_manager, copy[j]);
+			}
+			memory_free(memory_manager, copy);
 			return -1;
 		}
 
-		for (int j = 0; j <= len; j++) {
-			process->argv[i][j] = argv[i][j];
+		for (int k = 0; k < len; k++) {
+			copy[i][k] = argv[i][k];
 		}
+		copy[i][len] = '\0';
 	}
 
-	process->argv[argc] = NULL;
-	process->argc = argc;
+	copy[argc] = NULL;
 
+	p->argc = argc;
+	p->argv = copy;
 	return 0;
 }
+////////////////////////////////////////////////////////////////
 
 static void init_process_io_defaults(ProcessIOState *io_state) {
 	if (io_state == NULL) {
@@ -628,7 +781,226 @@ int init_processes() {
 int processes_initialized() {
 	return initialized_flag;
 }
+///////////////////////////////////////////////////////
+// static process_id_t create_process_internal(
+// 	const char *name,
+// 	void (*entry_point)(int, char **),
+// 	int argc, char **argv,
+// 	uint8_t priority,
+// 	const process_io_config_t *io_config,
+// 	int assign_foreground
+// ) {
+// 	if (!initialized_flag || entry_point == NULL) {
+// 		return -1;
+// 	}
 
+// 	if (priority > MAX_PRIORITY) {
+// 		priority = MAX_PRIORITY;
+// 	}
+
+// 	// Limpieza agresiva antes de reservar cosas nuevas
+// 	free_terminated_processes();
+
+// 	// Buscar slot libre (salteamos 0 porque es idle)
+// 	int slot = -1;
+// 	for (int i = 1; i < MAX_PROCESSES; i++) {
+// 		if (process_table[i].state == TERMINATED) {
+// 			slot = i;
+// 			break;
+// 		}
+// 	}
+// 	if (slot == -1) {
+// 		return -1;
+// 	}
+
+// 	PCB *p = &process_table[slot];
+
+// 	// Si el slot todavía tiene recursos viejos, limpiarlos
+// 	if (p->stack_base != NULL || p->argv != NULL) {
+// 		release_process_resources(p);
+// 	}
+
+// 	/* ============================
+// 	   Inicialización crítica del PCB
+// 	   ============================ */
+// 	p->entry_point = entry_point;   // ¡RIP válido desde el inicio!
+// 	p->argc = 0;
+// 	p->argv = NULL;
+// 	p->stack_base = NULL;
+// 	p->stack_pointer = NULL;
+// 	p->in_scheduler = 0;
+// 	p->waiting_pid = -1;
+
+// 	p->pid = get_next_valid_pid();
+// 	p->state = READY;
+// 	p->priority = priority;
+// 	p->base_priority = priority;
+// 	p->saved_priority = priority;
+// 	p->foreground_priority_boost = 0;
+// 	p->scheduler_counter = 0;
+// 	p->waiting_ticks = 0;
+// 	p->pending_cleanup = 0;
+// 	p->parent_pid = get_current_pid();
+// 	p->has_foreground = 0;
+
+// 	init_process_io_defaults(&p->io_state);
+
+// 	// Copiar nombre
+// 	if (name != NULL) {
+// 		int i = 0;
+// 		while (name[i] != '\0' && i < MAX_PROCESS_NAME - 1) {
+// 			p->name[i] = name[i];
+// 			i++;
+// 		}
+// 		p->name[i] = '\0';
+// 	} else {
+// 		p->name[0] = '?';
+// 		p->name[1] = '\0';
+// 	}
+
+// 	/* ============================
+// 	   Herencia / override de IO
+// 	   ============================ */
+// 	PCB *parent = get_process_by_pid(p->parent_pid);
+// 	if (parent != NULL) {
+// 		p->io_state = parent->io_state;
+// 		p->io_state.stdin_eof = 0;
+
+// 		if (io_config == NULL) {
+// 			if (retain_process_io_resources(p) != 0) {
+// 				init_process_io_defaults(&p->io_state);
+// 				p->state = TERMINATED;
+// 				return -1;
+// 			}
+// 		}
+// 	} else {
+// 		init_process_io_defaults(&p->io_state);
+// 	}
+
+// 	if (io_config != NULL) {
+// 		ProcessIOState prev = p->io_state;
+
+// 		if (override_process_io(p, io_config) != 0) {
+// 			release_process_io_resources(p);
+// 			p->state = TERMINATED;
+// 			return -1;
+// 		}
+
+// 		// Registrar pipes heredados no modificados
+// 		if (prev.stdin_desc.type == IO_SOURCE_PIPE &&
+// 			p->io_state.stdin_desc.type == IO_SOURCE_PIPE &&
+// 			prev.stdin_desc.resource_id == p->io_state.stdin_desc.resource_id &&
+// 			p->io_state.stdin_desc.resource_id >= 0) {
+
+// 			if (pipe_register_reader(p->io_state.stdin_desc.resource_id) != 0) {
+// 				release_process_io_resources(p);
+// 				p->state = TERMINATED;
+// 				return -1;
+// 			}
+// 		}
+
+// 		if (prev.stdout_desc.type == IO_SINK_PIPE &&
+// 			p->io_state.stdout_desc.type == IO_SINK_PIPE &&
+// 			prev.stdout_desc.resource_id == p->io_state.stdout_desc.resource_id &&
+// 			p->io_state.stdout_desc.resource_id >= 0) {
+
+// 			if (pipe_register_writer(p->io_state.stdout_desc.resource_id) != 0) {
+// 				release_process_io_resources(p);
+// 				p->state = TERMINATED;
+// 				return -1;
+// 			}
+// 		}
+
+// 		if (prev.stderr_desc.type == IO_SINK_PIPE &&
+// 			p->io_state.stderr_desc.type == IO_SINK_PIPE &&
+// 			prev.stderr_desc.resource_id == p->io_state.stderr_desc.resource_id &&
+// 			p->io_state.stderr_desc.resource_id >= 0) {
+
+// 			if (pipe_register_writer(p->io_state.stderr_desc.resource_id) != 0) {
+// 				release_process_io_resources(p);
+// 				p->state = TERMINATED;
+// 				return -1;
+// 			}
+// 		}
+// 	}
+
+// 	/* ============================
+// 	   Duplicar argumentos
+// 	   ============================ */
+// 	if (duplicate_arguments(p, argc, argv) < 0) {
+// 		release_process_io_resources(p);
+// 		p->state = TERMINATED;
+// 		return -1;
+// 	}
+
+// 	// Otra limpieza antes de reservar stack (por si liberó algo)
+// 	free_terminated_processes();
+
+// 	/* ============================
+// 	   Reservar y preparar STACK
+// 	   ============================ */
+
+// 	// Reservamos un poco de extra para alineación + puntero original
+// 	void *raw = memory_alloc(memory_manager, STACK_SIZE + 16 + sizeof(void *));
+// 	if (raw == NULL) {
+// 		release_process_arguments(p);
+// 		release_process_io_resources(p);
+// 		p->state = TERMINATED;
+// 		return -1;
+// 	}
+
+// 	// Alinear a 16 bytes dejando espacio para guardar raw
+// 	uint64_t aligned = ((uint64_t) raw + sizeof(void *) + 15) & ~0xFULL;
+
+// 	// Guardar puntero original inmediatamente antes del stack_base
+// 	*((void **) (aligned - sizeof(void *))) = raw;
+
+// 	p->stack_base = (void *) aligned;
+
+// 	// RSP inicial: al final del área válida, alineado
+// 	uint64_t rsp = aligned + STACK_SIZE - 16;
+// 	rsp &= ~0xFULL;
+// 	void *stack_top = (void *) rsp;
+
+// 	// Construir contexto inicial
+// 	p->stack_pointer = set_process_stack(p->argc, p->argv, stack_top, (void *) p);
+
+// 	if (p->stack_pointer == NULL) {
+// 		// Error real armando el contexto: liberar todo
+// 		memory_free(memory_manager, raw);
+// 		release_process_arguments(p);
+// 		release_process_io_resources(p);
+// 		p->stack_base = NULL;
+// 		p->state = TERMINATED;
+// 		return -1;
+// 	}
+
+// 	/* ============================
+// 	   Agregar al scheduler y foreground
+// 	   ============================ */
+
+// 	if (addToScheduler(p) < 0) {
+// 		// No lo pudimos encolar: liberar recursos
+// 		memory_free(memory_manager, raw);
+// 		release_process_arguments(p);
+// 		release_process_io_resources(p);
+// 		p->stack_base = NULL;
+// 		p->stack_pointer = NULL;
+// 		p->state = TERMINATED;
+// 		return -1;
+// 	}
+
+// 	if (assign_foreground) {
+// 		if (set_foreground_process(p->pid) < 0) {
+// 			terminate_process(p, 1);
+// 			return -1;
+// 		}
+// 	}
+
+// 	return p->pid;
+// }
+
+//////////////////////////////////////////////7
 static process_id_t create_process_internal(const char *name, void (*entry_point)(int, char **), int argc, char **argv,
 											uint8_t priority, const process_io_config_t *io_config,
 											int assign_foreground) {
@@ -639,239 +1011,198 @@ static process_id_t create_process_internal(const char *name, void (*entry_point
 	if (priority > MAX_PRIORITY) {
 		priority = MAX_PRIORITY;
 	}
-	// Limpiar procesos terminados antes de buscar un slot para mejorar disponibilidad de memoria
+
+	// Intentar limpiar procesos muertos antes de buscar slot
 	free_terminated_processes();
 
+	/* ============================
+	   BUSCAR SLOT LIBRE
+	   ============================ */
 	int slot = -1;
-	for (int i = 1; i < MAX_PROCESSES; i++) { // Empezar en 1 (idle es 0)
+	for (int i = 1; i < MAX_PROCESSES; i++) { // 0 es idle
 		if (process_table[i].state == TERMINATED) {
 			slot = i;
 			break;
 		}
 	}
-
 	if (slot == -1) {
 		return -1;
 	}
 
-	PCB *new_process = &process_table[slot];
-	// Limpiar recursos si existen antes de reutilizar el slot
-	if (new_process->stack_base != NULL || new_process->argv != NULL) {
-		release_process_resources(new_process);
+	PCB *p = &process_table[slot];
+
+	// Si tenía cosas de antes, limpiarlas
+	if (p->stack_base != NULL || p->argv != NULL) {
+		release_process_resources(p);
 	}
 
-	// CRITICO: Inicializar TODOS los atributos críticos explícitamente
-	// para evitar valores residuales que puedan causar crashes
-	// Especialmente entry_point, argc, argv, stack_base, stack_pointer
-	// que deben estar en un estado válido antes de establecer state = READY
-	new_process->entry_point = entry_point; // Establecer INMEDIATAMENTE para evitar RIP: 0
-	new_process->argc = 0;					// Se establecerá en duplicate_arguments()
-	new_process->argv = NULL;				// Se establecerá en duplicate_arguments()
-	new_process->stack_base = NULL;			// Se asignará después
-	new_process->stack_pointer = NULL;		// Se asignará después
-	new_process->in_scheduler = 0;			// Se establecerá en addToScheduler()
-	new_process->waiting_pid = -1;			// Ningún proceso está esperando a este nuevo proceso
+	/* ============================
+	   INICIALIZACIÓN BÁSICA DEL PCB
+	   ============================ */
+	p->entry_point = entry_point;
+	p->argc = 0;
+	p->argv = NULL;
+	p->stack_base = NULL;
+	p->stack_pointer = NULL;
+	p->in_scheduler = 0;
+	p->waiting_pid = -1;
 
-	new_process->pid = get_next_valid_pid();
-	new_process->state = READY; // Solo establecer READY después de entry_point válido
-	new_process->priority = priority;
-	new_process->base_priority = priority;
-	new_process->saved_priority = priority;
-	new_process->foreground_priority_boost = 0;
-	new_process->scheduler_counter = 0;
-	new_process->waiting_ticks = 0;
-	new_process->pending_cleanup = 0;
-	new_process->parent_pid = get_current_pid();
-	new_process->has_foreground = 0;
-	init_process_io_defaults(&new_process->io_state);
-	// Copiar nombre de forma segura desde userland
+	p->pid = get_next_valid_pid();
+	p->state = READY;
+	p->priority = priority;
+	p->base_priority = priority;
+	p->saved_priority = priority;
+	p->foreground_priority_boost = 0;
+	p->scheduler_counter = 0;
+	p->waiting_ticks = 0;
+	p->pending_cleanup = 0;
+	p->parent_pid = get_current_pid();
+	p->has_foreground = 0;
+
+	init_process_io_defaults(&p->io_state);
+
+	// Nombre
 	if (name != NULL) {
 		int i = 0;
 		while (name[i] != '\0' && i < MAX_PROCESS_NAME - 1) {
-			new_process->name[i] = name[i];
+			p->name[i] = name[i];
 			i++;
 		}
-		new_process->name[i] = '\0';
+		p->name[i] = '\0';
 	}
 	else {
-		new_process->name[0] = '?';
-		new_process->name[1] = '\0';
+		p->name[0] = '?';
+		p->name[1] = '\0';
 	}
 
-	PCB *parent_process = get_process_by_pid(new_process->parent_pid);
-	if (parent_process != NULL) {
-		new_process->io_state = parent_process->io_state;
-		new_process->io_state.stdin_eof = 0;
-		// NO llamar retain_process_io_resources aqui si hay io_config
-		// porque override_process_io cambiara el estado y necesitamos registrar
-		// con el estado final, no con el heredado
+	/* ============================
+	   HERENCIA / OVERRIDE DE IO
+	   ============================ */
+	PCB *parent = get_process_by_pid(p->parent_pid);
+	if (parent != NULL) {
+		p->io_state = parent->io_state;
+		p->io_state.stdin_eof = 0;
+
 		if (io_config == NULL) {
-			// Solo registrar recursos si NO vamos a hacer override
-			if (retain_process_io_resources(new_process) != 0) {
-				init_process_io_defaults(&new_process->io_state);
-				new_process->state = TERMINATED;
+			// Registrar recursos heredados si usa pipes
+			if (retain_process_io_resources(p) != 0) {
+				init_process_io_defaults(&p->io_state);
+				p->state = TERMINATED;
 				return -1;
 			}
 		}
 	}
 	else {
-		init_process_io_defaults(&new_process->io_state);
+		init_process_io_defaults(&p->io_state);
 	}
 
 	if (io_config != NULL) {
-		// Guardar estado antes de override para detectar qué cambió
-		ProcessIOState state_before = new_process->io_state;
-#if PIPE_DEBUG
-		vd_print("[PROC] Creating process with io_config pid=");
-		vd_print_dec(new_process->pid);
-		vd_print(" name=");
-		vd_print(new_process->name);
-		vd_print(" stdin_type=");
-		vd_print_dec(io_config->stdin_type);
-		vd_print(" stdin_resource=");
-		vd_print_dec(io_config->stdin_resource);
-		vd_print(" stdout_type=");
-		vd_print_dec(io_config->stdout_type);
-		vd_print(" stdout_resource=");
-		vd_print_dec(io_config->stdout_resource);
-		vd_print("\n");
-#endif
-		if (override_process_io(new_process, io_config) != 0) {
-#if PIPE_DEBUG
-			vd_print("[PROC] ERROR: override_process_io failed for pid=");
-			vd_print_dec(new_process->pid);
-			vd_print("\n");
-#endif
-			// Si hay error, liberar recursos que pudieron haberse registrado antes
-			release_process_io_resources(new_process);
-			new_process->state = TERMINATED;
+		ProcessIOState prev = p->io_state;
+
+		if (override_process_io(p, io_config) != 0) {
+			release_process_io_resources(p);
+			p->state = TERMINATED;
 			return -1;
 		}
 
-		// CRITICO: override_process_io registra los recursos cuando cambia a PIPE
-		// Pero si se usa INHERIT, mantiene lo heredado sin registrar
-		// Necesitamos registrar los recursos heredados que son pipes y no fueron cambiados
-		// Solo registrar si el descriptor no cambió (era PIPE antes y sigue siendo PIPE)
-		if (state_before.stdin_desc.type == IO_SOURCE_PIPE && new_process->io_state.stdin_desc.type == IO_SOURCE_PIPE &&
-			state_before.stdin_desc.resource_id == new_process->io_state.stdin_desc.resource_id &&
-			new_process->io_state.stdin_desc.resource_id >= 0) {
-			if (pipe_register_reader(new_process->io_state.stdin_desc.resource_id) != 0) {
-				release_process_io_resources(new_process);
-				new_process->state = TERMINATED;
+		// Registrar pipes heredados no modificados
+		if (prev.stdin_desc.type == IO_SOURCE_PIPE && p->io_state.stdin_desc.type == IO_SOURCE_PIPE &&
+			prev.stdin_desc.resource_id == p->io_state.stdin_desc.resource_id &&
+			p->io_state.stdin_desc.resource_id >= 0) {
+			if (pipe_register_reader(p->io_state.stdin_desc.resource_id) != 0) {
+				release_process_io_resources(p);
+				p->state = TERMINATED;
 				return -1;
 			}
 		}
 
-		if (state_before.stdout_desc.type == IO_SINK_PIPE && new_process->io_state.stdout_desc.type == IO_SINK_PIPE &&
-			state_before.stdout_desc.resource_id == new_process->io_state.stdout_desc.resource_id &&
-			new_process->io_state.stdout_desc.resource_id >= 0) {
-			if (pipe_register_writer(new_process->io_state.stdout_desc.resource_id) != 0) {
-				if (state_before.stdin_desc.type == IO_SOURCE_PIPE &&
-					new_process->io_state.stdin_desc.type == IO_SOURCE_PIPE &&
-					state_before.stdin_desc.resource_id == new_process->io_state.stdin_desc.resource_id) {
-					pipe_unregister_reader(new_process->io_state.stdin_desc.resource_id);
-				}
-				release_process_io_resources(new_process);
-				new_process->state = TERMINATED;
+		if (prev.stdout_desc.type == IO_SINK_PIPE && p->io_state.stdout_desc.type == IO_SINK_PIPE &&
+			prev.stdout_desc.resource_id == p->io_state.stdout_desc.resource_id &&
+			p->io_state.stdout_desc.resource_id >= 0) {
+			if (pipe_register_writer(p->io_state.stdout_desc.resource_id) != 0) {
+				release_process_io_resources(p);
+				p->state = TERMINATED;
 				return -1;
 			}
 		}
 
-		if (state_before.stderr_desc.type == IO_SINK_PIPE && new_process->io_state.stderr_desc.type == IO_SINK_PIPE &&
-			state_before.stderr_desc.resource_id == new_process->io_state.stderr_desc.resource_id &&
-			new_process->io_state.stderr_desc.resource_id >= 0) {
-			if (pipe_register_writer(new_process->io_state.stderr_desc.resource_id) != 0) {
-				if (state_before.stdout_desc.type == IO_SINK_PIPE &&
-					new_process->io_state.stdout_desc.type == IO_SINK_PIPE &&
-					state_before.stdout_desc.resource_id == new_process->io_state.stdout_desc.resource_id) {
-					pipe_unregister_writer(new_process->io_state.stdout_desc.resource_id);
-				}
-				if (state_before.stdin_desc.type == IO_SOURCE_PIPE &&
-					new_process->io_state.stdin_desc.type == IO_SOURCE_PIPE &&
-					state_before.stdin_desc.resource_id == new_process->io_state.stdin_desc.resource_id) {
-					pipe_unregister_reader(new_process->io_state.stdin_desc.resource_id);
-				}
-				release_process_io_resources(new_process);
-				new_process->state = TERMINATED;
+		if (prev.stderr_desc.type == IO_SINK_PIPE && p->io_state.stderr_desc.type == IO_SINK_PIPE &&
+			prev.stderr_desc.resource_id == p->io_state.stderr_desc.resource_id &&
+			p->io_state.stderr_desc.resource_id >= 0) {
+			if (pipe_register_writer(p->io_state.stderr_desc.resource_id) != 0) {
+				release_process_io_resources(p);
+				p->state = TERMINATED;
 				return -1;
 			}
 		}
 	}
-	else if (parent_process != NULL) {
-		// Si no hay io_config pero hay parent, los recursos ya se registraron arriba
-		// (o no había nada que registrar si el parent no usaba pipes)
-	}
 
-	if (duplicate_arguments(new_process, argc, argv) < 0) {
-		release_process_io_resources(new_process);
-		new_process->state = TERMINATED;
+	/* ============================
+	   COPIA DE ARGUMENTOS
+	   ============================ */
+	if (duplicate_arguments(p, (int) argc, argv) < 0) {
+		release_process_io_resources(p);
+		p->state = TERMINATED;
 		return -1;
 	}
 
-	// Forzar limpieza agresiva antes de asignar stack para evitar memory leaks
+	// Otra pasada de limpieza agresiva antes de pedir stack
 	free_terminated_processes();
 
-	// Asignar stack con espacio extra para alineacion y puntero original
-	// Necesitamos STACK_SIZE + 16 bytes para alineacion + 8 bytes para guardar puntero original
-	void *stack_allocated = memory_alloc(memory_manager, STACK_SIZE + 16 + sizeof(void *));
-	if (stack_allocated == NULL) {
-		free_terminated_processes();
-		stack_allocated = memory_alloc(memory_manager, STACK_SIZE + 16 + sizeof(void *));
-		if (stack_allocated == NULL) {
-			release_process_arguments(new_process);
-			release_process_io_resources(new_process);
-			new_process->state = TERMINATED;
-			return -1;
-		}
-	}
-	// Alinear stack_base a 16 bytes desde el principio, dejando espacio para el puntero
-	uint64_t stack_base_aligned = ((uint64_t) stack_allocated + sizeof(void *) + 15) & ~((uint64_t) 0xF);
-	// Guardar el puntero original justo antes del stack_base alineado
-	*((void **) (stack_base_aligned - sizeof(void *))) = stack_allocated;
-	new_process->stack_base = (void *) stack_base_aligned;
-
-	uint64_t stack_limit = stack_base_aligned + STACK_SIZE;
-	uint64_t user_rsp = (stack_limit - USER_STACK_GUARD_SIZE) & ~((uint64_t) 0xF);
-
-	// Verificar que el stack este dentro del area asignada
-	// stack_base_aligned debe estar dentro de stack_allocated...stack_allocated_end
-	// user_rsp debe estar dentro de stack_base_aligned...stack_limit
-	uint64_t stack_allocated_end = (uint64_t) stack_allocated + STACK_SIZE + 16 + sizeof(void *);
-	if (stack_base_aligned < (uint64_t) stack_allocated || stack_base_aligned >= stack_allocated_end ||
-		stack_limit > stack_allocated_end || user_rsp < stack_base_aligned || user_rsp >= stack_limit) {
-		memory_free(memory_manager, stack_allocated);
-		release_process_arguments(new_process);
-		release_process_io_resources(new_process);
-		new_process->state = TERMINATED;
+	/* ============================
+	   ASIGNAR STACK
+	   ============================ */
+	void *raw = memory_alloc(memory_manager, STACK_SIZE + 16 + sizeof(void *));
+	if (raw == NULL) {
+		release_process_arguments(p);
+		release_process_io_resources(p);
+		p->state = TERMINATED;
 		return -1;
 	}
 
-	void *stack_top = (void *) user_rsp;
-	new_process->stack_pointer =
-		set_process_stack(new_process->argc, new_process->argv, stack_top, (void *) new_process);
+	// Alinear a 16 bytes dejando espacio para guardar puntero original
+	uint64_t aligned = ((uint64_t) raw + sizeof(void *) + 15) & ~0xFULL;
+	*((void **) (aligned - sizeof(void *))) = raw;
+	p->stack_base = (void *) aligned;
 
-	// DEBUG CRITICO: Solo imprimir si hay un problema
-	if (new_process->stack_pointer == NULL) {
-		vd_print("[CREATE_PROC] ERROR: set_process_stack returned NULL\n");
-		release_process_resources(new_process);
-		new_process->state = TERMINATED;
+	uint64_t stack_limit = aligned + STACK_SIZE;
+	uint64_t rsp = (stack_limit - USER_STACK_GUARD_SIZE) & ~0xFULL;
+	void *stack_top = (void *) rsp;
+
+	p->stack_pointer = set_process_stack(p->argc, p->argv, stack_top, (void *) p);
+
+	if (p->stack_pointer == NULL) {
+		// Error real armando contexto: liberamos el raw MANUALMENTE
+		memory_free(memory_manager, raw);
+		p->stack_base = NULL;
+		p->stack_pointer = NULL;
+		release_process_arguments(p);
+		release_process_io_resources(p);
+		p->state = TERMINATED;
 		return -1;
 	}
 
-	if (addToScheduler(new_process) < 0) {
-		release_process_resources(new_process);
-		new_process->state = TERMINATED;
+	/* ============================
+	   AGREGAR AL SCHEDULER
+	   ============================ */
+	if (addToScheduler(p) < 0) {
+		// En este caso usamos la función de release que libera también el stack
+		release_process_resources(p);
+		p->state = TERMINATED;
 		return -1;
 	}
 
+	/* ============================
+	   FOREFROUND (opcional)
+	   ============================ */
 	if (assign_foreground) {
-		if (set_foreground_process(new_process->pid) < 0) {
-			terminate_process(new_process, 1);
+		if (set_foreground_process(p->pid) < 0) {
+			terminate_process(p, 1);
 			return -1;
 		}
 	}
 
-	return new_process->pid;
+	return p->pid;
 }
 
 process_id_t create_process(const char *name, void (*entry_point)(int, char **), int argc, char **argv,
@@ -1177,9 +1508,30 @@ static int terminate_process(PCB *process, int kill_descendants) {
 		}
 	}
 
+	// if (foregroundProcessPid == pid) {
+	// 	release_foreground_owner();
+	// }
+
+	////////////TODO: Ver esto
+	/* Si este proceso tenía el foreground, devolverlo a su padre */
 	if (foregroundProcessPid == pid) {
 		release_foreground_owner();
+
+		PCB *parent = get_process_by_pid(process->parent_pid);
+		if (parent != NULL && parent->state != TERMINATED) {
+			foregroundProcessPid = parent->pid;
+			parent->has_foreground = 1;
+
+			/* Reestablecer prioridad normal */
+			if (!parent->foreground_priority_boost) {
+				parent->saved_priority = parent->priority;
+				parent->priority = MIN_PRIORITY;
+				parent->foreground_priority_boost = 1;
+			}
+		}
 	}
+
+	///////////////
 
 	release_process_io_resources(process);
 
@@ -1260,6 +1612,46 @@ int waitpid(process_id_t pid) {
 
 	return 0;
 }
+
+///////////////////////////////////////////////////////////
+// int waitpid(process_id_t pid) {
+//     if (pid <= 0)
+//         return -1;
+
+//     PCB *self = get_process_by_pid(get_current_pid());
+//     if (self == NULL)
+//         return -1;
+
+//     PCB *child = get_process_by_pid(pid);
+//     if (child == NULL)
+//         return -1;
+
+//     /* ¿Ya tiene un waiter? */
+//     if (child->waiting_pid != -1)
+//         return -1;
+
+//     /* Si ya terminó, no bloquear */
+//     if (child->state == TERMINATED) {
+//         child->waiting_pid = self->pid;
+//         return 0;
+//     }
+
+//     /* Registrar wait */
+//     child->waiting_pid = self->pid;
+
+//     /* Race condition: terminó justo ahora */
+//     if (child->state == TERMINATED)
+//         return 0;
+
+//     /* Bloquear padre */
+//     self->state = BLOCKED;
+//     removeFromScheduler(self);
+
+//     _force_scheduler_interrupt();
+
+//     return 0;
+// }
+///////////////////////////////////////////////
 
 int block_process(process_id_t pid) {
 	if (pid == 0) {
