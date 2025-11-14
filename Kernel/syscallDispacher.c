@@ -16,6 +16,9 @@
 // Flag para habilitar logs de debug de pipes
 #define PIPE_DEBUG 0 // Deshabilitado - cambiar a 1 para habilitar logs
 
+// Flag para habilitar logs de debug de creacion de procesos
+#define CREATE_PROC_DEBUG 0 // Deshabilitado - cambiar a 1 para habilitar logs
+
 uint64_t syscallDispatcher(uint64_t rax, ...) {
 	va_list args;
 	va_start(args, rax);
@@ -124,39 +127,72 @@ uint64_t syscallDispatcher(uint64_t rax, ...) {
 	/* Syscalls de procesos (Fase 3) */
 	else if (rax == 60) {
 		/* sys_create_process */
-		const char *name = va_arg(args, const char *);
-		void (*entry_point)(int, char **) = va_arg(args, void (*)(int, char **));
-		int argc = va_arg(args, int);
-		char **argv = va_arg(args, char **);
-		int priority_int = va_arg(args, int);
-		uint8_t priority = (uint8_t) priority_int;
+		// CRITICO: Todos los argumentos desde userland se pasan como uint64_t
+		// Leer todos como uint64_t primero y luego hacer los casts apropiados
+		uint64_t name_ptr = va_arg(args, uint64_t);
+		const char *name = (const char *) name_ptr;
+		uint64_t entry_point_ptr = va_arg(args, uint64_t);
+		void (*entry_point)(int, char **) = (void (*)(int, char **)) entry_point_ptr;
+		uint64_t argc_val = va_arg(args, uint64_t);
+		int argc = (int) argc_val;
+		uint64_t argv_ptr = va_arg(args, uint64_t);
+		char **argv = (char **) argv_ptr;
+		uint64_t priority_val = va_arg(args, uint64_t);
+		uint8_t priority = (uint8_t) priority_val;
+
+		// DEBUG: Verificar valores recibidos (siempre activo temporalmente)
+#if CREATE_PROC_DEBUG
+		vd_print("[SYSCALL] create_process name_ptr=0x");
+		vd_print_hex(name_ptr);
+		vd_print(" entry_point_ptr=0x");
+		vd_print_hex(entry_point_ptr);
+		vd_print(" argc=");
+		vd_print_dec(argc_val);
+		vd_print(" argv_ptr=0x");
+		vd_print_hex(argv_ptr);
+		vd_print(" priority=");
+		vd_print_dec(priority_val);
+		vd_print("\n");
+#endif
 		process_id_t pid = sys_create_process(name, entry_point, argc, argv, priority);
 		va_end(args);
 		return (uint64_t) pid;
 	}
 	else if (rax == 76) {
 		/* sys_create_process_foreground */
-		const char *name = va_arg(args, const char *);
-		void (*entry_point)(int, char **) = va_arg(args, void (*)(int, char **));
-		int argc = va_arg(args, int);
-		char **argv = va_arg(args, char **);
-		int priority_int = va_arg(args, int);
-		uint8_t priority = (uint8_t) priority_int;
+		// CRITICO: Todos los argumentos desde userland se pasan como uint64_t
+		// Leer todos como uint64_t primero y luego hacer los casts apropiados
+		uint64_t name_ptr = va_arg(args, uint64_t);
+		const char *name = (const char *) name_ptr;
+		uint64_t entry_point_ptr = va_arg(args, uint64_t);
+		void (*entry_point)(int, char **) = (void (*)(int, char **)) entry_point_ptr;
+		uint64_t argc_val = va_arg(args, uint64_t);
+		int argc = (int) argc_val;
+		uint64_t argv_ptr = va_arg(args, uint64_t);
+		char **argv = (char **) argv_ptr;
+		uint64_t priority_val = va_arg(args, uint64_t);
+		uint8_t priority = (uint8_t) priority_val;
 		process_id_t pid = sys_create_process_foreground(name, entry_point, argc, argv, priority);
 		va_end(args);
 		return (uint64_t) pid;
 	}
 	else if (rax == 77) {
 		/* sys_create_process_with_io */
-		const char *name = va_arg(args, const char *);
-		void (*entry_point)(int, char **) = va_arg(args, void (*)(int, char **));
-		int argc = va_arg(args, int);
-		char **argv = va_arg(args, char **);
-		int priority_int = va_arg(args, int);
+		// CRITICO: Todos los argumentos desde userland se pasan como uint64_t
+		// Leer todos como uint64_t primero y luego hacer los casts apropiados
+		uint64_t name_ptr = va_arg(args, uint64_t);
+		const char *name = (const char *) name_ptr;
+		uint64_t entry_point_ptr = va_arg(args, uint64_t);
+		void (*entry_point)(int, char **) = (void (*)(int, char **)) entry_point_ptr;
+		uint64_t argc_val = va_arg(args, uint64_t);
+		int argc = (int) argc_val;
+		uint64_t argv_ptr = va_arg(args, uint64_t);
+		char **argv = (char **) argv_ptr;
+		uint64_t priority_val = va_arg(args, uint64_t);
+		uint8_t priority = (uint8_t) priority_val;
 		// CRITICO: Leer como uint64_t primero para ver el valor del puntero
 		uint64_t user_config_ptr = va_arg(args, uint64_t);
 		const process_io_config_t *user_config = (const process_io_config_t *) user_config_ptr;
-		uint8_t priority = (uint8_t) priority_int;
 
 #if PIPE_DEBUG
 		vd_print("[SYSCALL] create_process_with_io name=");
@@ -225,13 +261,20 @@ uint64_t syscallDispatcher(uint64_t rax, ...) {
 	}
 	else if (rax == 78) {
 		/* sys_create_process_foreground_with_io */
-		const char *name = va_arg(args, const char *);
-		void (*entry_point)(int, char **) = va_arg(args, void (*)(int, char **));
-		int argc = va_arg(args, int);
-		char **argv = va_arg(args, char **);
-		int priority_int = va_arg(args, int);
-		const process_io_config_t *user_config = va_arg(args, const process_io_config_t *);
-		uint8_t priority = (uint8_t) priority_int;
+		// CRITICO: Todos los argumentos desde userland se pasan como uint64_t
+		// Leer todos como uint64_t primero y luego hacer los casts apropiados
+		uint64_t name_ptr = va_arg(args, uint64_t);
+		const char *name = (const char *) name_ptr;
+		uint64_t entry_point_ptr = va_arg(args, uint64_t);
+		void (*entry_point)(int, char **) = (void (*)(int, char **)) entry_point_ptr;
+		uint64_t argc_val = va_arg(args, uint64_t);
+		int argc = (int) argc_val;
+		uint64_t argv_ptr = va_arg(args, uint64_t);
+		char **argv = (char **) argv_ptr;
+		uint64_t priority_val = va_arg(args, uint64_t);
+		uint8_t priority = (uint8_t) priority_val;
+		uint64_t user_config_ptr = va_arg(args, uint64_t);
+		const process_io_config_t *user_config = (const process_io_config_t *) user_config_ptr;
 
 		// CRITICO: Copiar config desde userland al kernel
 		// Los punteros de userland no son validos en el kernel
