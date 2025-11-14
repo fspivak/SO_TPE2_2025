@@ -20,6 +20,9 @@ void help_main(int argc, char **argv) {
 	print_format("  mem               - Show memory status\n");
 	print_format("  sh                - Create a new shell\n");
 	print_format("  getpid            - Get process ID\n");
+	print_format("  kill <pid>        - Kill the process with pid <pid>\n");
+	print_format("  nice <pid> <prio> - Change the priority of process <pid> to <prio> (0 to 255)\n");
+	print_format("  block <pid>       - Block or unblock process <pid>, depending on its state\n");
 	print_format("  loop <seconds>    - Loop command with a given interval\n");
 	print_format("  cat               - Display input (stdin) to output or write to a pipe\n");
 	print_format("  wc                - Count lines, words and characters from input or pipe\n");

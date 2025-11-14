@@ -22,7 +22,7 @@ static ManualEntry manual_entries[] = {
 	{"test_process", "\ntest_process - Tests process creation and scheduling.\n"
 					 "Usage:\n"
 					 "  test_process        - Runs the test with 3 processes\n"
-					 "  test_process <n>    - Runs the test with n processes (1–64)\n"
+					 "  test_process <n>    - Runs the test with n processes (1 to 64)\n"
 					 "Example:\n"
 					 "  test_process 5\n"},
 	{"test_sync", "\ntest_sync - Tests synchronization using semaphores.\n"
