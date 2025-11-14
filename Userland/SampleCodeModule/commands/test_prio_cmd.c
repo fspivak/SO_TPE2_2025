@@ -37,6 +37,7 @@ void test_prio_main(int argc, char **argv) {
 	}
 
 	print_format("\n=== Priority Test Completed ===\n\n");
+	return;
 }
 
 void test_prio_cmd(int argc, char **argv) {
@@ -47,4 +48,5 @@ void test_prio_cmd(int argc, char **argv) {
 	}
 
 	command_handle_child_process(pid_test, "test_prio");
+	return;
 }

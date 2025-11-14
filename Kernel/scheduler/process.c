@@ -337,51 +337,101 @@ static void release_process_resources(PCB *process) {
 // }
 
 //////////////////////////////////////////////////////////////////////////
-int duplicate_arguments(PCB *p, int argc, char **argv) {
-	p->argc = 0;
-	p->argv = NULL;
+// int duplicate_arguments(PCB *p, int argc, char **argv) {
+// 	p->argc = 0;
+// 	p->argv = NULL;
 
-	if (argc <= 0 || argv == NULL) {
-		return 0;
-	}
+// 	if (argc <= 0 || argv == NULL) {
+// 		return 0;
+// 	}
 
-	char **copy = memory_alloc(memory_manager, sizeof(char *) * (argc + 1));
-	if (copy == NULL) {
+// 	char **copy = memory_alloc(memory_manager, sizeof(char *) * (argc + 1));
+// 	if (copy == NULL) {
+// 		return -1;
+// 	}
+
+// 	for (int i = 0; i < argc; i++) {
+// 		if (argv[i] == NULL) {
+// 			copy[i] = NULL;
+// 			continue;
+// 		}
+
+// 		int len = 0;
+// 		while (argv[i][len] != '\0')
+// 			len++;
+
+// 		copy[i] = memory_alloc(memory_manager, len + 1);
+// 		if (copy[i] == NULL) {
+// 			for (int j = 0; j < i; j++) {
+// 				if (copy[j] != NULL)
+// 					memory_free(memory_manager, copy[j]);
+// 			}
+// 			memory_free(memory_manager, copy);
+// 			return -1;
+// 		}
+
+// 		for (int k = 0; k < len; k++) {
+// 			copy[i][k] = argv[i][k];
+// 		}
+// 		copy[i][len] = '\0';
+// 	}
+
+// 	copy[argc] = NULL;
+
+// 	p->argc = argc;
+// 	p->argv = copy;
+// 	return 0;
+// }
+
+static int duplicate_arguments(PCB *process, int argc, char **argv) {
+	if (process == NULL)
 		return -1;
-	}
+
+	process->argc = 0;
+	process->argv = NULL;
+
+	if (argc <= 0 || argv == NULL)
+		return 0;
+
+	/* Crear vector de punteros */
+	process->argv = (char **) memory_alloc(memory_manager, (argc + 1) * sizeof(char *));
+	if (process->argv == NULL)
+		return -1;
+
+	for (int i = 0; i < argc; i++)
+		process->argv[i] = NULL;
 
 	for (int i = 0; i < argc; i++) {
 		if (argv[i] == NULL) {
-			copy[i] = NULL;
+			process->argv[i] = NULL;
 			continue;
 		}
 
+		/* Calcular longitud segura */
 		int len = 0;
-		while (argv[i][len] != '\0')
+		while (argv[i][len] != 0)
 			len++;
 
-		copy[i] = memory_alloc(memory_manager, len + 1);
-		if (copy[i] == NULL) {
-			for (int j = 0; j < i; j++) {
-				if (copy[j] != NULL)
-					memory_free(memory_manager, copy[j]);
-			}
-			memory_free(memory_manager, copy);
+		/* Asignar */
+		process->argv[i] = (char *) memory_alloc(memory_manager, len + 1);
+		if (process->argv[i] == NULL) {
+			release_process_arguments(process);
 			return -1;
 		}
 
-		for (int k = 0; k < len; k++) {
-			copy[i][k] = argv[i][k];
-		}
-		copy[i][len] = '\0';
+		/* Copiar sin pasarse */
+		for (int j = 0; j < len; j++)
+			process->argv[i][j] = argv[i][j];
+
+		process->argv[i][len] = 0; /* NULL-terminate */
 	}
 
-	copy[argc] = NULL;
+	process->argv[argc] = NULL;
+	process->argc = argc;
 
-	p->argc = argc;
-	p->argv = copy;
 	return 0;
 }
+
 ////////////////////////////////////////////////////////////////
 
 static void init_process_io_defaults(ProcessIOState *io_state) {
