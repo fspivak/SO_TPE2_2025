@@ -3,8 +3,6 @@
 #include "include/interrupts.h"
 #include <stdint.h>
 
-#include <stdint.h>
-
 /* Descriptor de interrupcion */
 typedef struct __attribute__((packed)) {
 	uint16_t offset_l, selector;
