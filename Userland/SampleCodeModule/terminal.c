@@ -76,58 +76,30 @@ void terminal() {
 		int has_foreground = (fg_pid > 0 && fg_pid != getpid());
 
 		if (has_foreground) {
-			// Hay un proceso foreground, pero debemos detectar Ctrl+D
-			// Leer del teclado para detectar Ctrl+D (aunque sea bloqueante)
-			// El proceso foreground lee directamente del teclado, pero el terminal
-			// necesita detectar Ctrl+D para cerrar el stdin del proceso foreground
-			c = getchar();
-
-			if (c == -1) {
-				// EOF (Ctrl+D) detectado - cerrar stdin del proceso foreground
-				print_format("\n[EOF]\n");
-				int current_fg = get_foreground_process();
-				if (current_fg > 0 && current_fg != getpid()) {
-					close_stdin_pid(current_fg);
-				}
-				// Limpiar buffer
-				i = 0;
-				tabs = 0;
-				buffer[0] = '\0';
-				// Continuar esperando a que el proceso termine
+			// Hay un proceso foreground, esperar a que termine o sea matado
+			// CRITICO: Verificar periodicamente si el proceso todavia es foreground
+			// Esto permite detectar cuando Ctrl+C mata el proceso foreground
+			while (1) {
+				// Hacer yield para permitir que otros procesos (incluyendo el foreground) ejecuten
+				// Esto permite que Ctrl+C se procese y mate el proceso foreground
 				yield();
-				// Verificar si el proceso sigue siendo foreground
-				current_fg = get_foreground_process();
-				if (current_fg == getpid() || current_fg != fg_pid) {
-					// El proceso terminó o ya no es foreground, mostrar prompt y continuar
-					print_format(">  ");
-					continue;
-				}
-				// El proceso sigue activo, seguir esperando
-				continue;
-			}
 
-			// Si no es EOF, el carácter debe ir al proceso foreground
-			// Pero como el proceso foreground lee directamente del teclado,
-			// no necesitamos hacer nada aquí
-			// Solo hacer yield y esperar a que el proceso termine
-			yield();
-			// Verificar si el proceso sigue siendo foreground
-			int current_fg = get_foreground_process();
-			if (current_fg == getpid() || current_fg != fg_pid) {
-				// El proceso terminó o ya no es foreground, continuar normalmente
-				continue;
+				int current_fg = get_foreground_process();
+				if (current_fg == getpid() || current_fg != fg_pid) {
+					i = 0;
+					tabs = 0;
+					buffer[0] = '\0';
+					print_format("\n>  ");
+					break;
+				}
 			}
-			// El proceso sigue activo, seguir esperando
 			continue;
 		}
 
-		// No hay proceso foreground, leer del teclado normalmente
 		c = getchar();
 
 		if (c == -1) {
-			// EOF (Ctrl+D) detectado
 			print_format("\n[EOF]\n");
-			// Limpiar buffer
 			i = 0;
 			tabs = 0;
 			buffer[0] = '\0';

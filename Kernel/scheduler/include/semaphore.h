@@ -57,10 +57,4 @@ int sem_close(const char *name);
  */
 int sem_get_waiting_count(const char *name);
 
-/**
- * @brief Remueve un proceso de todas las colas de semaforos (usado cuando un proceso es matado)
- * @param pid PID del proceso a remover
- */
-void sem_remove_process(process_id_t pid);
-
 #endif
