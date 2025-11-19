@@ -2,7 +2,6 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
 #include "../include/commands.h"
-#include "../include/libasmUser.h"
 #include "../include/stinUser.h"
 #include "../tests/include/syscall.h"
 #include "../tests/include/test_util.h"
@@ -41,7 +40,7 @@ void test_sync_main(int argc, char **argv) {
 }
 
 void test_sync_cmd(int argc, char **argv) {
-	int pid_test = command_spawn_process("test_sync", test_sync_main, argc, argv, 1, NULL);
+	int pid_test = command_spawn_process("test_sync", test_sync_main, argc, argv, 128, NULL);
 
 	if (!validate_create_process_error("test_sync", pid_test)) {
 		return;

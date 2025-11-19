@@ -61,8 +61,17 @@ void command_handle_child_process(int pid, const char *name) {
 	}
 
 	if (command_is_background_mode()) {
-		pending_background_pid = pid;
-		pending_background_name = name;
+		if (pending_background_pid >= 0) {
+			int old_pid = pending_background_pid;
+			const char *old_name = pending_background_name;
+			pending_background_pid = pid;
+			pending_background_name = name;
+			print_format("Process %s running in background (PID: %d)\n", old_name, old_pid);
+		}
+		else {
+			pending_background_pid = pid;
+			pending_background_name = name;
+		}
 		return;
 	}
 

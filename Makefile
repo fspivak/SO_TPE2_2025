@@ -18,12 +18,13 @@ userland:
 	@echo "\033[0;34mBuilding userland...\033[0m"
 	cd Userland; make all
 
-image: kernel bootloader userland
+image: toolchain kernel bootloader userland
 	@echo "\033[0;34mCreating bootable image...\033[0m"
 	cd Image; make all
 
 buddy:
 	@echo "\033[0;33mBuilding with Buddy Memory Manager...\033[0m"
+	cd Toolchain; make all
 	cd Kernel; make clean
 	cd Kernel; make all BUDDY_MM=1
 	cd Userland; make clean

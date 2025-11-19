@@ -9,17 +9,8 @@
 #include <stdint.h>
 
 static void print_human_size(uint64_t bytes) {
-	if (bytes >= 1024 * 1024) {
-		uint64_t mb = bytes / (1024 * 1024);
-		print_format("%uM", (unsigned int) mb);
-	}
-	else if (bytes >= 1024) {
-		uint64_t kb = bytes / 1024;
-		print_format("%uK", (unsigned int) kb);
-	}
-	else {
-		print_format("%u", (unsigned int) bytes);
-	}
+	uint64_t kb = (bytes + 512) / 1024;
+	print_format("%uK", (unsigned int) kb);
 }
 
 void mem_main(int argc, char **argv) {

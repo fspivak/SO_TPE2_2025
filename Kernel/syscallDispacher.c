@@ -11,10 +11,13 @@
 #include "include/videoDriver.h"
 #include "memory-manager/include/memory_manager.h"
 #include "scheduler/include/process.h"
+#include "scheduler/include/semaphore.h"
 #include <stdarg.h>
 #include <stdint.h>
 
 #include "include/pipe.h"
+
+#define MM_SEMAPHORE_NAME "mm_lock"
 
 uint64_t syscallDispatcher(uint64_t rax, ...) {
 	va_list args;
@@ -437,7 +440,8 @@ void sys_playSound(int index) {
 }
 
 void sys_getMilis(uint64_t *milis) {
-	_sti();
+	// NOTA: Las interrupciones se restauran automaticamente cuando el scheduler retome
+	// No habilitar interrupciones manualmente aqui
 	*milis = getMiSe();
 }
 
@@ -456,7 +460,10 @@ void *sys_malloc(uint64_t size) {
 		return NULL;
 	}
 
-	return memory_alloc(memory_manager, size);
+	sem_wait(MM_SEMAPHORE_NAME);
+	void *result = memory_alloc(memory_manager, size);
+	sem_post(MM_SEMAPHORE_NAME);
+	return result;
 }
 
 /* Syscall free - Libera memoria previamente reservada */
@@ -466,7 +473,10 @@ int sys_free(void *ptr) {
 		return -1;
 	}
 
-	return memory_free(memory_manager, ptr);
+	sem_wait(MM_SEMAPHORE_NAME);
+	int result = memory_free(memory_manager, ptr);
+	sem_post(MM_SEMAPHORE_NAME);
+	return result;
 }
 
 /* Syscall mem_status - Obtiene informacion del estado de memoria */
@@ -476,7 +486,11 @@ void sys_mem_status(HeapState *state) {
 		return;
 	}
 
+	// Proteger lectura del estado con semaforo para evitar lecturas inconsistentes
+	// durante operaciones de alloc/free
+	sem_wait(MM_SEMAPHORE_NAME);
 	memory_state_get(memory_manager, state);
+	sem_post(MM_SEMAPHORE_NAME);
 }
 
 /* Syscalls de procesos */
@@ -611,6 +625,25 @@ void sys_yield() {
 int sys_ps(ProcessInfo *buffer, int max_processes) {
 	/* Validar parametros */
 	if (buffer == NULL || max_processes <= 0) {
+		return -1;
+	}
+
+	/* Validar que el buffer este en rango de userland (0x400000-0x600000 stack) o memoria administrada
+	 * (0x600000-0x800000) */
+	uint64_t buffer_addr = (uint64_t) buffer;
+	uint64_t buffer_size = (uint64_t) max_processes * sizeof(ProcessInfo);
+	uint64_t buffer_end = buffer_addr + buffer_size;
+
+	/* Verificar overflow en el calculo del tamaño */
+	if (buffer_end < buffer_addr) {
+		return -1;
+	}
+
+	/* El buffer debe estar completamente dentro de una de las regiones validas */
+	int in_stack_range = (buffer_addr >= 0x400000 && buffer_end <= 0x600000);
+	int in_memory_range = (buffer_addr >= 0x600000 && buffer_end <= 0x800000);
+
+	if (!in_stack_range && !in_memory_range) {
 		return -1;
 	}
 

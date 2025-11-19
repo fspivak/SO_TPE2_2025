@@ -135,53 +135,38 @@ void pipes_cmd(char *input) {
 	build_reader_config(&reader_config, (int) pipe_id);
 	build_writer_config(&writer_config, (int) pipe_id);
 
-	// Crear el LECTOR PRIMERO (como en Nahue)
-	// El lector se bloquea inmediatamente esperando datos en sem_read_name (inicializado en 0)
-	// Cuando el escritor escribe, hace sem_post en sem_read_name y despierta al lector
-	// Esto evita race conditions de forma natural sin necesidad de yields o verificaciones complejas
-	int pid_reader =
-		create_process_with_io(argv2_tokens[0], reader_func, argc2_base, argv2_tokens, 128, &reader_config);
-	if (pid_reader < 0) {
-		print_format("Error creating reader process for pipe\n");
-		my_pipe_close(pipe_id);
-		return;
-	}
-
-	// Dar tiempo al lector para que se registre en el pipe antes de crear el escritor
-	// Esto asegura que cuando el escritor se registre, el lector ya esta listo
-	yield();
-
-	// Crear el escritor DESPUÉS del lector
-	// El escritor puede escribir inmediatamente porque write_sem está inicializado en PIPE_BUFFER_SIZE
-	// Cuando escribe, hace sem_post en read_sem y despierta al lector que está bloqueado
 	int pid_writer =
 		create_process_foreground_with_io(argv1_tokens[0], writer_func, argc1_base, argv1_tokens, 100, &writer_config);
 	if (pid_writer < 0) {
 		print_format("Error creating writer process for pipe\n");
-		kill(pid_reader);
-		waitpid(pid_reader);
 		my_pipe_close(pipe_id);
 		return;
 	}
+
+	int pid_reader =
+		create_process_with_io(argv2_tokens[0], reader_func, argc2_base, argv2_tokens, 128, &reader_config);
+	if (pid_reader < 0) {
+		print_format("Error creating reader process for pipe\n");
+		kill(pid_writer);
+		waitpid(pid_writer);
+		my_pipe_close(pipe_id);
+		return;
+	}
+
+	yield();
+	yield();
 
 	waitpid(pid_writer);
 	waitpid(pid_reader);
 	clear_foreground(pid_writer);
 	set_foreground(getpid());
-
-	my_pipe_close(pipe_id);
 }
 
-// Funcion generica para resolver cualquier comando por nombre
-// Permite que cualquier comando pueda ser usado como escritor o lector en pipes
-// Usa la misma logica que el terminal para resolver comandos
 static void (*resolve_command_function(const char *cmd))(int, char **) {
 	if (cmd == NULL) {
 		return NULL;
 	}
 
-	// Resolver comandos de la misma forma que el terminal
-	// Esto permite que cualquier comando soportado por el terminal funcione en pipes
 	if (!strcmp(cmd, "cat")) {
 		return cat_main;
 	}
@@ -203,12 +188,6 @@ static void (*resolve_command_function(const char *cmd))(int, char **) {
 	if (!strcmp(cmd, "mem")) {
 		return mem_main;
 	}
-	// Nota: Los comandos de test (test_mm, test_process, test_sync, test_prio) no pueden usarse en pipes
-	// mvar tiene mvar_main pero es static, no puede usarse en pipes
-	// loop y clear tienen funciones main pero son static, no pueden usarse en pipes
-
-	// Si el comando no se encuentra, retornar NULL
-	// El terminal mostrara un error apropiado
 	return NULL;
 }
 
@@ -216,12 +195,10 @@ static void build_writer_config(process_io_config_t *config, int pipe_id) {
 	if (config == NULL) {
 		return;
 	}
-	config->stdin_type = PROCESS_IO_STDIN_INHERIT;
+	config->stdin_type = PROCESS_IO_STDIN_KEYBOARD;
 	config->stdin_resource = PROCESS_IO_RESOURCE_INVALID;
 	config->stdout_type = PROCESS_IO_STDOUT_PIPE;
 	config->stdout_resource = pipe_id;
-	// stderr debe ser SCREEN para que el echo de cat funcione
-	// Si es INHERIT, puede que no herede correctamente la configuracion del padre
 	config->stderr_type = PROCESS_IO_STDERR_SCREEN;
 	config->stderr_resource = PROCESS_IO_RESOURCE_INVALID;
 }
@@ -232,8 +209,8 @@ static void build_reader_config(process_io_config_t *config, int pipe_id) {
 	}
 	config->stdin_type = PROCESS_IO_STDIN_PIPE;
 	config->stdin_resource = pipe_id;
-	config->stdout_type = PROCESS_IO_STDOUT_INHERIT;
+	config->stdout_type = PROCESS_IO_STDOUT_SCREEN;
 	config->stdout_resource = PROCESS_IO_RESOURCE_INVALID;
-	config->stderr_type = PROCESS_IO_STDERR_INHERIT;
+	config->stderr_type = PROCESS_IO_STDERR_SCREEN;
 	config->stderr_resource = PROCESS_IO_RESOURCE_INVALID;
 }

@@ -16,6 +16,7 @@ typedef struct Pipe {
 
 	uint64_t readers;
 	uint64_t writers;
+	int eof;
 
 	char sem_mutex_name[MAX_SEM_NAME];
 	char sem_read_name[MAX_SEM_NAME];

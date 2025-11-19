@@ -101,11 +101,7 @@ void terminal() {
 		c = getchar();
 
 		if (c == -1) {
-			print_format("\n[EOF]\n");
-			i = 0;
-			tabs = 0;
-			buffer[0] = '\0';
-			print_format(">  ");
+			yield();
 			continue;
 		}
 

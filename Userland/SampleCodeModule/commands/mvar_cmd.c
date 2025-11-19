@@ -439,7 +439,7 @@ static void mvar_main(int argc, char **argv) {
 }
 
 void mvar_cmd(int argc, char **argv) {
-	int pid = command_spawn_process("mvar", mvar_main, argc, argv, 1, NULL);
+	int pid = command_spawn_process("mvar", mvar_main, argc, argv, 128, NULL);
 	if (!validate_create_process_error("mvar", pid)) {
 		return;
 	}

@@ -43,31 +43,42 @@ char shiftConversionArray[] = {
 };
 
 char getChar() {
-	_sti();
-	char letter;
-	do {
-		letter = getKey();
-	} while (letter == -1 || conversionArray[letter] == -1);
-	char c;
-
-	/* Si shift esta presionado y hay mapeo especial, usarlo */
-	if (isShiftPressed() && shiftConversionArray[letter] != 0)
-		c = shiftConversionArray[letter];
-	else if (isUpperCase() && letter != -1 && conversionArray[letter] <= 'z' && conversionArray[letter] >= 'a')
-		c = conversionArray[letter] - ('a' - 'A');
-	else
-		c = (letter != -1) ? conversionArray[letter] : letter;
-
-	/* Detectar Ctrl+D (EOF) */
-	if (isCtrlPressed() && c == 'd') {
-		return -1; // señal de EOF
+	PCB *current_proc = get_current_process();
+	if (current_proc == NULL) {
+		return -1;
 	}
 
-	return c;
+	process_id_t current_pid = current_proc->pid;
+	process_id_t fg_pid = get_foreground_process();
+
+	if (fg_pid != current_pid) {
+		return -1;
+	}
+
+	char letter;
+	char c;
+
+	letter = getKey();
+
+	if (letter >= 0 && conversionArray[letter] != -1) {
+		if (isShiftPressed() && shiftConversionArray[letter] != 0)
+			c = shiftConversionArray[letter];
+		else if (isUpperCase() && letter != -1 && conversionArray[letter] <= 'z' && conversionArray[letter] >= 'a')
+			c = conversionArray[letter] - ('a' - 'A');
+		else
+			c = (letter != -1) ? conversionArray[letter] : letter;
+
+		if (isCtrlPressed() && c == 'd') {
+			return -1;
+		}
+
+		return c;
+	}
+
+	return -1;
 }
 
 char getcharNonLoop() {
-	_sti();
 	char letter = getKey();
 
 	/* Si shift esta presionado y hay mapeo especial, usarlo */
@@ -101,31 +112,60 @@ int read_keyboard(char *buffer, int len) {
 
 	if (is_terminal) {
 		int read_count = 0;
+		process_id_t fg_pid;
 		for (int i = 0; i < len; i++) {
-			char value = getChar();
-			// Para el terminal, EOF (Ctrl+D) se maneja en terminal.c
-			// Retornar 0 para que terminal.c pueda detectarlo y cerrar stdin del proceso foreground
+			char value = -1;
+
+			while (value == -1) {
+				char letter = getKey();
+
+				if (letter != -1 && conversionArray[letter] != -1) {
+					char c;
+					if (isShiftPressed() && shiftConversionArray[letter] != 0)
+						c = shiftConversionArray[letter];
+					else if (isUpperCase() && letter != -1 && conversionArray[letter] <= 'z' &&
+							 conversionArray[letter] >= 'a')
+						c = conversionArray[letter] - ('a' - 'A');
+					else
+						c = (letter != -1) ? conversionArray[letter] : letter;
+
+					if (isCtrlPressed() && c == 'd') {
+						value = -1;
+						break;
+					}
+					else {
+						value = c;
+						break;
+					}
+				}
+
+				value = getChar();
+
+				if (value == -1) {
+					fg_pid = get_foreground_process();
+					if (fg_pid != current_proc->pid) {
+						if (read_count > 0) {
+							return read_count;
+						}
+						return 0;
+					}
+					force_switch();
+					_hlt();
+				}
+			}
+
 			if (value == -1) {
-				// Si ya leimos algo, retornarlo antes de procesar EOF
 				if (read_count > 0) {
 					return read_count;
 				}
-				// Si no hay datos, retornar 0 para que terminal.c maneje EOF
-				// pero NO marcar stdin_eof del terminal (ya lo manejamos en process_read)
 				return 0;
 			}
 			buffer[i] = value;
 			read_count++;
-
-			// El terminal NO debe hacer echo automatico
-			// El terminal solo lee del teclado para pasarlo al proceso foreground
-			// El echo es responsabilidad del proceso foreground, no del terminal
 		}
 		return read_count;
 	}
 
-	// Para procesos no-terminal, SOLO el proceso foreground puede leer del teclado
-	// Esto evita race conditions entre el terminal y otros procesos
 	PCB *proc = get_current_process();
 	if (proc == NULL) {
 		return 0;
@@ -134,25 +174,18 @@ int read_keyboard(char *buffer, int len) {
 	process_id_t current_pid = proc->pid;
 	process_id_t fg_pid = get_foreground_process();
 
-	// Si el proceso actual no es foreground, esperar a que lo sea
-	// Esto es necesario porque cat puede empezar a leer antes de ser foreground
 	if (fg_pid != current_pid) {
-		// Esperar a ser foreground (hacer yield hasta que lo seamos)
-		// Esto evita que cat termine inmediatamente si no es foreground aun
-		int max_wait = 100; // Limitar espera para evitar loop infinito
+		int max_wait = 500;
 		while (fg_pid != current_pid && max_wait > 0) {
 			force_switch();
 			fg_pid = get_foreground_process();
 			max_wait--;
 		}
-		// Si aun no somos foreground despues de esperar, retornar 0
 		if (fg_pid != current_pid) {
 			return 0;
 		}
 	}
 
-	// El proceso actual es foreground, puede leer del teclado
-	// Leer caracteres disponibles inmediatamente, sin bloquear innecesariamente
 	int read_count = 0;
 
 	while (read_count < len) {
@@ -163,67 +196,62 @@ int read_keyboard(char *buffer, int len) {
 			return read_count;
 		}
 
-		// Intentar leer caracteres disponibles sin bloquear
 		char value = -1;
-		char letter = getKey();
 
-		if (letter != -1 && conversionArray[letter] != -1) {
-			// Hay un caracter valido disponible
-			char c;
-			/* Si shift esta presionado y hay mapeo especial, usarlo */
-			if (isShiftPressed() && shiftConversionArray[letter] != 0)
-				c = shiftConversionArray[letter];
-			else if (isUpperCase() && letter != -1 && conversionArray[letter] <= 'z' && conversionArray[letter] >= 'a')
-				c = conversionArray[letter] - ('a' - 'A');
-			else
-				c = (letter != -1) ? conversionArray[letter] : letter;
+		while (value == -1) {
+			char letter = getKey();
 
-			/* Detectar Ctrl+D (EOF) */
-			if (isCtrlPressed() && c == 'd') {
-				value = -1; // señal de EOF
+			if (letter != -1 && conversionArray[letter] != -1) {
+				char c;
+				if (isShiftPressed() && shiftConversionArray[letter] != 0)
+					c = shiftConversionArray[letter];
+				else if (isUpperCase() && letter != -1 && conversionArray[letter] <= 'z' &&
+						 conversionArray[letter] >= 'a')
+					c = conversionArray[letter] - ('a' - 'A');
+				else
+					c = (letter != -1) ? conversionArray[letter] : letter;
+
+				if (isCtrlPressed() && c == 'd') {
+					value = -1;
+					break;
+				}
+				else {
+					value = c;
+					break;
+				}
 			}
-			else {
-				value = c;
+
+			value = getChar();
+
+			if (value == -1) {
+				fg_pid = get_foreground_process();
+				if (fg_pid != current_pid) {
+					if (read_count > 0) {
+						return read_count;
+					}
+					return 0;
+				}
+				force_switch();
+				_hlt();
 			}
 		}
 
 		if (value == -1) {
-			// No hay mas caracteres disponibles en este momento
-			// Si ya leimos algo, retornarlo inmediatamente para que el proceso pueda hacer echo
-			if (read_count > 0) {
-				return read_count;
+			if (read_count == 0) {
+				return 0;
 			}
-			// Si no hay caracteres y no hemos leido nada, usar getChar que bloquea
-			// pero esto es necesario para esperar a que el usuario escriba
-			// getChar() tiene un loop interno que espera hasta que haya un caracter valido
-			value = getChar();
-			if (value == -1) {
-				// EOF: retornar lo que se haya leido hasta ahora
-				if (read_count == 0) {
-					return 0;
-				}
-				break;
-			}
+			break;
 		}
 
-		// Guardar el caracter leido
 		buffer[read_count++] = value;
 
 		if (proc != NULL && proc->io_state.stdin_echo) {
-			// Verificar si el proceso es cat (que escribe manualmente cuando stdout == SCREEN)
-			// filter ya no escribe manualmente, almacena y filtra al final
-			// Solo verificar si stdout es SCREEN para evitar problemas con pipes
 			int writes_manually = (proc->io_state.stdout_desc.type == IO_SINK_SCREEN && strcmp(proc->name, "cat") == 0);
 
-			// Solo hacer echo automatico si el proceso NO escribe manualmente
 			if (!writes_manually) {
-				// Hacer echo del caracter directamente a pantalla
-				// Usar el mismo color que write_output() usa por defecto (blanco = 0x0F)
-				// para mantener consistencia visual entre echo automatico y escritura manual
 				uint8_t previous_color = vd_get_color();
-				vd_set_color(VGA_COLOR_WHITE); // Blanco (0x0F) - mismo color que write_output por defecto
+				vd_set_color(VGA_COLOR_WHITE);
 
-				// Solo hacer echo de caracteres imprimibles (no EOF, no backspace especial)
 				if (value != -1 && value != '\0') {
 					// Manejar backspace: retroceder cursor y borrar caracter
 					if (value == '\b' || value == 8) {
@@ -259,14 +287,8 @@ void write(const char *string, int len, int color, int background) {
 	uint8_t bg = (uint8_t) (background & 0x0F);
 	uint8_t attribute = (uint8_t) ((bg << 4) | fg);
 	vd_set_color(attribute);
-
-	// Escribir caracter por caracter inmediatamente
-	// vd_draw_char escribe directamente a la memoria de video (0xB8000)
-	// por lo que cada caracter se muestra inmediatamente en pantalla
 	for (int i = 0; i < len; i++) {
 		vd_draw_char(string[i]);
-		// No hay buffering: cada caracter se escribe directamente a VGA
-		// y se muestra inmediatamente en pantalla
 	}
 
 	vd_set_color(previous_color);
