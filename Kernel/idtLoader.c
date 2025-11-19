@@ -25,11 +25,9 @@ void load_idt() {
 	setup_IDT_entry(0x00, (uint64_t) &_exception0Handler);
 	setup_IDT_entry(0x06, (uint64_t) &_exception6Handler);
 
-	// Solo interrupcion timer tick habilitadas
+	// Habilitar interrupciones de timer (bit 0) y teclado (bit 1)
 	picMasterMask(0xfc);
 	picSlaveMask(0xff);
-
-	_sti();
 }
 
 static void setup_IDT_entry(int index, uint64_t offset) {

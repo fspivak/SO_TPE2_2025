@@ -2,8 +2,6 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
 #include "include/keyboard.h"
-// extern de ASM para forzar scheduler inmediatamente
-extern void _force_scheduler_interrupt(void);
 
 #define BACKSPACE_P 0x0E
 #define ENTER_P 0x1C

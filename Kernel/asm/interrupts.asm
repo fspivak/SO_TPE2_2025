@@ -109,6 +109,7 @@ SECTION .text
 %macro irqHandlerMaster 1
 	pushState
 	mov byte [regs_save], 0
+	mov rbp, rsp
 	mov rdi, %1 ; pasaje de parametro
 	call irqDispatcher
 
@@ -233,6 +234,7 @@ picSlaveMask:
 ;8254 Timer (Timer Tick) con scheduler
 _irq00Handler:
 	pushState
+	mov rbp, rsp
 	
 	mov rdi, 0 ; parametro: IRQ number
 	call irqDispatcher
@@ -240,8 +242,16 @@ _irq00Handler:
 	; Llamar al scheduler con el stack pointer actual
 	mov rdi, rsp
 	call scheduler
-	mov rsp, rax  ; Cambiar al stack del siguiente proceso
+
+	cmp rax, 0
+	je .scheduler_error
 	
+	mov rsp, rax  ; Cambiar al stack del siguiente proceso
+	jmp .scheduler_ok
+	
+.scheduler_error:
+	
+.scheduler_ok:
 	; signal pic EOI (End of Interrupt)
 	mov al, 20h
 	out 20h, al
@@ -274,8 +284,6 @@ _irq60Handler:
 	mov rbp, rsp
 	
 	pushStateNoRax    ; No guardar RAX para preservar valor de retorno
-	; CRITICO: r9 contiene arg6 (desde el stack en sys_call)
-	; En x86-64 calling convention, va_list lee:
 	; - Primeros 6 argumentos: de registros (rdi, rsi, rdx, rcx, r8, r9)
 	; - 7mo argumento en adelante: del stack (despues del return address)
 	; Necesitamos preservar arg6 (r9) y ponerlo en el stack para que va_list lo lea
