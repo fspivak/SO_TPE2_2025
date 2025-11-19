@@ -13,12 +13,6 @@ static void init_semaphores() {
 	if (initialized)
 		return;
 
-	_cli();
-	if (initialized) {
-		_sti();
-		return;
-	}
-
 	for (int i = 0; i < MAX_SEMAPHORES; i++) {
 		sem_table[i].name[0] = '\0';
 		sem_table[i].value = 0;
@@ -32,7 +26,6 @@ static void init_semaphores() {
 		}
 	}
 	initialized = 1;
-	_sti();
 }
 
 static int find_semaphore(const char *name) {
@@ -115,6 +108,18 @@ static int create_semaphore(const char *name, uint32_t initial_value) {
 
 	for (int i = 0; i < MAX_SEMAPHORES; i++) {
 		if (sem_table[i].state == SEM_FREE) {
+			int existing_id = find_semaphore(name_buffer);
+			if (existing_id != SEM_NOT_FOUND) {
+				if (sem_table[existing_id].users < 65535) {
+					sem_table[existing_id].users++;
+				}
+				return existing_id;
+			}
+
+			if (sem_table[i].state != SEM_FREE) {
+				continue;
+			}
+
 			int j = 0;
 			while (name_buffer[j] != '\0' && j < MAX_SEM_NAME - 1) {
 				sem_table[i].name[j] = name_buffer[j];
@@ -146,18 +151,15 @@ int sem_open(const char *name, uint32_t initial_value) {
 	if (validate_and_copy_name(name, name_buffer) != 0)
 		return -1;
 
-	_cli();
 	int sem_id = find_semaphore(name_buffer);
 	if (sem_id != SEM_NOT_FOUND) {
 		if (sem_table[sem_id].users < 65535) {
 			sem_table[sem_id].users++;
 		}
-		_sti();
 		return sem_id;
 	}
 
 	sem_id = create_semaphore(name_buffer, initial_value);
-	_sti();
 	return (sem_id == SEM_NOT_FOUND) ? -1 : sem_id;
 }
 
@@ -171,27 +173,22 @@ int sem_wait(const char *name) {
 	if (validate_and_copy_name(name, name_buffer) != 0)
 		return -1;
 
-	_cli();
 	int sem_id = find_semaphore(name_buffer);
 	if (sem_id == SEM_NOT_FOUND) {
-		_sti();
 		return -1;
 	}
 
 	if (sem_table[sem_id].value > 0) {
 		sem_table[sem_id].value--;
-		_sti();
 		return 0;
 	}
 
 	process_id_t current_pid = get_current_pid();
 	if (current_pid < 0) {
-		_sti();
 		return -1;
 	}
 
 	if (sem_table[sem_id].count >= MAX_PROCESSES) {
-		_sti();
 		return -1;
 	}
 
@@ -200,7 +197,8 @@ int sem_wait(const char *name) {
 	sem_table[sem_id].count++;
 
 	block_process(current_pid);
-	_sti();
+
+	_hlt();
 
 	return 0;
 }
@@ -208,17 +206,17 @@ int sem_wait(const char *name) {
 int sem_post(const char *name) {
 	if (!initialized)
 		init_semaphores();
-	if (name == NULL)
+	if (name == NULL) {
 		return -1;
+	}
 
 	char name_buffer[MAX_SEM_NAME];
-	if (validate_and_copy_name(name, name_buffer) != 0)
+	if (validate_and_copy_name(name, name_buffer) != 0) {
 		return -1;
+	}
 
-	_cli();
 	int sem_id = find_semaphore(name_buffer);
 	if (sem_id == SEM_NOT_FOUND) {
-		_sti();
 		return -1;
 	}
 
@@ -232,7 +230,6 @@ int sem_post(const char *name) {
 				sem_table[sem_id].waiting_processes[sem_table[sem_id].head] = -1;
 				sem_table[sem_id].head = (sem_table[sem_id].head + 1) % MAX_PROCESSES;
 				sem_table[sem_id].count--;
-				_sti();
 
 				unblock_process(pid_to_wake);
 				_force_scheduler_interrupt();
@@ -246,29 +243,27 @@ int sem_post(const char *name) {
 		sem_table[sem_id].count = 0;
 		sem_table[sem_id].head = 0;
 		sem_table[sem_id].tail = 0;
-		_sti();
 		return 0;
 	}
 
 	sem_table[sem_id].value++;
-	_sti();
 	return 0;
 }
 
 int sem_close(const char *name) {
 	if (!initialized)
 		init_semaphores();
-	if (name == NULL)
+	if (name == NULL) {
 		return -1;
+	}
 
 	char name_buffer[MAX_SEM_NAME];
-	if (validate_and_copy_name(name, name_buffer) != 0)
+	if (validate_and_copy_name(name, name_buffer) != 0) {
 		return -1;
+	}
 
-	_cli();
 	int sem_id = find_semaphore(name_buffer);
 	if (sem_id == SEM_NOT_FOUND) {
-		_sti();
 		return -1;
 	}
 
@@ -294,7 +289,6 @@ int sem_close(const char *name) {
 		sem_table[sem_id].tail = 0;
 		sem_table[sem_id].count = 0;
 	}
-	_sti();
 
 	if (wake_count > 0) {
 		for (int i = 0; i < wake_count; i++) {
@@ -318,14 +312,11 @@ int sem_get_waiting_count(const char *name) {
 	if (validate_and_copy_name(name, name_buffer) != 0)
 		return -1;
 
-	_cli();
 	int sem_id = find_semaphore(name_buffer);
 	if (sem_id == SEM_NOT_FOUND) {
-		_sti();
 		return -1;
 	}
 
 	int count = sem_table[sem_id].count;
-	_sti();
 	return count;
 }

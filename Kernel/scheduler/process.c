@@ -7,8 +7,9 @@
 #include "../include/stddef.h"
 #include "../include/stdinout.h"
 #include "../include/syscallDispatcher.h"
-#include "../include/videoDriver.h"
 #include "../memory-manager/include/memory_manager.h"
+#include "include/semaphore.h"
+#include "include/spinlock.h"
 
 extern void *set_process_stack(int argc, char **argv, void *stack, void *pcb);
 extern void idle_process();
@@ -87,7 +88,9 @@ static PCB *ready_queue[MAX_PROCESSES];
 static int ready_queue_head = 0;
 static int ready_queue_tail = 0;
 static int ready_queue_count = 0;
-static int cleanup_counter = 0; // Contador para limpieza periodica
+static int cleanup_counter = 0;
+
+static spinlock_t process_creation_lock;
 
 extern MemoryManagerADT memory_manager;
 
@@ -101,6 +104,15 @@ static void reset_process_name(PCB *process) {
 	}
 }
 
+static void safe_mm_wait() {
+	if (sem_wait("mm_lock") != 0) {
+	}
+}
+
+static void safe_mm_post() {
+	sem_post("mm_lock");
+}
+
 static void release_process_arguments(PCB *process) {
 	if (process == NULL || process->argv == NULL) {
 		return;
@@ -108,12 +120,16 @@ static void release_process_arguments(PCB *process) {
 
 	for (int i = 0; i < process->argc; i++) {
 		if (process->argv[i] != NULL) {
+			safe_mm_wait();
 			memory_free(memory_manager, process->argv[i]);
+			safe_mm_post();
 			process->argv[i] = NULL;
 		}
 	}
 
+	safe_mm_wait();
 	memory_free(memory_manager, process->argv);
+	safe_mm_post();
 	process->argv = NULL;
 	process->argc = 0;
 }
@@ -128,7 +144,9 @@ static void release_process_resources(PCB *process) {
 	release_process_arguments(process);
 
 	if (process->stack_base != NULL) {
+		safe_mm_wait();
 		memory_free(memory_manager, process->stack_base);
+		safe_mm_post();
 		process->stack_base = NULL;
 		process->stack_pointer = NULL;
 	}
@@ -166,7 +184,9 @@ static int duplicate_arguments(PCB *process, int argc, char **argv) {
 		return 0;
 	}
 
+	safe_mm_wait();
 	process->argv = (char **) memory_alloc(memory_manager, (argc + 1) * sizeof(char *));
+	safe_mm_post();
 	if (process->argv == NULL) {
 		return -1;
 	}
@@ -185,7 +205,9 @@ static int duplicate_arguments(PCB *process, int argc, char **argv) {
 			len++;
 		}
 
+		safe_mm_wait();
 		process->argv[i] = (char *) memory_alloc(memory_manager, len + 1);
+		safe_mm_post();
 		if (process->argv[i] == NULL) {
 			release_process_arguments(process);
 			return -1;
@@ -518,8 +540,13 @@ int init_processes() {
 		i++;
 	}
 	idle_pcb->name[i] = '\0';
-	idle_pcb->entry_point = NULL; // El proceso idle no tiene entry_point userland
+	idle_pcb->entry_point = NULL;
+
+	sem_open("mm_lock", 1);
+
+	safe_mm_wait();
 	idle_pcb->stack_base = memory_alloc(memory_manager, STACK_SIZE);
+	safe_mm_post();
 	if (idle_pcb->stack_base == NULL) {
 		return -1;
 	}
@@ -537,8 +564,8 @@ int init_processes() {
 
 	init_pipes();
 
-	// Forzar limpieza inicial y resetear contadores para estabilizar el sistema
-	// Esto asegura que el primer comando tenga un estado limpio
+	spinlock_init(&process_creation_lock);
+
 	cleanup_counter = CLEANUP_INTERVAL - 1;
 	free_terminated_processes();
 
@@ -556,6 +583,8 @@ static process_id_t create_process_internal(const char *name, void (*entry_point
 	if (!initialized_flag || entry_point == NULL) {
 		return -1;
 	}
+
+	spinlock_lock(&process_creation_lock);
 
 	if (priority > MAX_PRIORITY) {
 		priority = MAX_PRIORITY;
@@ -583,6 +612,7 @@ static process_id_t create_process_internal(const char *name, void (*entry_point
 	}
 
 	if (slot == -1) {
+		spinlock_unlock(&process_creation_lock);
 		return -1;
 	}
 
@@ -619,6 +649,7 @@ static process_id_t create_process_internal(const char *name, void (*entry_point
 		if (retain_process_io_resources(new_process) != 0) {
 			init_process_io_defaults(&new_process->io_state);
 			new_process->state = TERMINATED;
+			spinlock_unlock(&process_creation_lock);
 			return -1;
 		}
 	}
@@ -630,6 +661,7 @@ static process_id_t create_process_internal(const char *name, void (*entry_point
 		if (override_process_io(new_process, io_config) != 0) {
 			release_process_io_resources(new_process);
 			new_process->state = TERMINATED;
+			spinlock_unlock(&process_creation_lock);
 			return -1;
 		}
 	}
@@ -637,17 +669,23 @@ static process_id_t create_process_internal(const char *name, void (*entry_point
 	if (duplicate_arguments(new_process, argc, argv) < 0) {
 		release_process_io_resources(new_process);
 		new_process->state = TERMINATED;
+		spinlock_unlock(&process_creation_lock);
 		return -1;
 	}
 
+	safe_mm_wait();
 	new_process->stack_base = memory_alloc(memory_manager, STACK_SIZE);
+	safe_mm_post();
 	if (new_process->stack_base == NULL) {
 		free_terminated_processes();
+		safe_mm_wait();
 		new_process->stack_base = memory_alloc(memory_manager, STACK_SIZE);
+		safe_mm_post();
 		if (new_process->stack_base == NULL) {
 			release_process_arguments(new_process);
 			release_process_io_resources(new_process);
 			new_process->state = TERMINATED;
+			spinlock_unlock(&process_creation_lock);
 			return -1;
 		}
 	}
@@ -659,16 +697,19 @@ static process_id_t create_process_internal(const char *name, void (*entry_point
 	if (addToScheduler(new_process) < 0) {
 		release_process_resources(new_process);
 		new_process->state = TERMINATED;
+		spinlock_unlock(&process_creation_lock);
 		return -1;
 	}
 
 	if (assign_foreground) {
 		if (set_foreground_process(new_process->pid) < 0) {
+			spinlock_unlock(&process_creation_lock);
 			terminate_process(new_process, 1);
 			return -1;
 		}
 	}
 
+	spinlock_unlock(&process_creation_lock);
 	return new_process->pid;
 }
 
@@ -879,10 +920,7 @@ static int terminate_process(PCB *process, int kill_descendants) {
 				addToScheduler(p);
 			}
 			else if (p->state == READY || p->state == RUNNING) {
-				// Proceso tiene waiting_pid establecido pero aun no se bloqueo
-				// NO hay que limpiar waiting_pid aqui - dejarlo para que waitpid lo detecte
-				// waitpid verificara el estado del hijo antes de bloquearse
-				// Si el hijo ya termino, waitpid retornara inmediatamente
+				p->waiting_pid = -1;
 			}
 		}
 	}
@@ -955,7 +993,6 @@ int waitpid(process_id_t pid) {
 		current->waiting_pid = -1;
 		return 0;
 	}
-	//////////////////////////////////////
 
 	// Verificar ANTES de bloquearse si el hijo termino porque puede haber terminado mientras estableciamos waiting_pid.
 	// Si el hijo ya termino, no bloquearse y retornar inmediatamente
@@ -968,7 +1005,6 @@ int waitpid(process_id_t pid) {
 	current->state = BLOCKED;
 	removeFromScheduler(current);
 
-	// Verificamos UNA VEZ MAS despues de bloquearse
 	child_process = get_process_by_pid(pid);
 	if (child_process != NULL && child_process->state == TERMINATED) {
 		current->waiting_pid = -1;
@@ -1050,22 +1086,36 @@ int get_processes_info(ProcessInfo *buffer, int max_processes) {
 
 	int count = 0;
 	for (int i = 0; i < MAX_PROCESSES && count < max_processes; i++) {
-		if (process_table[i].state != TERMINATED && process_table[i].pid >= 0) {
-			buffer[count].pid = process_table[i].pid;
+		ProcessState local_state;
+		process_id_t local_pid;
+		char local_name[MAX_PROCESS_NAME];
+		uint8_t local_priority;
+		uint64_t local_stack_base;
+		uint64_t local_rsp;
+		uint8_t local_has_foreground;
+		process_id_t local_pid_for_fg;
+
+		local_state = process_table[i].state;
+		local_pid = process_table[i].pid;
+
+		if (local_state != TERMINATED && local_pid >= 0) {
 			int j = 0;
 			while (j < MAX_PROCESS_NAME - 1) {
-				buffer[count].name[j] = process_table[i].name[j];
+				local_name[j] = process_table[i].name[j];
 				if (process_table[i].name[j] == '\0')
 					break;
 				j++;
 			}
-			buffer[count].name[MAX_PROCESS_NAME - 1] = '\0';
+			local_name[MAX_PROCESS_NAME - 1] = '\0';
 
-			buffer[count].priority = process_table[i].base_priority;
-			buffer[count].stack_base = (uint64_t) process_table[i].stack_base;
-			buffer[count].rsp = (uint64_t) process_table[i].stack_pointer;
+			local_priority = process_table[i].base_priority;
+			local_stack_base = (uint64_t) process_table[i].stack_base;
+			local_rsp = (uint64_t) process_table[i].stack_pointer;
+			local_has_foreground = process_table[i].has_foreground;
+			local_pid_for_fg = process_table[i].pid;
+
 			const char *state_str;
-			switch (process_table[i].state) {
+			switch (local_state) {
 				case READY:
 					state_str = "READY";
 					break;
@@ -1080,6 +1130,19 @@ int get_processes_info(ProcessInfo *buffer, int max_processes) {
 					break;
 			}
 
+			buffer[count].pid = local_pid;
+
+			j = 0;
+			while (local_name[j] != '\0' && j < MAX_PROCESS_NAME - 1) {
+				buffer[count].name[j] = local_name[j];
+				j++;
+			}
+			buffer[count].name[j] = '\0';
+
+			buffer[count].priority = local_priority;
+			buffer[count].stack_base = local_stack_base;
+			buffer[count].rsp = local_rsp;
+
 			j = 0;
 			while (state_str[j] != '\0' && j < 15) {
 				buffer[count].state_name[j] = state_str[j];
@@ -1087,8 +1150,7 @@ int get_processes_info(ProcessInfo *buffer, int max_processes) {
 			}
 			buffer[count].state_name[j] = '\0';
 
-			buffer[count].hasForeground =
-				(foregroundProcessPid == process_table[i].pid) ? 1 : process_table[i].has_foreground;
+			buffer[count].hasForeground = (foregroundProcessPid == local_pid_for_fg) ? 1 : local_has_foreground;
 
 			count++;
 		}
@@ -1154,11 +1216,23 @@ void *schedule(void *current_stack_pointer) {
 	}
 
 	if (next_process == NULL) {
+		if (idle_pcb == NULL) {
+			return NULL;
+		}
 		next_process = idle_pcb;
 	}
 
 	if (next_process->state == TERMINATED || next_process->stack_base == NULL || next_process->stack_pointer == NULL ||
 		(next_process->entry_point == NULL && next_process != idle_pcb)) {
+		if (idle_pcb == NULL) {
+			return NULL;
+		}
+		next_process = idle_pcb;
+	}
+	if (next_process->stack_base == NULL || next_process->stack_pointer == NULL) {
+		if (idle_pcb == NULL || idle_pcb->stack_base == NULL || idle_pcb->stack_pointer == NULL) {
+			return NULL;
+		}
 		next_process = idle_pcb;
 	}
 
@@ -1167,6 +1241,15 @@ void *schedule(void *current_stack_pointer) {
 	current_process->scheduler_counter++;
 	current_process->waiting_ticks = 0;
 	current_process->priority = clamp_priority(current_process->base_priority);
+
+	if (current_process->stack_pointer == NULL || current_process->stack_base == NULL) {
+		if (idle_pcb == NULL || idle_pcb->stack_pointer == NULL || idle_pcb->stack_base == NULL) {
+			return NULL;
+		}
+		current_process = idle_pcb;
+		current_process->state = RUNNING;
+		return idle_pcb->stack_pointer;
+	}
 
 	return current_process->stack_pointer;
 }
@@ -1335,7 +1418,6 @@ void *get_current_process_stack_pointer(void) {
 
 void process_entry_wrapper(int argc, char **argv, void *rsp, PCB *proc) {
 	if (rsp == NULL || proc == NULL || proc->entry_point == NULL) {
-		vd_print("process_entry_wrapper: Invalid arguments\n");
 		return;
 	}
 
